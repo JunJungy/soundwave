@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
-import { Play, MoreHorizontal } from "lucide-react";
+import { useRoute, useLocation } from "wouter";
+import { Play, MoreHorizontal, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TrackList, type Track } from "@/components/track-list";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
@@ -8,6 +8,7 @@ import type { Playlist, Song, Artist, Album } from "@shared/schema";
 
 export default function PlaylistPage() {
   const [, params] = useRoute("/playlist/:id");
+  const [, setLocation] = useLocation();
   const playlistId = params?.id;
   const { playQueue, playTrack, currentTrack, isPlaying, togglePlayPause } = useMusicPlayer();
 
@@ -62,7 +63,7 @@ export default function PlaylistPage() {
         id: song.id,
         title: song.title,
         artist: artistMap[song.artistId] || "Unknown Artist",
-        albumCover: album?.coverUrl,
+        albumCover: album?.coverUrl || undefined,
         duration: song.duration,
         audioUrl: song.audioUrl || undefined,
       };
@@ -77,7 +78,7 @@ export default function PlaylistPage() {
       id: track.id,
       title: track.title,
       artist: track.artist,
-      albumCover: album?.coverUrl,
+      albumCover: album?.coverUrl || undefined,
       duration: track.duration,
       audioUrl: song?.audioUrl || undefined,
     });
@@ -121,6 +122,20 @@ export default function PlaylistPage() {
 
   return (
     <div className="pb-24">
+      {/* Back Button */}
+      <div className="px-6 pt-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation("/")}
+          data-testid="button-back-home"
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Button>
+      </div>
+
       {/* Playlist Header */}
       <div className="px-6 py-8">
         <div className="flex flex-col md:flex-row gap-8 items-start md:items-end">

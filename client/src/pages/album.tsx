@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
-import { Play, Clock } from "lucide-react";
+import { useRoute, useLocation } from "wouter";
+import { Play, Clock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TrackList, type Track } from "@/components/track-list";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
@@ -8,6 +8,7 @@ import type { Album, Artist, Song } from "@shared/schema";
 
 export default function AlbumPage() {
   const [, params] = useRoute("/album/:id");
+  const [, setLocation] = useLocation();
   const albumId = params?.id;
   const { playQueue, playTrack, currentTrack, isPlaying, togglePlayPause } = useMusicPlayer();
 
@@ -50,7 +51,7 @@ export default function AlbumPage() {
       id: song.id,
       title: song.title,
       artist: artistMap[song.artistId] || "Unknown Artist",
-      albumCover: album?.coverUrl,
+      albumCover: album?.coverUrl || undefined,
       duration: song.duration,
       audioUrl: song.audioUrl || undefined,
     }));
@@ -63,7 +64,7 @@ export default function AlbumPage() {
       id: track.id,
       title: track.title,
       artist: track.artist,
-      albumCover: album?.coverUrl,
+      albumCover: album?.coverUrl || undefined,
       duration: track.duration,
       audioUrl: song?.audioUrl || undefined,
     });
@@ -107,6 +108,20 @@ export default function AlbumPage() {
 
   return (
     <div className="pb-24">
+      {/* Back Button */}
+      <div className="px-6 pt-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocation("/")}
+          data-testid="button-back-home"
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Button>
+      </div>
+
       {/* Album Header */}
       <div className="px-6 py-8">
         <div className="flex flex-col md:flex-row gap-8 items-start md:items-end">
