@@ -398,6 +398,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin user management endpoints
+  app.get("/api/admin/users", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const allUsers = await storage.getAllUsers();
+      const safeUsers = allUsers.map(({ passwordHash: _, ...user }) => user);
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/admin/users/:id/promote", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const updatedUser = await storage.updateUserAdminStatus(req.params.id, 1);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { passwordHash: _, ...safeUser } = updatedUser;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error promoting user:", error);
+      res.status(500).json({ error: "Failed to promote user" });
+    }
+  });
+
+  app.post("/api/admin/users/:id/demote", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const updatedUser = await storage.updateUserAdminStatus(req.params.id, 0);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { passwordHash: _, ...safeUser } = updatedUser;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Error demoting user:", error);
+      res.status(500).json({ error: "Failed to demote user" });
+    }
+  });
+
   // Song stream tracking
   app.post("/api/songs/:id/play", isAuthenticated, async (req: any, res) => {
     try {
