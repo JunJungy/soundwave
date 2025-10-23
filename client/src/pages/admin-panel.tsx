@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown } from "lucide-react";
+import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw } from "lucide-react";
 import type { ArtistApplication, User } from "@shared/schema";
 
 export default function AdminPanel() {
@@ -151,6 +151,27 @@ export default function AdminPanel() {
     },
   });
 
+  const updateSpotifyUrlsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/update-spotify-urls");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/songs"] });
+      toast({
+        title: "Spotify URLs updated!",
+        description: `Updated ${data.updated} songs. Failed: ${data.failed}. Skipped: ${data.skipped}.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update Spotify URLs",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteClick = (targetUser: User) => {
     setUserToDelete(targetUser);
     setDeleteDialogOpen(true);
@@ -197,12 +218,15 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="applications" data-testid="tab-applications">
             Artist Applications
           </TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users">
             User Management
+          </TabsTrigger>
+          <TabsTrigger value="system" data-testid="tab-system">
+            System Tools
           </TabsTrigger>
         </TabsList>
 
@@ -374,6 +398,43 @@ export default function AdminPanel() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="system" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-primary" />
+                <CardTitle>Spotify Integration</CardTitle>
+              </div>
+              <CardDescription>
+                Update all songs with real Spotify 30-second preview URLs
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border p-4 bg-muted/50">
+                <p className="text-sm text-muted-foreground mb-4">
+                  This will fetch real 30-second preview clips from Spotify for all songs in the database. 
+                  Songs currently using placeholder audio will be updated with authentic Spotify previews.
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-1 mb-4">
+                  <li>• Searches for each song on Spotify using title and artist name</li>
+                  <li>• Updates database with preview URLs when found</li>
+                  <li>• Skips songs that already have Spotify URLs</li>
+                  <li>• May take 1-2 minutes for 40 songs</li>
+                </ul>
+              </div>
+              <Button
+                onClick={() => updateSpotifyUrlsMutation.mutate()}
+                disabled={updateSpotifyUrlsMutation.isPending}
+                className="w-full"
+                data-testid="button-update-spotify-urls"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${updateSpotifyUrlsMutation.isPending ? 'animate-spin' : ''}`} />
+                {updateSpotifyUrlsMutation.isPending ? "Updating..." : "Update Spotify Preview URLs"}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

@@ -54,6 +54,7 @@ export interface IStorage {
   getSongsByArtist(artistId: string): Promise<Song[]>;
   createSong(song: InsertSong): Promise<Song>;
   incrementSongStreams(songId: string): Promise<Song | undefined>;
+  updateSongAudioUrl(songId: string, audioUrl: string): Promise<Song | undefined>;
 
   // Playlists
   getPlaylists(userId: string): Promise<Playlist[]>;
@@ -211,6 +212,15 @@ export class DatabaseStorage implements IStorage {
     const [song] = await db
       .update(songs)
       .set({ streams: sql`${songs.streams} + 1` })
+      .where(eq(songs.id, songId))
+      .returning();
+    return song;
+  }
+
+  async updateSongAudioUrl(songId: string, audioUrl: string): Promise<Song | undefined> {
+    const [song] = await db
+      .update(songs)
+      .set({ audioUrl })
       .where(eq(songs.id, songId))
       .returning();
     return song;
@@ -469,42 +479,49 @@ export class DatabaseStorage implements IStorage {
       { albumIndex: 13, trackName: "Cool With You", artistName: "NewJeans" },
     ];
 
-    console.log(`Adding ${tracksToFetch.length} tracks with demo audio...`);
+    console.log(`Fetching ${tracksToFetch.length} tracks from Spotify...`);
     
-    // Map tracks to different demo audio files for variety
-    const audioFiles = [
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3",
-    ];
+    // Import Spotify helper
+    const { searchTrack } = await import("./spotify");
     
-    // Add tracks with different demo audio for variety
+    // Fetch real Spotify preview URLs
     for (let i = 0; i < tracksToFetch.length; i++) {
-      const { albumIndex, trackName } = tracksToFetch[i];
+      const { albumIndex, trackName, artistName } = tracksToFetch[i];
       const album = createdAlbums[albumIndex];
-      const audioUrl = audioFiles[i % audioFiles.length];
       
-      await this.createSong({
-        title: trackName,
-        albumId: album.id,
-        artistId: album.artistId,
-        duration: 180 + Math.floor(Math.random() * 60), // 3-4 minutes
-        audioUrl,
-      });
-      console.log(`✓ Added: ${trackName}`);
+      try {
+        const spotifyTrack = await searchTrack(trackName, artistName);
+        const audioUrl = spotifyTrack?.previewUrl || null;
+        const duration = spotifyTrack?.duration || (180 + Math.floor(Math.random() * 60));
+        
+        await this.createSong({
+          title: trackName,
+          albumId: album.id,
+          artistId: album.artistId,
+          duration,
+          audioUrl,
+        });
+        
+        if (audioUrl) {
+          console.log(`✓ Added: ${trackName} (Spotify preview)`);
+        } else {
+          console.log(`⚠ Added: ${trackName} (no preview available)`);
+        }
+        
+        // Add small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (error) {
+        console.error(`Failed to fetch ${trackName}:`, error);
+        // Create song without audio URL if Spotify fails
+        await this.createSong({
+          title: trackName,
+          albumId: album.id,
+          artistId: album.artistId,
+          duration: 180,
+          audioUrl: null,
+        });
+        console.log(`⚠ Added: ${trackName} (Spotify error)`);
+      }
     }
 
     console.log("Database seeded successfully!");

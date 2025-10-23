@@ -81,10 +81,30 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
       audioRef.current.addEventListener("canplay", () => {
         console.log("Audio can play");
+        if (audioRef.current) {
+          console.log("Audio element state:", {
+            paused: audioRef.current.paused,
+            muted: audioRef.current.muted,
+            volume: audioRef.current.volume,
+            currentSrc: audioRef.current.currentSrc,
+            readyState: audioRef.current.readyState
+          });
+        }
       });
 
       audioRef.current.addEventListener("playing", () => {
         console.log("Audio is now playing");
+        if (audioRef.current) {
+          console.log("Playing state:", {
+            paused: audioRef.current.paused,
+            muted: audioRef.current.muted,
+            volume: audioRef.current.volume
+          });
+        }
+      });
+
+      audioRef.current.addEventListener("pause", () => {
+        console.log("Audio paused");
       });
     }
 

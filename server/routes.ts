@@ -200,6 +200,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update songs with real Spotify preview URLs - admin only
+  app.post("/api/admin/update-spotify-urls", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { searchTrack } = await import("./spotify");
+      const songs = await storage.getSongs();
+      const results = {
+        updated: 0,
+        failed: 0,
+        skipped: 0,
+        details: [] as any[]
+      };
+
+      for (const song of songs) {
+        try {
+          // Skip if already has a non-SoundHelix URL
+          if (song.audioUrl && !song.audioUrl.includes('soundhelix.com')) {
+            results.skipped++;
+            results.details.push({ song: song.title, status: 'skipped', reason: 'already has spotify url' });
+            continue;
+          }
+
+          const artist = await storage.getArtist(song.artistId);
+          if (!artist) {
+            results.failed++;
+            results.details.push({ song: song.title, status: 'failed', reason: 'artist not found' });
+            continue;
+          }
+
+          const spotifyTrack = await searchTrack(song.title, artist.name);
+          if (spotifyTrack?.previewUrl) {
+            await storage.updateSongAudioUrl(song.id, spotifyTrack.previewUrl);
+            results.updated++;
+            results.details.push({ song: song.title, status: 'updated', url: spotifyTrack.previewUrl });
+          } else {
+            results.failed++;
+            results.details.push({ song: song.title, status: 'failed', reason: 'no preview url found' });
+          }
+
+          // Add delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } catch (error: any) {
+          results.failed++;
+          results.details.push({ song: song.title, status: 'error', error: error.message });
+        }
+      }
+
+      res.json(results);
+    } catch (error: any) {
+      console.error("Error updating Spotify URLs:", error);
+      res.status(500).json({ error: "Failed to update Spotify URLs", details: error.message });
+    }
+  });
+
   // Playlists - authenticated access for user-specific playlists
   app.get("/api/playlists", isAuthenticated, async (req: any, res) => {
     try {
