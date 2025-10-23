@@ -53,7 +53,7 @@ function Router() {
 }
 
 function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [queueOpen, setQueueOpen] = useState(false);
   const [createPlaylistOpen, setCreatePlaylistOpen] = useState(false);
@@ -136,15 +136,22 @@ function AppContent() {
         <div className="flex flex-col flex-1 min-w-0">
           <header className="flex items-center justify-between p-4 border-b shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              data-testid="button-logout"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-4">
+              {user?.isAdmin === 1 && (
+                <div className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-semibold" data-testid="badge-admin">
+                  Owner
+                </div>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                data-testid="button-logout"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </header>
           
           <main className="flex-1 overflow-y-auto">
@@ -154,7 +161,7 @@ function AppContent() {
       </div>
 
       <MusicPlayer
-        currentTrack={currentTrack}
+        currentTrack={currentTrack || undefined}
         isPlaying={isPlaying}
         currentTime={currentTime}
         volume={volume}

@@ -83,7 +83,7 @@ attached_assets/
 ## Data Models
 
 ### User
-- id (varchar, UUID), username (unique, required), passwordHash (bcrypt hashed), email (optional), firstName, lastName
+- id (varchar, UUID), username (unique, required), passwordHash (bcrypt hashed), email (optional), firstName, lastName, isAdmin (0 or 1 for admin/owner privileges)
 
 ### Session
 - sid (varchar), sess (jsonb), expire (timestamp)
@@ -172,15 +172,18 @@ attached_assets/
 
 ## Recent Changes
 
-### Phase 3: Custom Authentication (2025-10-23)
+### Phase 3: Custom Authentication & Admin System (2025-10-23)
 - Replaced Replit Auth with custom username/password authentication
 - Added bcrypt password hashing with 10 salt rounds
-- Updated users table: username (unique, required), passwordHash, email (optional)
+- Updated users table: username (unique, required), passwordHash, email (optional), isAdmin (admin flag)
 - Implemented registration endpoint with username/password validation
 - Implemented login endpoint with credential verification
 - Created tabbed login/register UI with React Hook Form and Zod validation
 - Added proper error handling and toast notifications
 - Verified end-to-end authentication flow with comprehensive tests
+- Updated theme to authentic Spotify black background (#000000) and green (#1DB954)
+- Added admin/owner account system with visual badge in UI
+- Created owner account: username `admin`, password `admin123456`
 
 ### Phase 2: Authentication & Database (2025-10-23)
 - Migrated from in-memory storage to PostgreSQL database

@@ -31,6 +31,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  isAdmin: integer("is_admin").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -38,6 +39,7 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).omit({ 
   id: true, 
   passwordHash: true,
+  isAdmin: true,
   createdAt: true, 
   updatedAt: true 
 }).extend({
