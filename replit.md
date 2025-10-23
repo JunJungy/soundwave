@@ -57,6 +57,7 @@ client/
   │   │   ├── search.tsx
   │   │   ├── library.tsx
   │   │   ├── album.tsx
+  │   │   ├── artist.tsx
   │   │   └── playlist.tsx
   │   ├── contexts/        # React contexts
   │   │   └── MusicPlayerContext.tsx
@@ -89,7 +90,7 @@ attached_assets/
 - sid (varchar), sess (jsonb), expire (timestamp)
 
 ### Artist
-- id, name, imageUrl, genre
+- id, name, imageUrl, genre, verified (integer, 0 or 1), streams (integer)
 
 ### Album
 - id, title, artistId, coverUrl, year, genre
@@ -171,6 +172,17 @@ attached_assets/
 - **Defense in Depth**: Both route and storage layers enforce security
 
 ## Recent Changes
+
+### Phase 5: Artist Pages with Verified Badges & Stream Counts (2025-10-23)
+- Extended artists schema with `verified` (integer, 0/1) and `streams` (integer) fields
+- Updated database seed with verified status and realistic stream counts (1.2M - 15.4M)
+- Created artist page (`/artist/:id`) with professional layout
+- Added verified badge (BadgeCheck icon) for verified artists
+- Implemented stream count formatting (e.g., "15.4M streams", "8.9M streams")
+- Made artist names clickable throughout the app (album pages, search results)
+- Added back navigation buttons to album and playlist pages
+- Display artist's albums grid and top tracks list on artist page
+- Included proper data-testid attributes for all interactive elements
 
 ### Phase 4: Audio Playback Fix (2025-10-23)
 - Fixed audio playback by ensuring audioUrl field is passed from all pages to music player
