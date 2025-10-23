@@ -452,6 +452,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cannot demote yourself" });
       }
 
+      const targetUser = await storage.getUser(req.params.id);
+      if (targetUser?.username === "admin") {
+        return res.status(400).json({ error: "Cannot demote the owner account" });
+      }
+
       const updatedUser = await storage.updateUserAdminStatus(req.params.id, 0);
       if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
@@ -462,6 +467,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error demoting user:", error);
       res.status(500).json({ error: "Failed to demote user" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      if (req.params.id === userId) {
+        return res.status(400).json({ error: "Cannot delete yourself" });
+      }
+
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (targetUser.username === "admin") {
+        return res.status(400).json({ error: "Cannot delete the owner account" });
+      }
+
+      await storage.deleteUser(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Failed to delete user" });
     }
   });
 
