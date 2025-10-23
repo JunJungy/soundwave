@@ -1,5 +1,6 @@
-import { Home, Search, Library, Plus } from "lucide-react";
+import { Home, Search, Library, Plus, Shield, Music } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +29,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ playlists = [], onCreatePlaylist }: AppSidebarProps) {
   const [location] = useLocation();
+  const { user } = useAuth();
 
   return (
     <Sidebar>
@@ -59,6 +61,39 @@ export function AppSidebar({ playlists = [], onCreatePlaylist }: AppSidebarProps
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {(user?.isAdmin === 1 || user?.isArtist === 1) && (
+          <>
+            <Separator className="my-2" />
+            <SidebarGroup>
+              <SidebarGroupLabel>Management</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {user?.isAdmin === 1 && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={location === "/admin"} data-testid="link-admin">
+                        <Link href="/admin">
+                          <Shield className="h-5 w-5" />
+                          <span className="font-medium">Admin Panel</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                  {user?.isArtist === 1 && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={location === "/artist-dashboard"} data-testid="link-artist-dashboard">
+                        <Link href="/artist-dashboard">
+                          <Music className="h-5 w-5" />
+                          <span className="font-medium">Artist Dashboard</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
 
         <Separator className="my-2" />
 

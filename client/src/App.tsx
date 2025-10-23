@@ -9,12 +9,14 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { MusicPlayer } from "@/components/music-player";
 import { QueueSheet } from "@/components/queue-sheet";
 import { CreatePlaylistDialog } from "@/components/create-playlist-dialog";
+import { ArtistApplicationDialog } from "@/components/artist-application-dialog";
 import { MusicPlayerProvider, useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { LogOut, Music, Shield } from "lucide-react";
 import type { Playlist } from "@shared/schema";
 
 import Home from "@/pages/home";
@@ -23,6 +25,8 @@ import Library from "@/pages/library";
 import AlbumPage from "@/pages/album";
 import ArtistPage from "@/pages/artist";
 import PlaylistPage from "@/pages/playlist";
+import AdminPanel from "@/pages/admin-panel";
+import ArtistDashboard from "@/pages/artist-dashboard";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
@@ -49,6 +53,8 @@ function Router() {
       <Route path="/album/:id" component={AlbumPage} />
       <Route path="/artist/:id" component={ArtistPage} />
       <Route path="/playlist/:id" component={PlaylistPage} />
+      <Route path="/admin" component={AdminPanel} />
+      <Route path="/artist-dashboard" component={ArtistDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -59,6 +65,7 @@ function AppContent() {
   const { toast } = useToast();
   const [queueOpen, setQueueOpen] = useState(false);
   const [createPlaylistOpen, setCreatePlaylistOpen] = useState(false);
+  const [artistApplicationOpen, setArtistApplicationOpen] = useState(false);
 
   const { data: playlists = [] } = useQuery<Playlist[]>({
     queryKey: ["/api/playlists"],
@@ -138,11 +145,29 @@ function AppContent() {
         <div className="flex flex-col flex-1 min-w-0">
           <header className="flex items-center justify-between p-4 border-b shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {user?.isAdmin === 1 && (
-                <div className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-semibold" data-testid="badge-admin">
-                  Owner
-                </div>
+                <Badge className="bg-primary text-primary-foreground" data-testid="badge-admin">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Admin
+                </Badge>
+              )}
+              {user?.isArtist === 1 && (
+                <Badge className="bg-green-600 text-white" data-testid="badge-artist">
+                  <Music className="w-3 h-3 mr-1" />
+                  Artist
+                </Badge>
+              )}
+              {user?.isArtist !== 1 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setArtistApplicationOpen(true)}
+                  data-testid="button-apply-artist"
+                >
+                  <Music className="w-4 h-4 mr-2" />
+                  Become an Artist
+                </Button>
               )}
               <Button
                 variant="ghost"
@@ -198,6 +223,11 @@ function AppContent() {
         open={createPlaylistOpen}
         onOpenChange={setCreatePlaylistOpen}
         onCreatePlaylist={handleCreatePlaylist}
+      />
+
+      <ArtistApplicationDialog
+        open={artistApplicationOpen}
+        onOpenChange={setArtistApplicationOpen}
       />
 
       <Toaster />

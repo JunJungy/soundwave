@@ -105,9 +105,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
     if (currentTrack.id && currentTrack.id !== trackedSongRef.current && isPlaying) {
       trackedSongRef.current = currentTrack.id;
-      apiRequest(`/api/songs/${currentTrack.id}/play`, {
-        method: "POST",
-      }).catch((error) => {
+      apiRequest("POST", `/api/songs/${currentTrack.id}/play`).catch((error) => {
         console.error("Failed to track stream:", error);
       });
     }
