@@ -46,23 +46,26 @@ export default function AlbumPage() {
   const totalMinutes = Math.floor(totalDuration / 60);
 
   const handlePlayAll = () => {
-    const playerTracks = tracks.map((track) => ({
-      id: track.id,
-      title: track.title,
-      artist: track.artist,
+    const playerTracks = albumSongs.map((song) => ({
+      id: song.id,
+      title: song.title,
+      artist: artistMap[song.artistId] || "Unknown Artist",
       albumCover: album?.coverUrl,
-      duration: track.duration,
+      duration: song.duration,
+      audioUrl: song.audioUrl || undefined,
     }));
     playQueue(playerTracks);
   };
 
   const handleTrackClick = (track: Track) => {
+    const song = albumSongs.find((s) => s.id === track.id);
     playTrack({
       id: track.id,
       title: track.title,
       artist: track.artist,
       albumCover: album?.coverUrl,
       duration: track.duration,
+      audioUrl: song?.audioUrl || undefined,
     });
   };
 

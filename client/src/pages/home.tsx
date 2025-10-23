@@ -42,6 +42,7 @@ export default function Home() {
       artist: artistMap[song.artistId] || "Unknown Artist",
       albumCover: albumMap[song.albumId]?.coverUrl,
       duration: song.duration,
+      audioUrl: song.audioUrl || undefined,
     }));
     if (tracks.length > 0) {
       playQueue(tracks);

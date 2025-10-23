@@ -56,15 +56,15 @@ export default function PlaylistPage() {
   const totalMinutes = Math.floor(totalDuration / 60);
 
   const handlePlayAll = () => {
-    const playerTracks = tracks.map((track) => {
-      const song = playlistSongs.find((s) => s.id === track.id);
-      const album = albums.find((a) => a.id === song?.albumId);
+    const playerTracks = playlistSongs.map((song) => {
+      const album = albums.find((a) => a.id === song.albumId);
       return {
-        id: track.id,
-        title: track.title,
-        artist: track.artist,
+        id: song.id,
+        title: song.title,
+        artist: artistMap[song.artistId] || "Unknown Artist",
         albumCover: album?.coverUrl,
-        duration: track.duration,
+        duration: song.duration,
+        audioUrl: song.audioUrl || undefined,
       };
     });
     playQueue(playerTracks);
@@ -79,6 +79,7 @@ export default function PlaylistPage() {
       artist: track.artist,
       albumCover: album?.coverUrl,
       duration: track.duration,
+      audioUrl: song?.audioUrl || undefined,
     });
   };
 
