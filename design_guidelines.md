@@ -8,17 +8,17 @@
 
 ### Dark Mode (Primary Theme)
 - **Background**: 
-  - Primary: 10 8% 8% (deep charcoal, richer than Spotify's pure black)
-  - Secondary: 10 6% 12% (cards, elevated surfaces)
-  - Tertiary: 10 5% 16% (hover states)
-- **Brand/Accent**: 142 76% 46% (vibrant green, Spotify-inspired but more saturated)
+  - Primary: 0 0% 0% (true black, matching Spotify's authentic look)
+  - Secondary: 0 0% 7% (cards, elevated surfaces - #121212)
+  - Tertiary: 0 0% 16% (hover states, borders - #282828)
+- **Brand/Accent**: 141 73% 42% (Spotify's signature green - #1DB954)
 - **Text**: 
-  - Primary: 0 0% 98%
-  - Secondary: 0 0% 72%
+  - Primary: 0 0% 100% (pure white)
+  - Secondary: 0 0% 70% (light gray - #B3B3B3)
   - Muted: 0 0% 50%
 - **Interactive Elements**:
-  - Active state: 142 76% 46%
-  - Hover: 142 76% 52%
+  - Active state: 141 73% 42%
+  - Hover: 141 73% 48%
 
 ### Light Mode
 - **Background**: 
@@ -126,7 +126,7 @@
 
 1. **Improved Spacing**: More generous padding (p-6 vs p-4) for better breathing room
 2. **Enhanced Typography**: DM Sans for display creates stronger hierarchy
-3. **Better Contrast**: Slightly lighter dark background prevents eye strain
-4. **Polished Interactions**: Smoother hover states with refined timing
-5. **Smarter Grid**: Responsive album grids that adapt better to viewport
-6. **Queue Management**: Enhanced queue view with drag-and-drop visual feedback
+3. **Polished Interactions**: Smoother hover states with refined timing
+4. **Smarter Grid**: Responsive album grids that adapt better to viewport
+5. **Queue Management**: Enhanced queue view with drag-and-drop visual feedback
+6. **Authentic Theme**: True black background with Spotify's signature green (#1DB954)

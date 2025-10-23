@@ -36,7 +36,7 @@ Soundwave is a modern music streaming application inspired by Spotify, featuring
 
 ### Design System
 - **Fonts**: Inter (UI), DM Sans (Display/Headlines)
-- **Colors**: Deep charcoal background with vibrant green (#8FE854) accents
+- **Colors**: True black background (#000000) with Spotify green (#1DB954) accents
 - **Spacing**: Consistent spacing scale (4, 6, 8, 12, 16px)
 - **Components**: Custom-styled Shadcn components following Spotify-inspired patterns
 
