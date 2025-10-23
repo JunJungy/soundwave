@@ -60,6 +60,8 @@ export const artists = pgTable("artists", {
   name: text("name").notNull(),
   imageUrl: text("image_url"),
   genre: text("genre"),
+  verified: integer("verified").default(0).notNull(),
+  streams: integer("streams").default(0).notNull(),
 });
 
 export const albums = pgTable("albums", {

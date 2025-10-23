@@ -214,16 +214,16 @@ export class DatabaseStorage implements IStorage {
     console.log("Seeding database with initial music data...");
 
     const artistsData: InsertArtist[] = [
-      { name: "Neon Dreams", genre: "Electronic" },
-      { name: "The Wanderers", genre: "Rock" },
-      { name: "Urban Poets", genre: "Hip Hop" },
-      { name: "Midnight Jazz Collective", genre: "Jazz" },
-      { name: "Luna Rose", genre: "Pop" },
-      { name: "Echo Chamber", genre: "Alternative Rock" },
-      { name: "Velvet Soul", genre: "R&B" },
-      { name: "Prairie Winds", genre: "Country" },
-      { name: "Symphony Orchestra", genre: "Classical" },
-      { name: "Island Vibes", genre: "Reggae" },
+      { name: "Neon Dreams", genre: "Electronic", verified: 1, streams: 15420000 },
+      { name: "The Wanderers", genre: "Rock", verified: 1, streams: 8920000 },
+      { name: "Urban Poets", genre: "Hip Hop", verified: 0, streams: 3450000 },
+      { name: "Midnight Jazz Collective", genre: "Jazz", verified: 1, streams: 5670000 },
+      { name: "Luna Rose", genre: "Pop", verified: 1, streams: 22150000 },
+      { name: "Echo Chamber", genre: "Alternative Rock", verified: 0, streams: 1230000 },
+      { name: "Velvet Soul", genre: "R&B", verified: 1, streams: 6890000 },
+      { name: "Prairie Winds", genre: "Country", verified: 0, streams: 980000 },
+      { name: "Symphony Orchestra", genre: "Classical", verified: 1, streams: 12340000 },
+      { name: "Island Vibes", genre: "Reggae", verified: 0, streams: 2100000 },
     ];
 
     const createdArtists = await Promise.all(

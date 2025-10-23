@@ -21,6 +21,7 @@ import Home from "@/pages/home";
 import Search from "@/pages/search";
 import Library from "@/pages/library";
 import AlbumPage from "@/pages/album";
+import ArtistPage from "@/pages/artist";
 import PlaylistPage from "@/pages/playlist";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/search" component={Search} />
       <Route path="/library" component={Library} />
       <Route path="/album/:id" component={AlbumPage} />
+      <Route path="/artist/:id" component={ArtistPage} />
       <Route path="/playlist/:id" component={PlaylistPage} />
       <Route component={NotFound} />
     </Switch>

@@ -139,9 +139,13 @@ export default function AlbumPage() {
             </h1>
             
             <div className="flex items-center gap-2 text-sm">
-              <span className="font-semibold" data-testid="text-album-detail-artist">
+              <button
+                onClick={() => artist && setLocation(`/artist/${artist.id}`)}
+                className="font-semibold hover:underline cursor-pointer"
+                data-testid="link-album-artist"
+              >
                 {artist?.name || "Unknown Artist"}
-              </span>
+              </button>
               <span className="text-muted-foreground">•</span>
               <span className="text-muted-foreground">{album.year || "Unknown"}</span>
               <span className="text-muted-foreground">•</span>

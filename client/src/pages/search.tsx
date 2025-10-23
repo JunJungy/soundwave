@@ -94,7 +94,7 @@ export default function Search() {
       id: track.id,
       title: track.title,
       artist: track.artist,
-      albumCover: album?.coverUrl,
+      albumCover: album?.coverUrl || undefined,
       duration: track.duration,
       audioUrl: song?.audioUrl || undefined,
     });
@@ -250,17 +250,26 @@ export default function Search() {
             <TabsContent value="artists">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {filteredArtists.map((artist) => (
-                  <div key={artist.id} className="text-center">
-                    <div className="aspect-square rounded-full bg-muted mb-4 overflow-hidden">
-                      {artist.imageUrl && (
+                  <div 
+                    key={artist.id} 
+                    className="text-center cursor-pointer group" 
+                    onClick={() => setLocation(`/artist/${artist.id}`)}
+                    data-testid={`card-artist-${artist.id}`}
+                  >
+                    <div className="aspect-square rounded-full bg-muted mb-4 overflow-hidden group-hover:shadow-lg transition-shadow">
+                      {artist.imageUrl ? (
                         <img
                           src={artist.imageUrl}
                           alt={artist.name}
                           className="w-full h-full object-cover"
                         />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-muted-foreground">
+                          {artist.name.charAt(0)}
+                        </div>
                       )}
                     </div>
-                    <h3 className="font-semibold">{artist.name}</h3>
+                    <h3 className="font-semibold group-hover:underline">{artist.name}</h3>
                     <p className="text-sm text-muted-foreground">Artist</p>
                   </div>
                 ))}
