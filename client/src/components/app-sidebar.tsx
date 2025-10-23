@@ -71,8 +71,8 @@ export function AppSidebar({ playlists = [], onCreatePlaylist }: AppSidebarProps
                 <SidebarMenu>
                   {user?.isAdmin === 1 && (
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={location === "/admin"} data-testid="link-admin">
-                        <Link href="/admin">
+                      <SidebarMenuButton asChild isActive={location === "/admin-panel"} data-testid="link-admin-panel">
+                        <Link href="/admin-panel">
                           <Shield className="h-5 w-5" />
                           <span className="font-medium">Admin Panel</span>
                         </Link>
