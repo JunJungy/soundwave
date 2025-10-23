@@ -21,6 +21,7 @@ import {
 import bcrypt from "bcrypt";
 import { db } from "./db";
 import { eq, and, inArray, sql } from "drizzle-orm";
+import { getAlbum, searchTrack } from "./spotify";
 
 export interface IStorage {
   // User operations (custom authentication)
@@ -345,7 +346,7 @@ export class DatabaseStorage implements IStorage {
       return;
     }
 
-    console.log("Seeding database with initial music data...");
+    console.log("Seeding database with real Spotify data...");
 
     const artistsData = [
       { name: "BTS", genre: "K-Pop", verified: 1, streams: 45000000 },
@@ -363,6 +364,8 @@ export class DatabaseStorage implements IStorage {
     ];
 
     const createdArtists = await db.insert(artists).values(artistsData).returning();
+    
+    console.log("Fetching real album data from Spotify...");
 
     const coverUrls: Record<string, string> = {
       btsButter: "/attached_assets/generated_images/BTS_Butter_album_cover_51efb718.png",
@@ -408,75 +411,105 @@ export class DatabaseStorage implements IStorage {
       )
     );
 
-    const songsData: Array<{ albumIndex: number; title: string; duration: number; audioIndex: number }> = [
-      // BTS - Butter (Single) (index 0)
-      { title: "Butter", albumIndex: 0, duration: 164, audioIndex: 1 },
-      // BTS - Proof (index 1)
-      { title: "Yet To Come", albumIndex: 1, duration: 213, audioIndex: 2 },
-      { title: "Run BTS", albumIndex: 1, duration: 223, audioIndex: 3 },
-      { title: "Born Singer", albumIndex: 1, duration: 249, audioIndex: 4 },
-      // ENHYPEN - DARK BLOOD (index 2)
-      { title: "Bite Me", albumIndex: 2, duration: 206, audioIndex: 5 },
-      { title: "Sacrifice (Eat Me Up)", albumIndex: 2, duration: 198, audioIndex: 6 },
-      { title: "Chaconne", albumIndex: 2, duration: 234, audioIndex: 7 },
-      // ENHYPEN - ORANGE BLOOD (index 3)
-      { title: "Sweet Venom", albumIndex: 3, duration: 213, audioIndex: 8 },
-      { title: "Still Monster", albumIndex: 3, duration: 189, audioIndex: 9 },
-      { title: "Orange Flower (You Complete Me)", albumIndex: 3, duration: 245, audioIndex: 10 },
-      // Taylor Swift - Midnights (index 4)
-      { title: "Anti-Hero", albumIndex: 4, duration: 201, audioIndex: 11 },
-      { title: "Lavender Haze", albumIndex: 4, duration: 202, audioIndex: 12 },
-      { title: "Karma", albumIndex: 4, duration: 205, audioIndex: 13 },
-      // The Weeknd - After Hours (index 5)
-      { title: "Blinding Lights", albumIndex: 5, duration: 200, audioIndex: 14 },
-      { title: "Save Your Tears", albumIndex: 5, duration: 215, audioIndex: 15 },
-      { title: "In Your Eyes", albumIndex: 5, duration: 237, audioIndex: 16 },
-      // Drake - Certified Lover Boy (index 6)
-      { title: "Champagne Poetry", albumIndex: 6, duration: 296, audioIndex: 1 },
-      { title: "Girls Want Girls", albumIndex: 6, duration: 244, audioIndex: 2 },
-      { title: "Way 2 Sexy", albumIndex: 6, duration: 262, audioIndex: 3 },
-      // Billie Eilish - Happier Than Ever (index 7)
-      { title: "Happier Than Ever", albumIndex: 7, duration: 298, audioIndex: 4 },
-      { title: "my future", albumIndex: 7, duration: 210, audioIndex: 5 },
-      { title: "Therefore I Am", albumIndex: 7, duration: 174, audioIndex: 6 },
-      // Ed Sheeran - Divide (index 8)
-      { title: "Shape of You", albumIndex: 8, duration: 234, audioIndex: 7 },
-      { title: "Perfect", albumIndex: 8, duration: 263, audioIndex: 8 },
-      { title: "Castle on the Hill", albumIndex: 8, duration: 261, audioIndex: 9 },
-      // Ariana Grande - Positions (index 9)
-      { title: "positions", albumIndex: 9, duration: 172, audioIndex: 10 },
-      { title: "34+35", albumIndex: 9, duration: 174, audioIndex: 11 },
-      { title: "motive", albumIndex: 9, duration: 175, audioIndex: 12 },
-      // Post Malone - Twelve Carat Toothache (index 10)
-      { title: "Cooped Up", albumIndex: 10, duration: 216, audioIndex: 13 },
-      { title: "I Like You", albumIndex: 10, duration: 195, audioIndex: 14 },
-      { title: "Wrapped Around Your Finger", albumIndex: 10, duration: 199, audioIndex: 15 },
-      // Dua Lipa - Future Nostalgia (index 11)
-      { title: "Don't Start Now", albumIndex: 11, duration: 183, audioIndex: 16 },
-      { title: "Levitating", albumIndex: 11, duration: 203, audioIndex: 1 },
-      { title: "Physical", albumIndex: 11, duration: 194, audioIndex: 2 },
-      // BLACKPINK - BORN PINK (index 12)
-      { title: "Pink Venom", albumIndex: 12, duration: 187, audioIndex: 3 },
-      { title: "Shut Down", albumIndex: 12, duration: 175, audioIndex: 4 },
-      { title: "Typa Girl", albumIndex: 12, duration: 180, audioIndex: 5 },
-      // NewJeans - Get Up (index 13)
-      { title: "Super Shy", albumIndex: 13, duration: 156, audioIndex: 6 },
-      { title: "ETA", albumIndex: 13, duration: 150, audioIndex: 7 },
-      { title: "Cool With You", albumIndex: 13, duration: 238, audioIndex: 8 },
+    // Define tracks to fetch from Spotify
+    const tracksToFetch: Array<{ albumIndex: number; trackName: string; artistName: string }> = [
+      // BTS - Butter (Single)
+      { albumIndex: 0, trackName: "Butter", artistName: "BTS" },
+      // BTS - Proof
+      { albumIndex: 1, trackName: "Yet To Come", artistName: "BTS" },
+      { albumIndex: 1, trackName: "Run BTS", artistName: "BTS" },
+      { albumIndex: 1, trackName: "Born Singer", artistName: "BTS" },
+      // ENHYPEN - DARK BLOOD
+      { albumIndex: 2, trackName: "Bite Me", artistName: "ENHYPEN" },
+      { albumIndex: 2, trackName: "Sacrifice (Eat Me Up)", artistName: "ENHYPEN" },
+      { albumIndex: 2, trackName: "Chaconne", artistName: "ENHYPEN" },
+      // ENHYPEN - ORANGE BLOOD
+      { albumIndex: 3, trackName: "Sweet Venom", artistName: "ENHYPEN" },
+      { albumIndex: 3, trackName: "Still Monster", artistName: "ENHYPEN" },
+      { albumIndex: 3, trackName: "Orange Flower (You Complete Me)", artistName: "ENHYPEN" },
+      // Taylor Swift - Midnights
+      { albumIndex: 4, trackName: "Anti-Hero", artistName: "Taylor Swift" },
+      { albumIndex: 4, trackName: "Lavender Haze", artistName: "Taylor Swift" },
+      { albumIndex: 4, trackName: "Karma", artistName: "Taylor Swift" },
+      // The Weeknd - After Hours
+      { albumIndex: 5, trackName: "Blinding Lights", artistName: "The Weeknd" },
+      { albumIndex: 5, trackName: "Save Your Tears", artistName: "The Weeknd" },
+      { albumIndex: 5, trackName: "In Your Eyes", artistName: "The Weeknd" },
+      // Drake - Certified Lover Boy
+      { albumIndex: 6, trackName: "Champagne Poetry", artistName: "Drake" },
+      { albumIndex: 6, trackName: "Girls Want Girls", artistName: "Drake" },
+      { albumIndex: 6, trackName: "Way 2 Sexy", artistName: "Drake" },
+      // Billie Eilish - Happier Than Ever
+      { albumIndex: 7, trackName: "Happier Than Ever", artistName: "Billie Eilish" },
+      { albumIndex: 7, trackName: "my future", artistName: "Billie Eilish" },
+      { albumIndex: 7, trackName: "Therefore I Am", artistName: "Billie Eilish" },
+      // Ed Sheeran - Divide
+      { albumIndex: 8, trackName: "Shape of You", artistName: "Ed Sheeran" },
+      { albumIndex: 8, trackName: "Perfect", artistName: "Ed Sheeran" },
+      { albumIndex: 8, trackName: "Castle on the Hill", artistName: "Ed Sheeran" },
+      // Ariana Grande - Positions
+      { albumIndex: 9, trackName: "positions", artistName: "Ariana Grande" },
+      { albumIndex: 9, trackName: "34+35", artistName: "Ariana Grande" },
+      { albumIndex: 9, trackName: "motive", artistName: "Ariana Grande" },
+      // Post Malone - Twelve Carat Toothache
+      { albumIndex: 10, trackName: "Cooped Up", artistName: "Post Malone" },
+      { albumIndex: 10, trackName: "I Like You", artistName: "Post Malone" },
+      { albumIndex: 10, trackName: "Wrapped Around Your Finger", artistName: "Post Malone" },
+      // Dua Lipa - Future Nostalgia
+      { albumIndex: 11, trackName: "Don't Start Now", artistName: "Dua Lipa" },
+      { albumIndex: 11, trackName: "Levitating", artistName: "Dua Lipa" },
+      { albumIndex: 11, trackName: "Physical", artistName: "Dua Lipa" },
+      // BLACKPINK - BORN PINK
+      { albumIndex: 12, trackName: "Pink Venom", artistName: "BLACKPINK" },
+      { albumIndex: 12, trackName: "Shut Down", artistName: "BLACKPINK" },
+      { albumIndex: 12, trackName: "Typa Girl", artistName: "BLACKPINK" },
+      // NewJeans - Get Up
+      { albumIndex: 13, trackName: "Super Shy", artistName: "NewJeans" },
+      { albumIndex: 13, trackName: "ETA", artistName: "NewJeans" },
+      { albumIndex: 13, trackName: "Cool With You", artistName: "NewJeans" },
     ];
 
-    await Promise.all(
-      songsData.map(({ albumIndex, audioIndex, ...song }) => {
+    console.log(`Fetching ${tracksToFetch.length} tracks from Spotify...`);
+    
+    // Fetch tracks from Spotify with preview URLs
+    for (const { albumIndex, trackName, artistName } of tracksToFetch) {
+      try {
+        const trackData = await searchTrack(trackName, artistName);
         const album = createdAlbums[albumIndex];
-        // Using different SoundHelix demo tracks for variety (1-16)
-        return this.createSong({
-          ...song,
+        
+        if (trackData && trackData.previewUrl) {
+          await this.createSong({
+            title: trackData.name,
+            albumId: album.id,
+            artistId: album.artistId,
+            duration: trackData.duration,
+            audioUrl: trackData.previewUrl, // Real Spotify preview URL
+          });
+          console.log(`✓ Added: ${trackData.name} by ${artistName}`);
+        } else {
+          // Fallback to placeholder if no preview available
+          await this.createSong({
+            title: trackName,
+            albumId: album.id,
+            artistId: album.artistId,
+            duration: 180,
+            audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+          });
+          console.log(`⚠ No preview for: ${trackName} - using placeholder`);
+        }
+      } catch (error) {
+        console.error(`Error fetching ${trackName}:`, error);
+        // Add with placeholder on error
+        const album = createdAlbums[albumIndex];
+        await this.createSong({
+          title: trackName,
           albumId: album.id,
           artistId: album.artistId,
-          audioUrl: `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${audioIndex}.mp3`,
+          duration: 180,
+          audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
         });
-      })
-    );
+      }
+    }
 
     console.log("Database seeded successfully!");
   }
