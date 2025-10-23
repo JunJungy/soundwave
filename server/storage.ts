@@ -31,6 +31,7 @@ export interface IStorage {
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   updateUserAdminStatus(userId: string, isAdmin: number): Promise<User | undefined>;
+  deleteUser(userId: string): Promise<boolean>;
 
   // Artists
   getArtists(): Promise<Artist[]>;
@@ -127,6 +128,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  async deleteUser(userId: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, userId));
+    return true;
   }
 
   // Artists
