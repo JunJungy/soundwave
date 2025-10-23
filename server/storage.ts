@@ -484,44 +484,54 @@ export class DatabaseStorage implements IStorage {
     // Import Spotify helper
     const { searchTrack } = await import("./spotify");
     
-    // Fetch real Spotify preview URLs
+    // Fallback audio URLs that are guaranteed to work
+    const fallbackAudioUrls = [
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
+    ];
+    
+    // Fetch real Spotify preview URLs with fallback
     for (let i = 0; i < tracksToFetch.length; i++) {
       const { albumIndex, trackName, artistName } = tracksToFetch[i];
       const album = createdAlbums[albumIndex];
+      let audioUrl: string | null = null;
+      let duration = 180;
+      let source = "fallback";
       
       try {
         const spotifyTrack = await searchTrack(trackName, artistName);
-        const audioUrl = spotifyTrack?.previewUrl || null;
-        const duration = spotifyTrack?.duration || (180 + Math.floor(Math.random() * 60));
-        
-        await this.createSong({
-          title: trackName,
-          albumId: album.id,
-          artistId: album.artistId,
-          duration,
-          audioUrl,
-        });
-        
-        if (audioUrl) {
-          console.log(`✓ Added: ${trackName} (Spotify preview)`);
-        } else {
-          console.log(`⚠ Added: ${trackName} (no preview available)`);
+        if (spotifyTrack?.previewUrl) {
+          audioUrl = spotifyTrack.previewUrl;
+          duration = spotifyTrack.duration;
+          source = "spotify";
         }
-        
         // Add small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 200));
       } catch (error) {
-        console.error(`Failed to fetch ${trackName}:`, error);
-        // Create song without audio URL if Spotify fails
-        await this.createSong({
-          title: trackName,
-          albumId: album.id,
-          artistId: album.artistId,
-          duration: 180,
-          audioUrl: null,
-        });
-        console.log(`⚠ Added: ${trackName} (Spotify error)`);
+        console.log(`⚠ Spotify failed for ${trackName}, using fallback`);
       }
+      
+      // Always ensure we have a working audio URL
+      if (!audioUrl) {
+        audioUrl = fallbackAudioUrls[i % fallbackAudioUrls.length];
+        duration = 180 + Math.floor(Math.random() * 60);
+      }
+      
+      await this.createSong({
+        title: trackName,
+        albumId: album.id,
+        artistId: album.artistId,
+        duration,
+        audioUrl,
+      });
+      
+      console.log(`✓ Added: ${trackName} (${source})`);
     }
 
     console.log("Database seeded successfully!");
