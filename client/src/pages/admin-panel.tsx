@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,13 +14,25 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown } from "lucide-react";
 import type { ArtistApplication, User } from "@shared/schema";
 
 export default function AdminPanel() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   const { data: applications = [], isLoading } = useQuery<ArtistApplication[]>({
     queryKey: ["/api/artist-applications/pending"],
@@ -114,6 +127,40 @@ export default function AdminPanel() {
       });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/users/${userId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+      toast({
+        title: "User deleted",
+        description: "The user account has been permanently removed.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteClick = (targetUser: User) => {
+    setUserToDelete(targetUser);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (userToDelete) {
+      deleteMutation.mutate(userToDelete.id);
+    }
+  };
 
   if (user?.isAdmin !== 1) {
     return (
@@ -259,12 +306,17 @@ export default function AdminPanel() {
                         <p className="font-medium" data-testid={`text-username-${targetUser.id}`}>
                           {targetUser.username}
                         </p>
-                        {targetUser.isAdmin === 1 && (
+                        {targetUser.username === "admin" ? (
+                          <Badge className="bg-amber-600 text-white" data-testid={`badge-owner-${targetUser.id}`}>
+                            <Crown className="w-3 h-3 mr-1" />
+                            Owner
+                          </Badge>
+                        ) : targetUser.isAdmin === 1 ? (
                           <Badge variant="default" data-testid={`badge-admin-${targetUser.id}`}>
                             <Shield className="w-3 h-3 mr-1" />
                             Admin
                           </Badge>
-                        )}
+                        ) : null}
                         {targetUser.isArtist === 1 && (
                           <Badge variant="secondary" data-testid={`badge-artist-${targetUser.id}`}>
                             Artist
@@ -277,7 +329,7 @@ export default function AdminPanel() {
                         </p>
                       )}
                     </div>
-                    {targetUser.id !== user?.id && (
+                    {targetUser.id !== user?.id && targetUser.username !== "admin" && (
                       <div className="flex gap-2">
                         {targetUser.isAdmin === 1 ? (
                           <Button
@@ -302,6 +354,16 @@ export default function AdminPanel() {
                             {promoteMutation.isPending ? "Promoting..." : "Make Admin"}
                           </Button>
                         )}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteClick(targetUser)}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-${targetUser.id}`}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </Button>
                       </div>
                     )}
                     {targetUser.id === user?.id && (
@@ -316,6 +378,28 @@ export default function AdminPanel() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-delete-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <span className="font-semibold">{userToDelete?.username}</span>? 
+              This action cannot be undone and will permanently remove the user and all their data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

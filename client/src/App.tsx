@@ -16,7 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Music, Shield } from "lucide-react";
+import { LogOut, Music, Shield, Crown } from "lucide-react";
 import type { Playlist } from "@shared/schema";
 
 import Home from "@/pages/home";
@@ -146,12 +146,17 @@ function AppContent() {
           <header className="flex items-center justify-between p-4 border-b shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-3">
-              {user?.isAdmin === 1 && (
+              {user?.username === "admin" ? (
+                <Badge className="bg-amber-600 text-white" data-testid="badge-owner">
+                  <Crown className="w-3 h-3 mr-1" />
+                  Owner
+                </Badge>
+              ) : user?.isAdmin === 1 ? (
                 <Badge className="bg-primary text-primary-foreground" data-testid="badge-admin">
                   <Shield className="w-3 h-3 mr-1" />
                   Admin
                 </Badge>
-              )}
+              ) : null}
               {user?.isArtist === 1 && (
                 <Badge className="bg-green-600 text-white" data-testid="badge-artist">
                   <Music className="w-3 h-3 mr-1" />
