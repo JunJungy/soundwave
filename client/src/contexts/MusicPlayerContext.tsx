@@ -63,9 +63,28 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       });
 
       audioRef.current.addEventListener("loadedmetadata", () => {
+        console.log("Audio metadata loaded");
         if (audioRef.current && isPlaying) {
-          audioRef.current.play().catch(console.error);
+          audioRef.current.play().catch((error) => {
+            console.error("Audio playback failed (loadedmetadata):", error);
+          });
         }
+      });
+
+      audioRef.current.addEventListener("error", (e) => {
+        console.error("Audio element error:", e);
+        if (audioRef.current) {
+          console.error("Audio error code:", audioRef.current.error?.code);
+          console.error("Audio error message:", audioRef.current.error?.message);
+        }
+      });
+
+      audioRef.current.addEventListener("canplay", () => {
+        console.log("Audio can play");
+      });
+
+      audioRef.current.addEventListener("playing", () => {
+        console.log("Audio is now playing");
       });
     }
 
@@ -93,8 +112,13 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
     if (currentTrack.audioUrl) {
       audioRef.current.src = currentTrack.audioUrl;
+      console.log(`Loading track: ${currentTrack.title} - ${currentTrack.audioUrl}`);
       if (isPlaying) {
-        audioRef.current.play().catch(console.error);
+        audioRef.current.play().catch((error) => {
+          console.error("Audio playback failed:", error);
+          console.error("Error name:", error.name);
+          console.error("Error message:", error.message);
+        });
       }
     } else {
       audioRef.current.src = "";
@@ -117,7 +141,12 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     if (isPlaying) {
       if (currentTrack.audioUrl) {
         stopSimulatedPlayback();
-        audioRef.current.play().catch(console.error);
+        console.log(`Playing: ${currentTrack.title}`);
+        audioRef.current.play().catch((error) => {
+          console.error("Audio playback failed:", error);
+          console.error("Error name:", error.name);
+          console.error("Error message:", error.message);
+        });
       } else {
         startSimulatedPlayback();
       }

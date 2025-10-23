@@ -179,6 +179,9 @@ export function MusicPlayer({
             className="w-24"
             data-testid="slider-volume"
           />
+          <span className="text-xs text-muted-foreground w-8 text-right" data-testid="text-volume">
+            {volume}%
+          </span>
         </div>
       </div>
     </div>
