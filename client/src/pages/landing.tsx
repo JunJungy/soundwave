@@ -1,54 +1,294 @@
+import { useState } from "react";
 import { Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { insertUserSchema, loginSchema } from "@shared/schema";
+import { z } from "zod";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+type RegisterFormData = z.infer<typeof insertUserSchema>;
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Landing() {
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const { toast } = useToast();
+
+  const registerForm = useForm<RegisterFormData>({
+    resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      email: "",
+      firstName: "",
+      lastName: "",
+    },
+  });
+
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
+
+  const handleRegister = async (data: RegisterFormData) => {
+    try {
+      await apiRequest("POST", "/api/auth/register", data);
+      
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      toast({
+        title: "Welcome to Soundwave!",
+        description: "Your account has been created successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: error.message || "Please try again.",
+      });
+    }
+  };
+
+  const handleLogin = async (data: LoginFormData) => {
+    try {
+      await apiRequest("POST", "/api/auth/login", data);
+      
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully logged in.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: error.message || "Invalid username or password.",
+      });
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-background to-accent/5">
-      <div className="max-w-2xl mx-auto px-6 text-center space-y-8">
-        <div className="flex justify-center mb-6">
-          <div className="rounded-full bg-primary/10 p-6">
-            <Music className="w-20 h-20 text-primary" />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-background to-accent/5 p-6">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="rounded-full bg-primary/10 p-6">
+              <Music className="w-16 h-16 text-primary" />
+            </div>
           </div>
-        </div>
-        
-        <h1 className="text-6xl font-bold tracking-tight text-foreground font-display">
-          Soundwave
-        </h1>
-        
-        <p className="text-xl text-muted-foreground max-w-lg mx-auto">
-          Your music, your way. Stream millions of songs, create playlists, and discover new favorites.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
-          <Button 
-            size="lg"
-            className="min-w-[200px]"
-            onClick={() => window.location.href = "/api/login"}
-            data-testid="button-login"
-          >
-            Get Started
-          </Button>
+          
+          <h1 className="text-5xl font-bold tracking-tight text-foreground font-display">
+            Soundwave
+          </h1>
+          
+          <p className="text-lg text-muted-foreground">
+            Your music, your way
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-12">
-          <div className="space-y-2">
-            <h3 className="font-semibold text-lg">Unlimited Music</h3>
-            <p className="text-sm text-muted-foreground">
-              Access a vast library of songs across all genres
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-semibold text-lg">Custom Playlists</h3>
-            <p className="text-sm text-muted-foreground">
-              Create and share your perfect soundtrack
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-semibold text-lg">Discover New</h3>
-            <p className="text-sm text-muted-foreground">
-              Find your next favorite artist or album
-            </p>
-          </div>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
+            <TabsTrigger value="register" data-testid="tab-register">Register</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="login">
+            <Card>
+              <CardHeader>
+                <CardTitle>Welcome back</CardTitle>
+                <CardDescription>
+                  Enter your credentials to access your music
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...loginForm}>
+                  <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+                    <FormField
+                      control={loginForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              data-testid="input-login-username"
+                              autoComplete="username"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={loginForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="password"
+                              data-testid="input-login-password"
+                              autoComplete="current-password"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={loginForm.formState.isSubmitting}
+                      data-testid="button-login"
+                    >
+                      {loginForm.formState.isSubmitting ? "Logging in..." : "Login"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="register">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create an account</CardTitle>
+                <CardDescription>
+                  Join Soundwave to start your music journey
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...registerForm}>
+                  <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
+                    <FormField
+                      control={registerForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              data-testid="input-register-username"
+                              autoComplete="username"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={registerForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="password"
+                              data-testid="input-register-password"
+                              autoComplete="new-password"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={registerForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                value={field.value || ""}
+                                data-testid="input-register-firstname"
+                                autoComplete="given-name"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={registerForm.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                value={field.value || ""}
+                                data-testid="input-register-lastname"
+                                autoComplete="family-name"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={registerForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email (optional)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              value={field.value || ""}
+                              type="email"
+                              data-testid="input-register-email"
+                              autoComplete="email"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={registerForm.formState.isSubmitting}
+                      data-testid="button-register"
+                    >
+                      {registerForm.formState.isSubmitting ? "Creating account..." : "Create Account"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <div className="text-center text-sm text-muted-foreground">
+          <p>Stream millions of songs and create your perfect playlists</p>
         </div>
       </div>
     </div>

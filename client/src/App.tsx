@@ -99,8 +99,21 @@ function AppContent() {
     }
   };
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    try {
+      await apiRequest("POST", "/api/auth/logout");
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Logged out",
+        description: "You've been successfully logged out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out",
+        variant: "destructive",
+      });
+    }
   };
 
   const sidebarStyle = {
