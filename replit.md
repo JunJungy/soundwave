@@ -184,6 +184,8 @@ attached_assets/
 - Updated theme to authentic Spotify black background (#000000) and green (#1DB954)
 - Added admin/owner account system with visual badge in UI
 - Created owner account: username `admin`, password `admin123456`
+- Fixed album artwork display by adding Express static middleware for attached_assets
+- Fixed audio playback by adding placeholder audio URLs (SoundHelix MP3)
 
 ### Phase 2: Authentication & Database (2025-10-23)
 - Migrated from in-memory storage to PostgreSQL database

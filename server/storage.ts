@@ -312,11 +312,13 @@ export class DatabaseStorage implements IStorage {
     await Promise.all(
       songsData.map(({ albumIndex, ...song }) => {
         const album = createdAlbums[albumIndex];
+        // Using a placeholder audio file (60 seconds of silence)
+        // In production, replace with real audio files
         return this.createSong({
           ...song,
           albumId: album.id,
           artistId: album.artistId,
-          audioUrl: "",
+          audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
         });
       })
     );
