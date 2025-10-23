@@ -37,6 +37,7 @@ export const users = pgTable("users", {
 
 export const insertUserSchema = createInsertSchema(users).omit({ 
   id: true, 
+  passwordHash: true,
   createdAt: true, 
   updatedAt: true 
 }).extend({
