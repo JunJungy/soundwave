@@ -19,6 +19,7 @@ Soundwave is a modern music streaming application inspired by Spotify, featuring
 - **Stream Tracking**: Real-time stream counting for songs and artists
 - **Auto-Verification**: Artists automatically receive verified badge at 1M total streams
 - **Admin Panel**: Admins can review and manage artist applications
+- **Admin User Management**: Admins can promote/demote users to grant/revoke admin privileges
 - **Artist Dashboard**: Artists can manage their albums and songs
 - **Responsive Design**: Beautiful UI that works across all screen sizes
 - **Dark Theme**: Polished dark theme with vibrant green accents
@@ -144,6 +145,11 @@ attached_assets/
 ### Search (Authenticated)
 - `GET /api/search?q=query` - Search songs, albums, artists, and user's playlists
 
+### Admin User Management (Admin-Only)
+- `GET /api/admin/users` - Get all users (requires isAdmin=1)
+- `POST /api/admin/users/:id/promote` - Promote user to admin (requires isAdmin=1)
+- `POST /api/admin/users/:id/demote` - Demote user from admin (requires isAdmin=1, prevents self-demotion)
+
 ### Playlists (Authenticated - User-Scoped)
 - `GET /api/playlists` - Get authenticated user's playlists
 - `GET /api/playlists/:id` - Get user's playlist (ownership required)
@@ -179,6 +185,16 @@ attached_assets/
 - **Defense in Depth**: Both route and storage layers enforce security
 
 ## Recent Changes
+
+### Phase 7: Admin User Management (2025-10-23)
+- Added API endpoints for admin user management (list, promote, demote)
+- Implemented storage layer methods: getAllUsers(), updateUserAdminStatus()
+- Enhanced admin panel with tabbed interface (Applications + User Management)
+- Added user list with admin/artist badges and promote/demote buttons
+- Backend prevents self-demotion (returns 400 error)
+- Frontend hides promote/demote button for current admin user
+- All endpoints require isAdmin=1 for authorization
+- Proper error handling and user feedback via toasts
 
 ### Phase 6: Complete Artist Application System (2025-10-23)
 - Extended database schema: added artist_applications table with status tracking

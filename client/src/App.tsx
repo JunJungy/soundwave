@@ -53,7 +53,7 @@ function Router() {
       <Route path="/album/:id" component={AlbumPage} />
       <Route path="/artist/:id" component={ArtistPage} />
       <Route path="/playlist/:id" component={PlaylistPage} />
-      <Route path="/admin" component={AdminPanel} />
+      <Route path="/admin-panel" component={AdminPanel} />
       <Route path="/artist-dashboard" component={ArtistDashboard} />
       <Route component={NotFound} />
     </Switch>
