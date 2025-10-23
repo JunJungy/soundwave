@@ -448,6 +448,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
 
+      if (req.params.id === userId) {
+        return res.status(400).json({ error: "Cannot demote yourself" });
+      }
+
       const updatedUser = await storage.updateUserAdminStatus(req.params.id, 0);
       if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
