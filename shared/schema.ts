@@ -32,6 +32,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   isAdmin: integer("is_admin").default(0).notNull(),
+  isArtist: integer("is_artist").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -40,6 +41,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true, 
   passwordHash: true,
   isAdmin: true,
+  isArtist: true,
   createdAt: true, 
   updatedAt: true 
 }).extend({
@@ -57,6 +59,7 @@ export type User = typeof users.$inferSelect;
 
 export const artists = pgTable("artists", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"),
   name: text("name").notNull(),
   imageUrl: text("image_url"),
   genre: text("genre"),
@@ -80,6 +83,7 @@ export const songs = pgTable("songs", {
   albumId: varchar("album_id").notNull(),
   duration: integer("duration").notNull(),
   audioUrl: text("audio_url"),
+  streams: integer("streams").default(0).notNull(),
 });
 
 export const playlists = pgTable("playlists", {
@@ -92,9 +96,9 @@ export const playlists = pgTable("playlists", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertArtistSchema = createInsertSchema(artists).omit({ id: true });
+export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true });
 export const insertAlbumSchema = createInsertSchema(albums).omit({ id: true });
-export const insertSongSchema = createInsertSchema(songs).omit({ id: true });
+export const insertSongSchema = createInsertSchema(songs).omit({ id: true, streams: true });
 export const insertPlaylistSchema = createInsertSchema(playlists).omit({ id: true, createdAt: true });
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
