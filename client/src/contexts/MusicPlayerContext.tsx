@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { YouTubePlayer } from "@/components/youtube-player";
 
 interface Track {
   id: string;
@@ -8,6 +9,7 @@ interface Track {
   albumCover?: string;
   duration: number;
   audioUrl?: string;
+  youtubeId?: string | null;
 }
 
 interface MusicPlayerContextType {
@@ -42,164 +44,18 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const [repeat, setRepeat] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolumeState] = useState(80);
+  const [playerReady, setPlayerReady] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const trackedSongRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.volume = volume / 100;
-
-      audioRef.current.addEventListener("timeupdate", () => {
-        if (audioRef.current && audioRef.current.src) {
-          setCurrentTime(Math.floor(audioRef.current.currentTime));
-        }
-      });
-
-      audioRef.current.addEventListener("ended", () => {
-        handleNextTrack();
-      });
-
-      audioRef.current.addEventListener("loadedmetadata", () => {
-        console.log("Audio metadata loaded");
-        if (audioRef.current && isPlaying) {
-          audioRef.current.play().catch((error) => {
-            console.error("Audio playback failed (loadedmetadata):", error);
-          });
-        }
-      });
-
-      audioRef.current.addEventListener("error", (e) => {
-        console.error("Audio element error:", e);
-        if (audioRef.current) {
-          console.error("Audio error code:", audioRef.current.error?.code);
-          console.error("Audio error message:", audioRef.current.error?.message);
-        }
-      });
-
-      audioRef.current.addEventListener("canplay", () => {
-        console.log("Audio can play");
-        if (audioRef.current) {
-          console.log("Audio element state:", {
-            paused: audioRef.current.paused,
-            muted: audioRef.current.muted,
-            volume: audioRef.current.volume,
-            currentSrc: audioRef.current.currentSrc,
-            readyState: audioRef.current.readyState
-          });
-        }
-      });
-
-      audioRef.current.addEventListener("playing", () => {
-        console.log("Audio is now playing");
-        if (audioRef.current) {
-          console.log("Playing state:", {
-            paused: audioRef.current.paused,
-            muted: audioRef.current.muted,
-            volume: audioRef.current.volume
-          });
-        }
-      });
-
-      audioRef.current.addEventListener("pause", () => {
-        console.log("Audio paused");
-      });
-    }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume / 100;
-    }
-  }, [volume]);
-
-  useEffect(() => {
-    if (!audioRef.current || !currentTrack) return;
-
-    stopSimulatedPlayback();
-
-    if (currentTrack.audioUrl) {
-      audioRef.current.src = currentTrack.audioUrl;
-      console.log(`Loading track: ${currentTrack.title} - ${currentTrack.audioUrl}`);
-      if (isPlaying) {
-        audioRef.current.play().catch((error) => {
-          console.error("Audio playback failed:", error);
-          console.error("Error name:", error.name);
-          console.error("Error message:", error.message);
-        });
-      }
-    } else {
-      audioRef.current.src = "";
-      if (isPlaying) {
-        startSimulatedPlayback();
-      }
-    }
-
-    if (currentTrack.id && currentTrack.id !== trackedSongRef.current && isPlaying) {
+    if (currentTrack?.id && currentTrack.id !== trackedSongRef.current && isPlaying) {
       trackedSongRef.current = currentTrack.id;
       apiRequest("POST", `/api/songs/${currentTrack.id}/play`).catch((error) => {
         console.error("Failed to track stream:", error);
       });
     }
   }, [currentTrack?.id, isPlaying]);
-
-  useEffect(() => {
-    if (!audioRef.current || !currentTrack) return;
-
-    if (isPlaying) {
-      if (currentTrack.audioUrl) {
-        stopSimulatedPlayback();
-        console.log(`Playing: ${currentTrack.title}`);
-        audioRef.current.play().catch((error) => {
-          console.error("Audio playback failed:", error);
-          console.error("Error name:", error.name);
-          console.error("Error message:", error.message);
-        });
-      } else {
-        startSimulatedPlayback();
-      }
-    } else {
-      stopSimulatedPlayback();
-      if (currentTrack.audioUrl) {
-        audioRef.current.pause();
-      }
-    }
-  }, [isPlaying]);
-
-  const startSimulatedPlayback = () => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-
-    progressIntervalRef.current = setInterval(() => {
-      setCurrentTime((prev) => {
-        if (currentTrack && prev >= currentTrack.duration) {
-          handleNextTrack();
-          return 0;
-        }
-        return prev + 1;
-      });
-    }, 1000);
-  };
-
-  const stopSimulatedPlayback = () => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
-  };
 
   const handleNextTrack = () => {
     if (queue.length === 0) return;
@@ -212,7 +68,6 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
         setIsPlaying(true);
       } else {
         setIsPlaying(false);
-        stopSimulatedPlayback();
       }
     } else {
       setCurrentTrack(queue[currentIndex + 1]);
@@ -221,10 +76,32 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const handleYouTubeStateChange = (state: number) => {
+    // YouTube player states:
+    // -1 (unstarted)
+    // 0 (ended)
+    // 1 (playing)
+    // 2 (paused)
+    // 3 (buffering)
+    // 5 (video cued)
+    
+    if (state === 0) {
+      // Video ended
+      handleNextTrack();
+    } else if (state === 1) {
+      // Playing
+      setIsPlaying(true);
+    } else if (state === 2) {
+      // Paused
+      setIsPlaying(false);
+    }
+  };
+
   const playTrack = (track: Track) => {
     setCurrentTrack(track);
     setCurrentTime(0);
     setIsPlaying(true);
+    setPlayerReady(false);
     if (!queue.find((t) => t.id === track.id)) {
       setQueue((prev) => [...prev, track]);
     }
@@ -236,6 +113,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     setCurrentTrack(tracks[startIndex]);
     setCurrentTime(0);
     setIsPlaying(true);
+    setPlayerReady(false);
   };
 
   const togglePlayPause = () => {
@@ -273,11 +151,6 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     setCurrentTrack(null);
     setCurrentTime(0);
     setIsPlaying(false);
-    stopSimulatedPlayback();
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-    }
   };
 
   const toggleShuffle = () => {
@@ -290,8 +163,8 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
   const seekTo = (time: number) => {
     setCurrentTime(time);
-    if (audioRef.current && currentTrack?.audioUrl && audioRef.current.src) {
-      audioRef.current.currentTime = time;
+    if ((window as any).youtubePlayer) {
+      (window as any).youtubePlayer.seekTo(time);
     }
   };
 
@@ -324,6 +197,16 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      {currentTrack?.youtubeId && (
+        <YouTubePlayer
+          videoId={currentTrack.youtubeId}
+          isPlaying={isPlaying}
+          volume={volume}
+          onReady={() => setPlayerReady(true)}
+          onStateChange={handleYouTubeStateChange}
+          onTimeUpdate={setCurrentTime}
+        />
+      )}
     </MusicPlayerContext.Provider>
   );
 }

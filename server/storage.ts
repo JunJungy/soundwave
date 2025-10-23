@@ -479,48 +479,24 @@ export class DatabaseStorage implements IStorage {
       { albumIndex: 13, trackName: "Cool With You", artistName: "NewJeans" },
     ];
 
-    console.log(`Fetching ${tracksToFetch.length} tracks from Spotify...`);
+    console.log(`Fetching ${tracksToFetch.length} tracks from YouTube...`);
     
-    // Import Spotify helper
-    const { searchTrack } = await import("./spotify");
+    // Import YouTube helper
+    const { searchYouTubeVideo } = await import("./youtube");
     
-    // Fallback audio URLs that are guaranteed to work
-    const fallbackAudioUrls = [
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
-    ];
-    
-    // Fetch real Spotify preview URLs with fallback
+    // Fetch YouTube video IDs for each track
     for (let i = 0; i < tracksToFetch.length; i++) {
       const { albumIndex, trackName, artistName } = tracksToFetch[i];
       const album = createdAlbums[albumIndex];
-      let audioUrl: string | null = null;
-      let duration = 180;
-      let source = "fallback";
+      let youtubeId: string | null = null;
+      const duration = 180 + Math.floor(Math.random() * 60); // 3-4 minutes
       
       try {
-        const spotifyTrack = await searchTrack(trackName, artistName);
-        if (spotifyTrack?.previewUrl) {
-          audioUrl = spotifyTrack.previewUrl;
-          duration = spotifyTrack.duration;
-          source = "spotify";
-        }
+        youtubeId = await searchYouTubeVideo(trackName, artistName);
         // Add small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 300));
       } catch (error) {
-        console.log(`⚠ Spotify failed for ${trackName}, using fallback`);
-      }
-      
-      // Always ensure we have a working audio URL
-      if (!audioUrl) {
-        audioUrl = fallbackAudioUrls[i % fallbackAudioUrls.length];
-        duration = 180 + Math.floor(Math.random() * 60);
+        console.log(`⚠ YouTube search failed for ${trackName}`);
       }
       
       await this.createSong({
@@ -528,10 +504,15 @@ export class DatabaseStorage implements IStorage {
         albumId: album.id,
         artistId: album.artistId,
         duration,
-        audioUrl,
+        audioUrl: null,
+        youtubeId,
       });
       
-      console.log(`✓ Added: ${trackName} (${source})`);
+      if (youtubeId) {
+        console.log(`✓ Added: ${trackName} (YouTube: ${youtubeId})`);
+      } else {
+        console.log(`⚠ Added: ${trackName} (no YouTube video found)`);
+      }
     }
 
     console.log("Database seeded successfully!");

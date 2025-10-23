@@ -43,6 +43,7 @@ export default function Home() {
       albumCover: albumMap[song.albumId]?.coverUrl,
       duration: song.duration,
       audioUrl: song.audioUrl || undefined,
+      youtubeId: song.youtubeId ?? undefined,
     }));
     if (tracks.length > 0) {
       playQueue(tracks);

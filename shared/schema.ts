@@ -83,6 +83,7 @@ export const songs = pgTable("songs", {
   albumId: varchar("album_id").notNull(),
   duration: integer("duration").notNull(),
   audioUrl: text("audio_url"),
+  youtubeId: text("youtube_id"),
   streams: integer("streams").default(0).notNull(),
 });
 
