@@ -10,8 +10,11 @@ import { MusicPlayer } from "@/components/music-player";
 import { QueueSheet } from "@/components/queue-sheet";
 import { CreatePlaylistDialog } from "@/components/create-playlist-dialog";
 import { MusicPlayerProvider, useMusicPlayer } from "@/contexts/MusicPlayerContext";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 import type { Playlist } from "@shared/schema";
 
 import Home from "@/pages/home";
@@ -19,9 +22,24 @@ import Search from "@/pages/search";
 import Library from "@/pages/library";
 import AlbumPage from "@/pages/album";
 import PlaylistPage from "@/pages/playlist";
+import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
 function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Landing />;
+  }
+
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -35,12 +53,14 @@ function Router() {
 }
 
 function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [queueOpen, setQueueOpen] = useState(false);
   const [createPlaylistOpen, setCreatePlaylistOpen] = useState(false);
 
   const { data: playlists = [] } = useQuery<Playlist[]>({
     queryKey: ["/api/playlists"],
+    enabled: isAuthenticated,
   });
 
   const {
@@ -79,10 +99,18 @@ function AppContent() {
     }
   };
 
+  const handleLogout = () => {
+    window.location.href = "/api/logout";
+  };
+
   const sidebarStyle = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   };
+
+  if (isLoading || !isAuthenticated) {
+    return <Router />;
+  }
 
   return (
     <SidebarProvider style={sidebarStyle as React.CSSProperties}>
@@ -95,6 +123,15 @@ function AppContent() {
         <div className="flex flex-col flex-1 min-w-0">
           <header className="flex items-center justify-between p-4 border-b shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              data-testid="button-logout"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
           </header>
           
           <main className="flex-1 overflow-y-auto">

@@ -1,23 +1,44 @@
+// Soundwave routes with Replit Auth integration
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPlaylistSchema } from "@shared/schema";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Search endpoint
-  app.get("/api/search", async (req, res) => {
+  // Setup authentication middleware (Replit Auth)
+  await setupAuth(app);
+
+  // Auth routes - NOT protected to allow landing page to function
+  app.get("/api/auth/user", async (req: any, res) => {
     try {
+      if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+        return res.json(null);
+      }
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Search endpoint - authenticated to scope playlist results
+  app.get("/api/search", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
       const query = req.query.q as string;
       if (!query) {
         return res.json({ songs: [], albums: [], artists: [], playlists: [] });
       }
 
       const q = query.toLowerCase();
-      const [songs, albums, artists, playlists] = await Promise.all([
+      const [songs, albums, artists, userPlaylists] = await Promise.all([
         storage.getSongs(),
         storage.getAlbums(),
         storage.getArtists(),
-        storage.getPlaylists(),
+        storage.getPlaylists(userId), // Only fetch user's own playlists
       ]);
 
       const filteredSongs = songs.filter((song) =>
@@ -34,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         artist.genre?.toLowerCase().includes(q)
       );
 
-      const filteredPlaylists = playlists.filter((playlist) =>
+      const filteredPlaylists = userPlaylists.filter((playlist) =>
         playlist.name.toLowerCase().includes(q) ||
         playlist.description?.toLowerCase().includes(q)
       );
@@ -50,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Artists
+  // Artists - public access
   app.get("/api/artists", async (_req, res) => {
     try {
       const artists = await storage.getArtists();
@@ -72,7 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Albums
+  // Albums - public access
   app.get("/api/albums", async (_req, res) => {
     try {
       const albums = await storage.getAlbums();
@@ -94,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Songs
+  // Songs - public access
   app.get("/api/songs", async (_req, res) => {
     try {
       const songs = await storage.getSongs();
@@ -116,21 +137,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Playlists
-  app.get("/api/playlists", async (_req, res) => {
+  // Playlists - authenticated access for user-specific playlists
+  app.get("/api/playlists", isAuthenticated, async (req: any, res) => {
     try {
-      const playlists = await storage.getPlaylists();
+      const userId = req.user.claims.sub;
+      const playlists = await storage.getPlaylists(userId);
       res.json(playlists);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch playlists" });
     }
   });
 
-  app.get("/api/playlists/:id", async (req, res) => {
+  app.get("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const playlist = await storage.getPlaylist(req.params.id);
+      const userId = req.user.claims.sub;
+      const playlist = await storage.getPlaylist(req.params.id, userId);
       if (!playlist) {
-        return res.status(404).json({ error: "Playlist not found" });
+        return res.status(404).json({ error: "Playlist not found or access denied" });
       }
       res.json(playlist);
     } catch (error) {
@@ -138,37 +161,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/playlists", async (req, res) => {
+  app.post("/api/playlists", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const result = insertPlaylistSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ error: "Invalid playlist data", details: result.error });
       }
 
-      const playlist = await storage.createPlaylist(result.data);
+      const playlist = await storage.createPlaylist({
+        ...result.data,
+        userId,
+      });
       res.status(201).json(playlist);
     } catch (error) {
       res.status(500).json({ error: "Failed to create playlist" });
     }
   });
 
-  app.patch("/api/playlists/:id", async (req, res) => {
+  app.patch("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const playlist = await storage.updatePlaylist(req.params.id, req.body);
-      if (!playlist) {
-        return res.status(404).json({ error: "Playlist not found" });
+      const userId = req.user.claims.sub;
+      const updated = await storage.updatePlaylist(req.params.id, userId, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Playlist not found or access denied" });
       }
-      res.json(playlist);
+      res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update playlist" });
     }
   });
 
-  app.delete("/api/playlists/:id", async (req, res) => {
+  app.delete("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const deleted = await storage.deletePlaylist(req.params.id);
+      const userId = req.user.claims.sub;
+      const deleted = await storage.deletePlaylist(req.params.id, userId);
       if (!deleted) {
-        return res.status(404).json({ error: "Playlist not found" });
+        return res.status(404).json({ error: "Playlist not found or access denied" });
       }
       res.status(204).send();
     } catch (error) {
@@ -176,30 +205,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/playlists/:id/songs", async (req, res) => {
+  app.post("/api/playlists/:id/songs", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const { songId } = req.body;
       if (!songId) {
         return res.status(400).json({ error: "songId is required" });
       }
 
-      const playlist = await storage.addSongToPlaylist(req.params.id, songId);
-      if (!playlist) {
-        return res.status(404).json({ error: "Playlist not found" });
+      const updated = await storage.addSongToPlaylist(req.params.id, userId, songId);
+      if (!updated) {
+        return res.status(404).json({ error: "Playlist not found or access denied" });
       }
-      res.json(playlist);
+      res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to add song to playlist" });
     }
   });
 
-  app.delete("/api/playlists/:id/songs/:songId", async (req, res) => {
+  app.delete("/api/playlists/:id/songs/:songId", isAuthenticated, async (req: any, res) => {
     try {
-      const playlist = await storage.removeSongFromPlaylist(req.params.id, req.params.songId);
-      if (!playlist) {
-        return res.status(404).json({ error: "Playlist not found" });
+      const userId = req.user.claims.sub;
+      const updated = await storage.removeSongFromPlaylist(req.params.id, userId, req.params.songId);
+      if (!updated) {
+        return res.status(404).json({ error: "Playlist not found or access denied" });
       }
-      res.json(playlist);
+      res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to remove song from playlist" });
     }
