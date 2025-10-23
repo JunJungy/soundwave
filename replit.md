@@ -6,7 +6,7 @@ Soundwave is a modern music streaming application inspired by Spotify, featuring
 **Status**: Active development - MVP Phase 2 complete (Authentication & Database)
 
 ## Features
-- **User Authentication**: Secure login with Replit Auth (OIDC)
+- **User Authentication**: Secure username/password authentication with bcrypt
 - **User Accounts**: Personalized experience with user-specific data
 - **Browse Music**: Explore featured playlists, new albums, and browse by genre
 - **Search**: Instant search across songs, artists, albums, and user playlists
@@ -30,7 +30,7 @@ Soundwave is a modern music streaming application inspired by Spotify, featuring
 ### Backend (Express + TypeScript)
 - **Server**: Express.js
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Replit Auth (OIDC) with session management
+- **Authentication**: Custom username/password with bcrypt hashing and session management
 - **Storage**: PostgreSQL-backed DatabaseStorage
 - **Data Models**: Users, Sessions, Songs, Albums, Artists, Playlists
 
@@ -70,7 +70,7 @@ server/
   ├── routes.ts           # API routes (authenticated & public)
   ├── storage.ts          # Database storage interface
   ├── db.ts              # Database connection & Drizzle setup
-  ├── replitAuth.ts      # Replit Auth OIDC configuration
+  ├── auth.ts            # Session configuration and middleware
   └── index.ts            # Server entry point
 
 shared/
@@ -83,7 +83,7 @@ attached_assets/
 ## Data Models
 
 ### User
-- id (varchar, UUID), email, firstName, lastName, imageUrl
+- id (varchar, UUID), username (unique, required), passwordHash (bcrypt hashed), email (optional), firstName, lastName
 
 ### Session
 - sid (varchar), sess (jsonb), expire (timestamp)
@@ -101,7 +101,7 @@ attached_assets/
 - id, name, description, coverUrl, songIds[], **userId** (foreign key - user-specific)
 
 ## Key Pages
-1. **Landing** (`/` - logged out) - Welcome page with login button
+1. **Landing** (`/` - logged out) - Welcome page with tabbed login/register forms
 2. **Home** (`/` - logged in) - Featured playlists, new albums, genre browsing
 3. **Search** (`/search`) - Search interface with tabbed results
 4. **Library** (`/library`) - User's personal playlists and collections
@@ -120,11 +120,11 @@ attached_assets/
 
 ## API Endpoints
 
-### Authentication (Public)
-- `GET /api/auth/user` - Get current user or null if logged out
-- `GET /api/auth/login` - Initiate OIDC login flow
-- `GET /api/auth/callback` - Handle OIDC callback
-- `POST /api/auth/logout` - End user session
+### Authentication
+- `GET /api/auth/user` - Get current user or null if logged out (Public)
+- `POST /api/auth/register` - Create new user account with username/password (Public)
+- `POST /api/auth/login` - Login with username/password (Public)
+- `POST /api/auth/logout` - End user session (Authenticated)
 
 ### Music Library (Public)
 - `GET /api/songs` - Get all songs
@@ -160,8 +160,10 @@ attached_assets/
 - Empty states provide clear guidance to users
 
 ## Security Architecture
-- **Authentication**: Replit Auth (OIDC) with secure session cookies
-- **Session Storage**: PostgreSQL-backed sessions with connect-pg-simple
+- **Authentication**: Custom username/password with bcrypt hashing (10 salt rounds)
+- **Password Security**: Minimum 8 characters, securely hashed before storage
+- **Session Management**: PostgreSQL-backed sessions with connect-pg-simple
+- **Session Secret**: Configurable via SESSION_SECRET environment variable
 - **Authorization**: All playlist operations require authentication
 - **Data Isolation**: Storage layer enforces userId scoping with AND conditions
 - **Fail-Secure**: Playlist endpoints return same error for missing/unauthorized playlists
@@ -170,11 +172,20 @@ attached_assets/
 
 ## Recent Changes
 
+### Phase 3: Custom Authentication (2025-10-23)
+- Replaced Replit Auth with custom username/password authentication
+- Added bcrypt password hashing with 10 salt rounds
+- Updated users table: username (unique, required), passwordHash, email (optional)
+- Implemented registration endpoint with username/password validation
+- Implemented login endpoint with credential verification
+- Created tabbed login/register UI with React Hook Form and Zod validation
+- Added proper error handling and toast notifications
+- Verified end-to-end authentication flow with comprehensive tests
+
 ### Phase 2: Authentication & Database (2025-10-23)
 - Migrated from in-memory storage to PostgreSQL database
-- Implemented Replit Auth with OIDC for secure authentication
-- Added session management with PostgreSQL session store
-- Created users table with automatic upsert on login
+- Implemented session management with PostgreSQL session store
+- Created users table with session-based authentication
 - Implemented user-specific playlists with userId foreign key
 - Enforced playlist privacy at storage layer (database-level scoping)
 - Protected all playlist endpoints with authentication and ownership checks
