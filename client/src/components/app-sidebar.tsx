@@ -128,7 +128,7 @@ export function AppSidebar({ playlists = [], onCreatePlaylist }: AppSidebarProps
 
       <SidebarFooter className="p-4">
         <div className="text-xs text-muted-foreground px-2">
-          Enhanced music streaming experience
+          Developed by Void AI
         </div>
       </SidebarFooter>
     </Sidebar>

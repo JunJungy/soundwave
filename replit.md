@@ -3,7 +3,8 @@
 ## Overview
 Soundwave is a modern music streaming application inspired by Spotify, featuring an enhanced UI/UX with improved spacing, typography, and visual design. Built with React, Express, and TypeScript, it provides a polished music browsing and playback experience.
 
-**Status**: Active development - MVP Phase 2 complete (Authentication & Database)
+**Developed by**: Void AI Corporation  
+**Status**: Active development - Artist Application System Complete
 
 ## Features
 - **User Authentication**: Secure username/password authentication with bcrypt
@@ -13,6 +14,12 @@ Soundwave is a modern music streaming application inspired by Spotify, featuring
 - **Music Player**: Full-featured player with play/pause, skip, shuffle, repeat
 - **Personal Playlists**: Create and manage custom playlists (private, user-specific)
 - **Queue Management**: View and manage upcoming tracks
+- **Artist Application System**: Users can apply to become artists, admins review and approve applications
+- **Artist Music Upload**: Approved artists can upload albums and songs
+- **Stream Tracking**: Real-time stream counting for songs and artists
+- **Auto-Verification**: Artists automatically receive verified badge at 1M total streams
+- **Admin Panel**: Admins can review and manage artist applications
+- **Artist Dashboard**: Artists can manage their albums and songs
 - **Responsive Design**: Beautiful UI that works across all screen sizes
 - **Dark Theme**: Polished dark theme with vibrant green accents
 
@@ -172,6 +179,25 @@ attached_assets/
 - **Defense in Depth**: Both route and storage layers enforce security
 
 ## Recent Changes
+
+### Phase 6: Complete Artist Application System (2025-10-23)
+- Extended database schema: added artist_applications table with status tracking
+- Added isArtist flag to users table for artist access control
+- Added userId to artists table to link artist profiles with user accounts
+- Added streams field to songs table for play count tracking
+- Implemented comprehensive storage layer methods for artist applications
+- Created API endpoints for artist applications (create, approve, reject, list)
+- Created API endpoints for artist music upload (albums and songs)
+- Implemented stream tracking: POST /api/songs/:id/play increments streams
+- Built auto-verification logic: artists get verified badge at 1M total streams
+- Created artist application dialog with form validation
+- Built admin panel for reviewing pending applications (approve/reject)
+- Built artist dashboard for managing albums and songs
+- Updated app header with admin/artist badges and "Become an Artist" button
+- Updated sidebar with management section for admin panel and artist dashboard links
+- Added Void AI corporation branding in sidebar and landing page
+
+## Recent Changes (Historical)
 
 ### Phase 5: Artist Pages with Verified Badges & Stream Counts (2025-10-23)
 - Extended artists schema with `verified` (integer, 0/1) and `streams` (integer) fields

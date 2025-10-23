@@ -287,8 +287,9 @@ export default function Landing() {
           </TabsContent>
         </Tabs>
 
-        <div className="text-center text-sm text-muted-foreground">
+        <div className="text-center text-sm text-muted-foreground space-y-2">
           <p>Stream millions of songs and create your perfect playlists</p>
+          <p className="text-xs">Developed by Void AI</p>
         </div>
       </div>
     </div>
