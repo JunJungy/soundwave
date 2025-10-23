@@ -469,46 +469,42 @@ export class DatabaseStorage implements IStorage {
       { albumIndex: 13, trackName: "Cool With You", artistName: "NewJeans" },
     ];
 
-    console.log(`Fetching ${tracksToFetch.length} tracks from Spotify...`);
+    console.log(`Adding ${tracksToFetch.length} tracks with demo audio...`);
     
-    // Fetch tracks from Spotify with preview URLs
-    for (const { albumIndex, trackName, artistName } of tracksToFetch) {
-      try {
-        const trackData = await searchTrack(trackName, artistName);
-        const album = createdAlbums[albumIndex];
-        
-        if (trackData && trackData.previewUrl) {
-          await this.createSong({
-            title: trackData.name,
-            albumId: album.id,
-            artistId: album.artistId,
-            duration: trackData.duration,
-            audioUrl: trackData.previewUrl, // Real Spotify preview URL
-          });
-          console.log(`✓ Added: ${trackData.name} by ${artistName}`);
-        } else {
-          // Fallback to placeholder if no preview available
-          await this.createSong({
-            title: trackName,
-            albumId: album.id,
-            artistId: album.artistId,
-            duration: 180,
-            audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-          });
-          console.log(`⚠ No preview for: ${trackName} - using placeholder`);
-        }
-      } catch (error) {
-        console.error(`Error fetching ${trackName}:`, error);
-        // Add with placeholder on error
-        const album = createdAlbums[albumIndex];
-        await this.createSong({
-          title: trackName,
-          albumId: album.id,
-          artistId: album.artistId,
-          duration: 180,
-          audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-        });
-      }
+    // Map tracks to different demo audio files for variety
+    const audioFiles = [
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3",
+      "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3",
+    ];
+    
+    // Add tracks with different demo audio for variety
+    for (let i = 0; i < tracksToFetch.length; i++) {
+      const { albumIndex, trackName } = tracksToFetch[i];
+      const album = createdAlbums[albumIndex];
+      const audioUrl = audioFiles[i % audioFiles.length];
+      
+      await this.createSong({
+        title: trackName,
+        albumId: album.id,
+        artistId: album.artistId,
+        duration: 180 + Math.floor(Math.random() * 60), // 3-4 minutes
+        audioUrl,
+      });
+      console.log(`✓ Added: ${trackName}`);
     }
 
     console.log("Database seeded successfully!");

@@ -1,12 +1,7 @@
 import { SpotifyApi } from "@spotify/web-api-ts-sdk";
 
-let connectionSettings: any;
-
+// Do not cache connection settings - always fetch fresh
 async function getAccessToken() {
-  if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
-    return connectionSettings.settings.access_token;
-  }
-  
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME
   const xReplitToken = process.env.REPL_IDENTITY 
     ? 'repl ' + process.env.REPL_IDENTITY 
@@ -18,7 +13,7 @@ async function getAccessToken() {
     throw new Error('X_REPLIT_TOKEN not found for repl/depl');
   }
 
-  connectionSettings = await fetch(
+  const connectionSettings = await fetch(
     'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=spotify',
     {
       headers: {
@@ -54,30 +49,46 @@ export async function getUncachableSpotifyClient() {
   return spotify;
 }
 
+// Add delay helper to avoid rate limiting
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Helper function to search for a track and get its preview URL
-export async function searchTrack(trackName: string, artistName: string) {
-  try {
-    const spotify = await getUncachableSpotifyClient();
-    const query = `track:${trackName} artist:${artistName}`;
-    const results = await spotify.search(query, ['track'], undefined, 1);
-    
-    if (results.tracks.items.length > 0) {
-      const track = results.tracks.items[0];
-      return {
-        name: track.name,
-        artist: track.artists[0].name,
-        previewUrl: track.preview_url,
-        duration: Math.floor(track.duration_ms / 1000),
-        albumName: track.album.name,
-        albumCover: track.album.images[0]?.url,
-        spotifyUrl: track.external_urls.spotify,
-      };
+export async function searchTrack(trackName: string, artistName: string, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      // Always get a fresh client for each request
+      const spotify = await getUncachableSpotifyClient();
+      const query = `track:${trackName} artist:${artistName}`;
+      const results = await spotify.search(query, ['track'], undefined, 1);
+      
+      if (results.tracks.items.length > 0) {
+        const track = results.tracks.items[0];
+        // Add a small delay to avoid rate limiting
+        await delay(100);
+        return {
+          name: track.name,
+          artist: track.artists[0].name,
+          previewUrl: track.preview_url,
+          duration: Math.floor(track.duration_ms / 1000),
+          albumName: track.album.name,
+          albumCover: track.album.images[0]?.url,
+          spotifyUrl: track.external_urls.spotify,
+        };
+      }
+      return null;
+    } catch (error: any) {
+      if (attempt < retries && (error.message?.includes('OAuth') || error.message?.includes('401'))) {
+        console.log(`Retry ${attempt}/${retries} for ${trackName}...`);
+        await delay(1000 * attempt); // Exponential backoff
+        continue;
+      }
+      console.error(`Error searching for track ${trackName} by ${artistName}:`, error);
+      return null;
     }
-    return null;
-  } catch (error) {
-    console.error(`Error searching for track ${trackName} by ${artistName}:`, error);
-    return null;
   }
+  return null;
 }
 
 // Get multiple tracks for an artist
