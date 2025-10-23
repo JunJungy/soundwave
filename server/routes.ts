@@ -1,23 +1,86 @@
-// Soundwave routes with Replit Auth integration
+// Soundwave routes with custom authentication
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPlaylistSchema } from "@shared/schema";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { insertPlaylistSchema, insertUserSchema, loginSchema } from "@shared/schema";
+import { setupSession, isAuthenticated } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication middleware (Replit Auth)
-  await setupAuth(app);
+  // Setup session middleware
+  setupSession(app);
 
-  // Auth routes - NOT protected to allow landing page to function
+  // Register endpoint
+  app.post("/api/auth/register", async (req: any, res) => {
+    try {
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(validatedData.username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already taken" });
+      }
+
+      const user = await storage.createUser(validatedData);
+      
+      // Set session
+      req.session.userId = user.id;
+      
+      // Return user without password hash
+      const { passwordHash: _, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      res.status(400).json({ error: error.message || "Registration failed" });
+    }
+  });
+
+  // Login endpoint
+  app.post("/api/auth/login", async (req: any, res) => {
+    try {
+      const validatedData = loginSchema.parse(req.body);
+      
+      const user = await storage.validatePassword(validatedData.username, validatedData.password);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      // Set session
+      req.session.userId = user.id;
+      
+      // Return user without password hash
+      const { passwordHash: _, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      res.status(400).json({ error: error.message || "Login failed" });
+    }
+  });
+
+  // Logout endpoint
+  app.post("/api/auth/logout", async (req: any, res) => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.json({ success: true });
+    });
+  });
+
+  // Get current user - NOT protected to allow landing page to function
   app.get("/api/auth/user", async (req: any, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user?.claims?.sub) {
+      if (!req.session?.userId) {
         return res.json(null);
       }
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.json(null);
+      }
+      
+      // Return user without password hash
+      const { passwordHash: _, ...safeUser } = user;
+      res.json(safeUser);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -27,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Search endpoint - authenticated to scope playlist results
   app.get("/api/search", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const query = req.query.q as string;
       if (!query) {
         return res.json({ songs: [], albums: [], artists: [], playlists: [] });
@@ -140,7 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Playlists - authenticated access for user-specific playlists
   app.get("/api/playlists", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const playlists = await storage.getPlaylists(userId);
       res.json(playlists);
     } catch (error) {
@@ -150,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const playlist = await storage.getPlaylist(req.params.id, userId);
       if (!playlist) {
         return res.status(404).json({ error: "Playlist not found or access denied" });
@@ -163,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/playlists", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const result = insertPlaylistSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ error: "Invalid playlist data", details: result.error });
@@ -181,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const updated = await storage.updatePlaylist(req.params.id, userId, req.body);
       if (!updated) {
         return res.status(404).json({ error: "Playlist not found or access denied" });
@@ -194,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/playlists/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const deleted = await storage.deletePlaylist(req.params.id, userId);
       if (!deleted) {
         return res.status(404).json({ error: "Playlist not found or access denied" });
@@ -207,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/playlists/:id/songs", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const { songId } = req.body;
       if (!songId) {
         return res.status(400).json({ error: "songId is required" });
@@ -225,7 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/playlists/:id/songs/:songId", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId;
       const updated = await storage.removeSongFromPlaylist(req.params.id, userId, req.params.songId);
       if (!updated) {
         return res.status(404).json({ error: "Playlist not found or access denied" });

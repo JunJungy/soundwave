@@ -13,15 +13,18 @@ import {
   type InsertAlbum,
   type InsertSong,
   type InsertPlaylist,
-  type UpsertUser,
+  type InsertUser,
 } from "@shared/schema";
+import bcrypt from "bcrypt";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (required for Replit Auth)
+  // User operations (custom authentication)
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  validatePassword(username: string, password: string): Promise<User | null>;
 
   // Artists
   getArtists(): Promise<Artist[]>;
@@ -55,25 +58,37 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // User operations (required for Replit Auth)
+  // User operations (custom authentication)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const { password, passwordHash: _, ...userFields } = userData as any;
+    const passwordHash = await bcrypt.hash(password, 10);
+    
     const [user] = await db
       .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
+      .values({
+        ...userFields,
+        passwordHash,
       })
       .returning();
     return user;
+  }
+
+  async validatePassword(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return null;
+    
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    return isValid ? user : null;
   }
 
   // Artists
