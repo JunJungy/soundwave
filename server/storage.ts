@@ -4,16 +4,19 @@ import {
   songs,
   playlists,
   users,
+  artistApplications,
   type Artist,
   type Album,
   type Song,
   type Playlist,
   type User,
+  type ArtistApplication,
   type InsertArtist,
   type InsertAlbum,
   type InsertSong,
   type InsertPlaylist,
   type InsertUser,
+  type InsertArtistApplication,
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
@@ -25,11 +28,14 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   validatePassword(username: string, password: string): Promise<User | null>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
 
   // Artists
   getArtists(): Promise<Artist[]>;
   getArtist(id: string): Promise<Artist | undefined>;
+  getArtistByUserId(userId: string): Promise<Artist | undefined>;
   createArtist(artist: InsertArtist): Promise<Artist>;
+  updateArtist(id: string, updates: Partial<Artist>): Promise<Artist | undefined>;
 
   // Albums
   getAlbums(): Promise<Album[]>;
@@ -43,6 +49,7 @@ export interface IStorage {
   getSongsByAlbum(albumId: string): Promise<Song[]>;
   getSongsByArtist(artistId: string): Promise<Song[]>;
   createSong(song: InsertSong): Promise<Song>;
+  incrementSongStreams(songId: string): Promise<Song | undefined>;
 
   // Playlists
   getPlaylists(userId: string): Promise<Playlist[]>;
@@ -52,6 +59,13 @@ export interface IStorage {
   deletePlaylist(id: string, userId: string): Promise<boolean>;
   addSongToPlaylist(playlistId: string, userId: string, songId: string): Promise<Playlist | undefined>;
   removeSongFromPlaylist(playlistId: string, userId: string, songId: string): Promise<Playlist | undefined>;
+
+  // Artist Applications
+  createArtistApplication(application: InsertArtistApplication): Promise<ArtistApplication>;
+  getArtistApplicationByUserId(userId: string): Promise<ArtistApplication | undefined>;
+  getPendingArtistApplications(): Promise<ArtistApplication[]>;
+  approveArtistApplication(id: string, adminId: string): Promise<ArtistApplication | undefined>;
+  rejectArtistApplication(id: string, adminId: string): Promise<ArtistApplication | undefined>;
 
   // Seeding
   seedDatabase(): Promise<void>;
@@ -91,6 +105,15 @@ export class DatabaseStorage implements IStorage {
     return isValid ? user : null;
   }
 
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
   // Artists
   async getArtists(): Promise<Artist[]> {
     return await db.select().from(artists);
@@ -101,8 +124,22 @@ export class DatabaseStorage implements IStorage {
     return artist;
   }
 
+  async getArtistByUserId(userId: string): Promise<Artist | undefined> {
+    const [artist] = await db.select().from(artists).where(eq(artists.userId, userId));
+    return artist;
+  }
+
   async createArtist(insertArtist: InsertArtist): Promise<Artist> {
     const [artist] = await db.insert(artists).values(insertArtist).returning();
+    return artist;
+  }
+
+  async updateArtist(id: string, updates: Partial<Artist>): Promise<Artist | undefined> {
+    const [artist] = await db
+      .update(artists)
+      .set(updates)
+      .where(eq(artists.id, id))
+      .returning();
     return artist;
   }
 
@@ -145,6 +182,15 @@ export class DatabaseStorage implements IStorage {
 
   async createSong(insertSong: InsertSong): Promise<Song> {
     const [song] = await db.insert(songs).values(insertSong).returning();
+    return song;
+  }
+
+  async incrementSongStreams(songId: string): Promise<Song | undefined> {
+    const [song] = await db
+      .update(songs)
+      .set({ streams: sql`${songs.streams} + 1` })
+      .where(eq(songs.id, songId))
+      .returning();
     return song;
   }
 
@@ -200,6 +246,73 @@ export class DatabaseStorage implements IStorage {
 
     const updatedSongIds = playlist.songIds.filter((id) => id !== songId);
     return await this.updatePlaylist(playlistId, userId, { songIds: updatedSongIds });
+  }
+
+  // Artist Applications
+  async createArtistApplication(application: InsertArtistApplication): Promise<ArtistApplication> {
+    const [app] = await db.insert(artistApplications).values(application).returning();
+    return app;
+  }
+
+  async getArtistApplicationByUserId(userId: string): Promise<ArtistApplication | undefined> {
+    const [app] = await db
+      .select()
+      .from(artistApplications)
+      .where(eq(artistApplications.userId, userId));
+    return app;
+  }
+
+  async getPendingArtistApplications(): Promise<ArtistApplication[]> {
+    return await db
+      .select()
+      .from(artistApplications)
+      .where(eq(artistApplications.status, "pending"));
+  }
+
+  async approveArtistApplication(id: string, adminId: string): Promise<ArtistApplication | undefined> {
+    const [application] = await db
+      .select()
+      .from(artistApplications)
+      .where(eq(artistApplications.id, id));
+
+    if (!application) return undefined;
+
+    await db
+      .update(users)
+      .set({ isArtist: 1 })
+      .where(eq(users.id, application.userId));
+
+    await db.insert(artists).values({
+      userId: application.userId,
+      name: application.artistName,
+      genre: application.genre,
+    });
+
+    const [updated] = await db
+      .update(artistApplications)
+      .set({
+        status: "approved",
+        reviewedAt: new Date(),
+        reviewedBy: adminId,
+      })
+      .where(eq(artistApplications.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async rejectArtistApplication(id: string, adminId: string): Promise<ArtistApplication | undefined> {
+    const [updated] = await db
+      .update(artistApplications)
+      .set({
+        status: "rejected",
+        reviewedAt: new Date(),
+        reviewedBy: adminId,
+      })
+      .where(eq(artistApplications.id, id))
+      .returning();
+
+    return updated;
   }
 
   // Seed database with initial data
