@@ -20,7 +20,7 @@ import {
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (custom authentication)
@@ -326,7 +326,7 @@ export class DatabaseStorage implements IStorage {
 
     console.log("Seeding database with initial music data...");
 
-    const artistsData: InsertArtist[] = [
+    const artistsData = [
       { name: "Neon Dreams", genre: "Electronic", verified: 1, streams: 15420000 },
       { name: "The Wanderers", genre: "Rock", verified: 1, streams: 8920000 },
       { name: "Urban Poets", genre: "Hip Hop", verified: 0, streams: 3450000 },
@@ -339,9 +339,7 @@ export class DatabaseStorage implements IStorage {
       { name: "Island Vibes", genre: "Reggae", verified: 0, streams: 2100000 },
     ];
 
-    const createdArtists = await Promise.all(
-      artistsData.map((artist) => this.createArtist(artist))
-    );
+    const createdArtists = await db.insert(artists).values(artistsData).returning();
 
     const coverUrls: Record<string, string> = {
       electronic: "/attached_assets/generated_images/Electronic_album_cover_art_5a6aa869.png",

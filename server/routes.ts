@@ -2,7 +2,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPlaylistSchema, insertUserSchema, loginSchema } from "@shared/schema";
+import { insertPlaylistSchema, insertUserSchema, loginSchema, insertArtistApplicationSchema, insertSongSchema, insertAlbumSchema } from "@shared/schema";
 import { setupSession, isAuthenticated } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -296,6 +296,191 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to remove song from playlist" });
+    }
+  });
+
+  // Artist Application endpoints
+  app.post("/api/artist-applications", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.isArtist === 1) {
+        return res.status(400).json({ error: "You are already an artist" });
+      }
+
+      const existing = await storage.getArtistApplicationByUserId(userId);
+      if (existing) {
+        return res.status(400).json({ error: "You already have a pending or processed application" });
+      }
+
+      const validatedData = insertArtistApplicationSchema.parse(req.body);
+      const application = await storage.createArtistApplication({
+        ...validatedData,
+        userId,
+      });
+
+      res.json(application);
+    } catch (error: any) {
+      console.error("Artist application error:", error);
+      res.status(400).json({ error: error.message || "Failed to create artist application" });
+    }
+  });
+
+  app.get("/api/artist-applications/me", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const application = await storage.getArtistApplicationByUserId(userId);
+      res.json(application || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch application" });
+    }
+  });
+
+  app.get("/api/artist-applications/pending", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const applications = await storage.getPendingArtistApplications();
+      res.json(applications);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch applications" });
+    }
+  });
+
+  app.post("/api/artist-applications/:id/approve", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const approved = await storage.approveArtistApplication(req.params.id, userId);
+      if (!approved) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+
+      res.json(approved);
+    } catch (error) {
+      console.error("Approval error:", error);
+      res.status(500).json({ error: "Failed to approve application" });
+    }
+  });
+
+  app.post("/api/artist-applications/:id/reject", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const rejected = await storage.rejectArtistApplication(req.params.id, userId);
+      if (!rejected) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+
+      res.json(rejected);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reject application" });
+    }
+  });
+
+  // Song stream tracking
+  app.post("/api/songs/:id/play", isAuthenticated, async (req: any, res) => {
+    try {
+      const song = await storage.incrementSongStreams(req.params.id);
+      if (!song) {
+        return res.status(404).json({ error: "Song not found" });
+      }
+
+      const artist = await storage.getArtist(song.artistId);
+      if (artist) {
+        const totalStreams = (await storage.getSongsByArtist(artist.id))
+          .reduce((sum, s) => sum + (s.streams || 0), 0);
+
+        const shouldVerify = totalStreams >= 1000000 && artist.verified === 0;
+        if (shouldVerify) {
+          await storage.updateArtist(artist.id, { 
+            verified: 1,
+            streams: totalStreams 
+          });
+        } else {
+          await storage.updateArtist(artist.id, { streams: totalStreams });
+        }
+      }
+
+      res.json({ success: true, streams: song.streams });
+    } catch (error) {
+      console.error("Stream tracking error:", error);
+      res.status(500).json({ error: "Failed to track stream" });
+    }
+  });
+
+  // Artist music upload endpoints
+  app.post("/api/albums", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isArtist !== 1) {
+        return res.status(403).json({ error: "Artist access required" });
+      }
+
+      const artist = await storage.getArtistByUserId(userId);
+      if (!artist) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+
+      const validatedData = insertAlbumSchema.parse(req.body);
+      const album = await storage.createAlbum({
+        ...validatedData,
+        artistId: artist.id,
+      });
+
+      res.json(album);
+    } catch (error: any) {
+      console.error("Album creation error:", error);
+      res.status(400).json({ error: error.message || "Failed to create album" });
+    }
+  });
+
+  app.post("/api/songs", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isArtist !== 1) {
+        return res.status(403).json({ error: "Artist access required" });
+      }
+
+      const artist = await storage.getArtistByUserId(userId);
+      if (!artist) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+
+      const validatedData = insertSongSchema.parse(req.body);
+      const song = await storage.createSong({
+        ...validatedData,
+        artistId: artist.id,
+      });
+
+      res.json(song);
+    } catch (error: any) {
+      console.error("Song creation error:", error);
+      res.status(400).json({ error: error.message || "Failed to create song" });
     }
   });
 

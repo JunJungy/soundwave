@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Track {
   id: string;
@@ -44,6 +45,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const trackedSongRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!audioRef.current) {
@@ -100,7 +102,16 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
         startSimulatedPlayback();
       }
     }
-  }, [currentTrack?.id]);
+
+    if (currentTrack.id && currentTrack.id !== trackedSongRef.current && isPlaying) {
+      trackedSongRef.current = currentTrack.id;
+      apiRequest(`/api/songs/${currentTrack.id}/play`, {
+        method: "POST",
+      }).catch((error) => {
+        console.error("Failed to track stream:", error);
+      });
+    }
+  }, [currentTrack?.id, isPlaying]);
 
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
