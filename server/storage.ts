@@ -349,8 +349,22 @@ export class DatabaseStorage implements IStorage {
 
   // Seed database with initial data (now empty - artists must upload their own songs)
   async seedDatabase(): Promise<void> {
+    // Ensure owner account exists
+    const ownerUsername = "Jinsoo";
+    const existingOwner = await this.getUserByUsername(ownerUsername);
+    
+    if (!existingOwner) {
+      const passwordHash = await bcrypt.hash("Laughy@12", 10);
+      await db.insert(users).values({
+        username: ownerUsername,
+        passwordHash,
+        isAdmin: 1,
+        isArtist: 0,
+      });
+      console.log("Owner account created: Jinsoo");
+    }
+    
     console.log("Database ready - no pre-seeded content. Artists can now upload songs.");
-
   }
 }
 
