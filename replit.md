@@ -27,7 +27,10 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Security**: Comprehensive security measures including secure password hashing, session management, authorization checks at both route and storage layers, cross-tenant protection, and fail-secure design.
 - **Music Player**: Global state management via React Context using HTML5 audio for playback. Full playback controls (play/pause, skip, shuffle, repeat, progress bar, volume), queue management, and now playing display.
 - **File Storage**: Replit Object Storage integration with presigned URLs for secure file uploads. Artists upload actual audio files (MP3, WAV, OGG, M4A) and square album artwork (no branded logos). Custom ACL policy system for protected file access.
-- **Artist System**: Users can apply to become artists, with admin review and approval. Approved artists can upload albums and songs with actual audio files and album artwork. Real-time stream tracking for songs and artists, with automatic verification at 1 million total streams.
+- **Artist System**: Users can apply to become artists, with admin review and approval. Approved artists can upload albums and songs with actual audio files and album artwork. Real-time stream tracking for songs and artists, with two-tier verification system:
+  - **First Threshold (100k streams)**: Verification progress bar appears on artist dashboard showing progress toward 1M streams
+  - **Second Threshold (1M streams)**: Artist automatically verified within one hour via server-side background job
+  - **Server-side Auto-verification**: Independent hourly check runs in `server/index.ts` that verifies artists without requiring dashboard interaction
 - **Admin Panel**: Functionality for reviewing artist applications, managing users (promote/demote admin status), and deleting user accounts with owner protection.
 
 ### Feature Specifications
