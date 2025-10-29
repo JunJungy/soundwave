@@ -97,7 +97,6 @@ export default function Search() {
       albumCover: album?.coverUrl || undefined,
       duration: track.duration,
       audioUrl: song?.audioUrl || undefined,
-      youtubeId: song?.youtubeId ?? undefined,
     });
   };
 

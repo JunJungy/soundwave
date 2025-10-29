@@ -30,7 +30,7 @@ export default function Home() {
   }, {} as Record<string, string>);
 
   const albumMap = albums.reduce((acc, album) => {
-    acc[album.id] = { title: album.title, coverUrl: album.coverUrl };
+    acc[album.id] = { title: album.title, coverUrl: album.coverUrl || undefined };
     return acc;
   }, {} as Record<string, { title: string; coverUrl?: string }>);
 
@@ -43,7 +43,6 @@ export default function Home() {
       albumCover: albumMap[song.albumId]?.coverUrl,
       duration: song.duration,
       audioUrl: song.audioUrl || undefined,
-      youtubeId: song.youtubeId ?? undefined,
     }));
     if (tracks.length > 0) {
       playQueue(tracks);

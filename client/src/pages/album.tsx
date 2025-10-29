@@ -54,7 +54,6 @@ export default function AlbumPage() {
       albumCover: album?.coverUrl || undefined,
       duration: song.duration,
       audioUrl: song.audioUrl || undefined,
-      youtubeId: song.youtubeId ?? undefined,
     }));
     playQueue(playerTracks);
   };
@@ -68,7 +67,6 @@ export default function AlbumPage() {
       albumCover: album?.coverUrl || undefined,
       duration: track.duration,
       audioUrl: song?.audioUrl || undefined,
-      youtubeId: song?.youtubeId ?? undefined,
     });
   };
 

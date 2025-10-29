@@ -50,6 +50,7 @@
     "@uppy/core": "^4.5.3",
     "@uppy/dashboard": "^4.4.3",
     "@uppy/drag-drop": "^4.2.2",
+    "@uppy/file-input": "^4.2.2",
     "@uppy/react": "^4.5.2",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
