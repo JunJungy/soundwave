@@ -60,6 +60,7 @@ export default function Landing() {
 
   const handleLogin = async (data: LoginFormData) => {
     try {
+      console.log("Attempting login with:", { username: data.username });
       await apiRequest("POST", "/api/auth/login", data);
       
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -69,6 +70,7 @@ export default function Landing() {
         description: "You've successfully logged in.",
       });
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         variant: "destructive",
         title: "Login failed",
