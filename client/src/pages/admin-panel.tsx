@@ -330,7 +330,7 @@ export default function AdminPanel() {
                         <p className="font-medium" data-testid={`text-username-${targetUser.id}`}>
                           {targetUser.username}
                         </p>
-                        {targetUser.username === "admin" ? (
+                        {targetUser.username === "Jinsoo" ? (
                           <Badge className="bg-amber-600 text-white" data-testid={`badge-owner-${targetUser.id}`}>
                             <Crown className="w-3 h-3 mr-1" />
                             Owner
@@ -353,7 +353,7 @@ export default function AdminPanel() {
                         </p>
                       )}
                     </div>
-                    {targetUser.id !== user?.id && targetUser.username !== "admin" && (
+                    {targetUser.id !== user?.id && targetUser.username !== "Jinsoo" && (
                       <div className="flex gap-2">
                         {targetUser.isAdmin === 1 ? (
                           <Button

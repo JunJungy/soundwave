@@ -146,7 +146,7 @@ function AppContent() {
           <header className="flex items-center justify-between p-4 border-b shrink-0">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <div className="flex items-center gap-3">
-              {user?.username === "admin" ? (
+              {user?.username === "Jinsoo" ? (
                 <Badge className="bg-amber-600 text-white" data-testid="badge-owner">
                   <Crown className="w-3 h-3 mr-1" />
                   Owner

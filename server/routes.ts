@@ -615,7 +615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const targetUser = await storage.getUser(req.params.id);
-      if (targetUser?.username === "admin") {
+      if (targetUser?.username === "Jinsoo") {
         return res.status(400).json({ error: "Cannot demote the owner account" });
       }
 
@@ -650,7 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      if (targetUser.username === "admin") {
+      if (targetUser.username === "Jinsoo") {
         return res.status(400).json({ error: "Cannot delete the owner account" });
       }
 
