@@ -33,7 +33,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Music, Disc, ArrowLeft, Plus } from "lucide-react";
+import { Music, Disc, ArrowLeft, Plus, Upload, Image as ImageIcon } from "lucide-react";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import type { UploadResult } from "@uppy/core";
 
 export default function ArtistDashboard() {
   const { user } = useAuth();
@@ -41,6 +43,8 @@ export default function ArtistDashboard() {
   const { toast } = useToast();
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
   const [songDialogOpen, setSongDialogOpen] = useState(false);
+  const [albumCoverUrl, setAlbumCoverUrl] = useState("");
+  const [songAudioUrl, setSongAudioUrl] = useState("");
 
   const { data: albums = [] } = useQuery<Album[]>({
     queryKey: ["/api/albums"],
@@ -286,19 +290,44 @@ export default function ArtistDashboard() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={albumForm.control}
-                name="coverUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cover Image URL</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} placeholder="https://..." data-testid="input-album-cover" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Album Cover (Square, No Logos) *</label>
+                <div className="flex items-center gap-3">
+                  <ObjectUploader
+                    maxNumberOfFiles={1}
+                    maxFileSize={5242880}
+                    allowedFileTypes={['image/*']}
+                    onGetUploadParameters={async () => {
+                      const res = await apiRequest("POST", "/api/objects/upload");
+                      const { uploadURL } = await res.json();
+                      return { method: "PUT" as const, url: uploadURL };
+                    }}
+                    onComplete={async (result) => {
+                      if (result.successful && result.successful.length > 0) {
+                        const uploadURL = result.successful[0].uploadURL;
+                        const aclRes = await apiRequest("PUT", "/api/objects/acl", { objectURL: uploadURL });
+                        const { objectPath } = await aclRes.json();
+                        setAlbumCoverUrl(objectPath);
+                        albumForm.setValue("coverUrl", objectPath);
+                        toast({
+                          title: "Image uploaded",
+                          description: "Album cover uploaded successfully",
+                        });
+                      }
+                    }}
+                    buttonVariant="outline"
+                  >
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    {albumCoverUrl ? "Change Cover" : "Upload Cover"}
+                  </ObjectUploader>
+                  {albumCoverUrl && (
+                    <span className="text-sm text-muted-foreground">Cover uploaded ✓</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Square images only. No branded logos (Spotify, Snapchat, etc.)
+                </p>
+              </div>
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setAlbumDialogOpen(false)} className="flex-1" data-testid="button-cancel-album">
                   Cancel
@@ -359,19 +388,44 @@ export default function ArtistDashboard() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={songForm.control}
-                name="audioUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Audio File URL *</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} placeholder="Upload audio file..." data-testid="input-song-audio" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Audio File *</label>
+                <div className="flex items-center gap-3">
+                  <ObjectUploader
+                    maxNumberOfFiles={1}
+                    maxFileSize={20971520}
+                    allowedFileTypes={['audio/*', '.mp3', '.wav', '.ogg', '.m4a']}
+                    onGetUploadParameters={async () => {
+                      const res = await apiRequest("POST", "/api/objects/upload");
+                      const { uploadURL } = await res.json();
+                      return { method: "PUT" as const, url: uploadURL };
+                    }}
+                    onComplete={async (result) => {
+                      if (result.successful && result.successful.length > 0) {
+                        const uploadURL = result.successful[0].uploadURL;
+                        const aclRes = await apiRequest("PUT", "/api/objects/acl", { objectURL: uploadURL });
+                        const { objectPath } = await aclRes.json();
+                        setSongAudioUrl(objectPath);
+                        songForm.setValue("audioUrl", objectPath);
+                        toast({
+                          title: "Audio uploaded",
+                          description: "Song audio uploaded successfully",
+                        });
+                      }
+                    }}
+                    buttonVariant="outline"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {songAudioUrl ? "Change Audio" : "Upload Audio"}
+                  </ObjectUploader>
+                  {songAudioUrl && (
+                    <span className="text-sm text-muted-foreground">Audio uploaded ✓</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Supported formats: MP3, WAV, OGG, M4A (Max 20MB)
+                </p>
+              </div>
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setSongDialogOpen(false)} className="flex-1" data-testid="button-cancel-song">
                   Cancel
