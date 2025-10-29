@@ -68,6 +68,10 @@ export default function Home() {
               </div>
             ))}
           </div>
+        ) : playlists.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground" data-testid="empty-playlists">
+            <p>No playlists yet. Create your first playlist to get started!</p>
+          </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {playlists.slice(0, 5).map((playlist) => (
@@ -100,6 +104,10 @@ export default function Home() {
                 <div className="h-3 bg-muted rounded w-1/2"></div>
               </div>
             ))}
+          </div>
+        ) : albums.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground" data-testid="empty-albums">
+            <p>No albums yet. Artists will upload music soon!</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
