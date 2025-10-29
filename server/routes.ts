@@ -4,10 +4,69 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPlaylistSchema, insertUserSchema, loginSchema, insertArtistApplicationSchema, insertSongSchema, insertAlbumSchema } from "@shared/schema";
 import { setupSession, isAuthenticated } from "./auth";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectPermission } from "./objectAcl";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
   setupSession(app);
+
+  // Object Storage routes - Reference: blueprint:javascript_object_storage
+  // Serve private objects (audio files, images) with ACL check
+  app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
+    const userId = req.session.userId;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: userId,
+        requestedPermission: ObjectPermission.READ,
+      });
+      if (!canAccess) {
+        return res.sendStatus(401);
+      }
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error checking object access:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // Get upload URL for file uploads
+  app.post("/api/objects/upload", isAuthenticated, async (req: any, res) => {
+    const objectStorageService = new ObjectStorageService();
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    res.json({ uploadURL });
+  });
+
+  // Set ACL policy after file upload
+  app.put("/api/objects/acl", isAuthenticated, async (req: any, res) => {
+    if (!req.body.objectURL) {
+      return res.status(400).json({ error: "objectURL is required" });
+    }
+
+    const userId = req.session.userId;
+
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        req.body.objectURL,
+        {
+          owner: userId,
+          visibility: "public", // Music files are public
+        },
+      );
+
+      res.status(200).json({ objectPath });
+    } catch (error) {
+      console.error("Error setting ACL:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
 
   // Register endpoint
   app.post("/api/auth/register", async (req: any, res) => {
