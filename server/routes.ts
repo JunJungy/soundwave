@@ -203,6 +203,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/artists/me", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const artist = await storage.getArtistByUserId(userId);
+      if (!artist) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+      res.json(artist);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch artist profile" });
+    }
+  });
+
   app.get("/api/artists/:id", async (req, res) => {
     try {
       const artist = await storage.getArtist(req.params.id);
@@ -212,6 +225,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(artist);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch artist" });
+    }
+  });
+
+  app.post("/api/artists/check-verification", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const artist = await storage.getArtistByUserId(userId);
+      
+      if (!artist) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+
+      if (artist.verified === 1) {
+        return res.json({ verified: true, message: "Already verified" });
+      }
+
+      const songs = await storage.getSongsByArtist(artist.id);
+      const totalStreams = songs.reduce((sum, song) => sum + (song.streams || 0), 0);
+
+      if (totalStreams >= 1000000) {
+        await storage.updateArtist(artist.id, {
+          verified: 1,
+          streams: totalStreams
+        });
+        return res.json({ verified: true, message: "Verification granted!", streams: totalStreams });
+      }
+
+      await storage.updateArtist(artist.id, { streams: totalStreams });
+      return res.json({ verified: false, message: "Not yet eligible", streams: totalStreams });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check verification" });
     }
   });
 

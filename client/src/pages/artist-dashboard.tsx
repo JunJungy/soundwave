@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +6,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { insertAlbumSchema, insertSongSchema, type InsertAlbum, type InsertSong, type Album, type Song } from "@shared/schema";
+import { insertAlbumSchema, insertSongSchema, type InsertAlbum, type InsertSong, type Album, type Song, type Artist } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,7 +33,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Music, Disc, ArrowLeft, Plus, Upload, Image as ImageIcon } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Music, Disc, ArrowLeft, Plus, Upload, Image as ImageIcon, BadgeCheck } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 
@@ -55,6 +56,19 @@ export default function ArtistDashboard() {
     queryKey: ["/api/songs"],
     enabled: user?.isArtist === 1,
   });
+
+  const { data: artist } = useQuery<Artist>({
+    queryKey: ["/api/artists/me"],
+    enabled: user?.isArtist === 1,
+  });
+
+  // Refresh artist data on mount (server handles auto-verification)
+  useEffect(() => {
+    if (!artist) return;
+    
+    // Refresh artist data to get latest verification status
+    queryClient.invalidateQueries({ queryKey: ["/api/artists/me"] });
+  }, [artist?.id]);
 
   const albumForm = useForm<Omit<InsertAlbum, "artistId">>({
     resolver: zodResolver(insertAlbumSchema.omit({ artistId: true })),
@@ -189,19 +203,47 @@ export default function ArtistDashboard() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {albums.map((album) => (
-                <Card key={album.id} data-testid={`card-album-${album.id}`}>
-                  <CardHeader>
-                    <CardTitle className="text-lg" data-testid="text-album-title">{album.title}</CardTitle>
-                    <CardDescription data-testid="text-album-year">{album.year}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {album.genre && (
-                      <Badge variant="secondary" data-testid="badge-genre">{album.genre}</Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+              {albums.map((album) => {
+                const totalStreams = artist?.streams || 0;
+                const verificationThreshold = 1000000;
+                const firstVerificationThreshold = 100000;
+                const showProgress = totalStreams >= firstVerificationThreshold && artist?.verified !== 1;
+                const progress = Math.min((totalStreams / verificationThreshold) * 100, 100);
+
+                return (
+                  <Card key={album.id} data-testid={`card-album-${album.id}`}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg" data-testid="text-album-title">{album.title}</CardTitle>
+                        {artist?.verified === 1 && (
+                          <BadgeCheck className="h-5 w-5 text-primary" data-testid="badge-verified" />
+                        )}
+                      </div>
+                      <CardDescription data-testid="text-album-year">{album.year}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {album.genre && (
+                        <Badge variant="secondary" data-testid="badge-genre">{album.genre}</Badge>
+                      )}
+                      
+                      {showProgress && (
+                        <div className="space-y-2" data-testid="verification-progress">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Verification Progress</span>
+                            <span className="font-medium">{totalStreams.toLocaleString()} / 1M streams</span>
+                          </div>
+                          <Progress value={progress} className="h-2" data-testid="progress-bar" />
+                          <p className="text-xs text-muted-foreground">
+                            {progress >= 100 
+                              ? "Auto-verifying within an hour..." 
+                              : `${(verificationThreshold - totalStreams).toLocaleString()} streams to verification`}
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>

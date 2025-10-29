@@ -51,6 +51,31 @@ app.use((req, res, next) => {
   next();
 });
 
+// Auto-verification checker - runs every hour
+const checkArtistVerification = async () => {
+  try {
+    const artists = await storage.getArtists();
+    const unverifiedArtists = artists.filter(a => a.verified === 0);
+
+    for (const artist of unverifiedArtists) {
+      const songs = await storage.getSongsByArtist(artist.id);
+      const totalStreams = songs.reduce((sum, song) => sum + (song.streams || 0), 0);
+
+      if (totalStreams >= 1000000) {
+        await storage.updateArtist(artist.id, {
+          verified: 1,
+          streams: totalStreams
+        });
+        log(`Artist ${artist.name} (${artist.id}) auto-verified with ${totalStreams} streams`);
+      } else if (artist.streams !== totalStreams) {
+        await storage.updateArtist(artist.id, { streams: totalStreams });
+      }
+    }
+  } catch (error) {
+    console.error('Auto-verification check failed:', error);
+  }
+};
+
 (async () => {
   // Seed the database with initial music data
   await storage.seedDatabase();
@@ -85,5 +110,10 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Run verification check every hour
+    setInterval(checkArtistVerification, 60 * 60 * 1000);
+    // Also run once on startup
+    checkArtistVerification();
   });
 })();
