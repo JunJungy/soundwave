@@ -69,7 +69,6 @@ export default function ArtistDashboard() {
       albumId: "",
       duration: 180,
       audioUrl: "",
-      youtubeId: "",
     },
   });
 
@@ -362,25 +361,12 @@ export default function ArtistDashboard() {
               />
               <FormField
                 control={songForm.control}
-                name="youtubeId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>YouTube Video ID</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} placeholder="dQw4w9WgXcQ" data-testid="input-song-youtube-id" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={songForm.control}
                 name="audioUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Audio URL (optional)</FormLabel>
+                    <FormLabel>Audio File URL *</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value || ""} placeholder="https://..." data-testid="input-song-audio" />
+                      <Input {...field} value={field.value || ""} placeholder="Upload audio file..." data-testid="input-song-audio" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { YouTubePlayer } from "@/components/youtube-player";
 
 interface Track {
   id: string;
@@ -8,8 +7,7 @@ interface Track {
   artist: string;
   albumCover?: string;
   duration: number;
-  audioUrl?: string;
-  youtubeId?: string | null;
+  audioUrl?: string | null;
 }
 
 interface MusicPlayerContextType {
@@ -44,9 +42,37 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const [repeat, setRepeat] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolumeState] = useState(80);
-  const [playerReady, setPlayerReady] = useState(false);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const trackedSongRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.volume = volume / 100;
+      
+      audioRef.current.addEventListener("timeupdate", () => {
+        if (audioRef.current) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
+      });
+      
+      audioRef.current.addEventListener("ended", () => {
+        handleNextTrack();
+      });
+      
+      audioRef.current.addEventListener("error", (e) => {
+        console.error("Audio playback error:", e);
+      });
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (currentTrack?.id && currentTrack.id !== trackedSongRef.current && isPlaying) {
@@ -56,6 +82,45 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       });
     }
   }, [currentTrack?.id, isPlaying]);
+
+  useEffect(() => {
+    if (!audioRef.current || !currentTrack?.audioUrl) return;
+    
+    audioRef.current.src = currentTrack.audioUrl;
+    audioRef.current.load();
+    
+    if (isPlaying) {
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.error("Playback error:", error);
+          setIsPlaying(false);
+        });
+      }
+    }
+  }, [currentTrack]);
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.error("Playback error:", error);
+          setIsPlaying(false);
+        });
+      }
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
+    }
+  }, [volume]);
 
   const handleNextTrack = () => {
     if (queue.length === 0) return;
@@ -76,32 +141,10 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleYouTubeStateChange = (state: number) => {
-    // YouTube player states:
-    // -1 (unstarted)
-    // 0 (ended)
-    // 1 (playing)
-    // 2 (paused)
-    // 3 (buffering)
-    // 5 (video cued)
-    
-    if (state === 0) {
-      // Video ended
-      handleNextTrack();
-    } else if (state === 1) {
-      // Playing
-      setIsPlaying(true);
-    } else if (state === 2) {
-      // Paused
-      setIsPlaying(false);
-    }
-  };
-
   const playTrack = (track: Track) => {
     setCurrentTrack(track);
     setCurrentTime(0);
     setIsPlaying(true);
-    setPlayerReady(false);
     if (!queue.find((t) => t.id === track.id)) {
       setQueue((prev) => [...prev, track]);
     }
@@ -113,7 +156,6 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     setCurrentTrack(tracks[startIndex]);
     setCurrentTime(0);
     setIsPlaying(true);
-    setPlayerReady(false);
   };
 
   const togglePlayPause = () => {
@@ -162,9 +204,9 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   };
 
   const seekTo = (time: number) => {
-    setCurrentTime(time);
-    if ((window as any).youtubePlayer) {
-      (window as any).youtubePlayer.seekTo(time);
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
     }
   };
 
@@ -197,16 +239,6 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      {currentTrack?.youtubeId && (
-        <YouTubePlayer
-          videoId={currentTrack.youtubeId}
-          isPlaying={isPlaying}
-          volume={volume}
-          onReady={() => setPlayerReady(true)}
-          onStateChange={handleYouTubeStateChange}
-          onTimeUpdate={setCurrentTime}
-        />
-      )}
     </MusicPlayerContext.Provider>
   );
 }
