@@ -25,9 +25,9 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Authentication**: Custom username/password authentication with bcrypt hashing (10 salt rounds) and PostgreSQL-backed session management using `connect-pg-simple`.
 - **Authorization**: Role-based access control for admin and artist functionalities.
 - **Security**: Comprehensive security measures including secure password hashing, session management, authorization checks at both route and storage layers, cross-tenant protection, and fail-secure design.
-- **Music Player**: Global state management via React Context using YouTube iframe API for audio playback. Full playback controls (play/pause, skip, shuffle, repeat, progress bar, volume), queue management, and now playing display.
-- **YouTube Integration**: YouTube Data API v3 integration for fetching real song audio. Artists can provide YouTube video IDs when uploading songs for full-length playback. Hidden iframe player provides audio-only experience.
-- **Artist System**: Users can apply to become artists, with admin review and approval. Approved artists can upload albums and songs with YouTube integration for audio playback. Real-time stream tracking for songs and artists, with automatic verification at 1 million total streams.
+- **Music Player**: Global state management via React Context using HTML5 audio for playback. Full playback controls (play/pause, skip, shuffle, repeat, progress bar, volume), queue management, and now playing display.
+- **File Storage**: Replit Object Storage integration with presigned URLs for secure file uploads. Artists upload actual audio files (MP3, WAV, OGG, M4A) and square album artwork (no branded logos). Custom ACL policy system for protected file access.
+- **Artist System**: Users can apply to become artists, with admin review and approval. Approved artists can upload albums and songs with actual audio files and album artwork. Real-time stream tracking for songs and artists, with automatic verification at 1 million total streams.
 - **Admin Panel**: Functionality for reviewing artist applications, managing users (promote/demote admin status), and deleting user accounts with owner protection.
 
 ### Feature Specifications
@@ -42,6 +42,8 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Database**: PostgreSQL
 - **ORM**: Drizzle ORM
 - **Session Store**: `connect-pg-simple` (for PostgreSQL-backed sessions)
+- **File Storage**: Replit Object Storage via `@google-cloud/storage`
+- **File Uploads**: Uppy (`@uppy/core`, `@uppy/react`, `@uppy/aws-s3`, `@uppy/dashboard`, `@uppy/drag-drop`, `@uppy/file-input`)
 - **UI Libraries**: Shadcn UI, Radix UI Primitives
 - **State Management**: TanStack Query (React Query)
 - **Routing**: Wouter
@@ -52,9 +54,19 @@ I prefer that the agent focuses on iterative development, delivering functional,
 
 ## Recent Changes (October 29, 2025)
 - **Removed pre-seeded content**: Database now starts empty for authentic artist-driven growth
-- **YouTube integration**: Implemented YouTube Data API v3 for full-length song playback
-  - Added `youtubeId` field to songs schema for storing YouTube video IDs
-  - Created YouTube iframe player component for hidden audio-only playback
-  - Integrated player with music player context for seamless controls
+- **Removed YouTube integration**: Completely removed YouTube dependencies for actual audio file uploads
+  - Removed `youtubeId` field from songs schema
+  - Removed YouTube iframe player component
+  - Migrated to HTML5 audio player for standard audio file playback
+- **Object Storage integration**: Implemented Replit Object Storage for file uploads
+  - Audio files: MP3, WAV, OGG, M4A (max 20MB)
+  - Album artwork: Square images, no branded logos (max 5MB)
+  - Secure presigned URL generation for authenticated uploads
+  - Custom ACL policy system for public/protected file access
+  - ObjectUploader component with Uppy dashboard for seamless UX
+- **Artist upload flow**: Artists can now upload actual music files
+  - Upload audio files directly from artist dashboard
+  - Upload square album artwork with validation
+  - Files stored securely in Replit Object Storage
+  - Uploaded songs appear immediately on home page
 - **Empty states**: Added proper empty state messaging when no albums or playlists exist
-- **Artist upload ready**: Platform ready for artists to upload their own music with YouTube integration
