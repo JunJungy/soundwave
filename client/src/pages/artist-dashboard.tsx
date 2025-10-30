@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { type Album, type Song, type Artist } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +22,9 @@ import { UploadSongDialog } from "@/components/upload-song-dialog";
 export default function ArtistDashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [uploadSongDialogOpen, setUploadSongDialogOpen] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
   const { data: albums = [] } = useQuery<Album[]>({
     queryKey: ["/api/albums"],
@@ -33,10 +36,36 @@ export default function ArtistDashboard() {
     enabled: user?.isArtist === 1,
   });
 
-  const { data: artist, isLoading: isLoadingArtist } = useQuery<Artist>({
+  const { data: artist, isLoading: isLoadingArtist, refetch: refetchArtist } = useQuery<Artist>({
     queryKey: ["/api/artists/me"],
     enabled: user?.isArtist === 1,
   });
+
+  const handleCheckStatus = async () => {
+    setIsCheckingStatus(true);
+    try {
+      const result = await refetchArtist();
+      if (result.data?.verificationStatus === 'verified') {
+        toast({
+          title: "Verification Complete!",
+          description: "Your artist account is now verified. You can start uploading music!",
+        });
+      } else {
+        toast({
+          title: "Still Pending",
+          description: "Your account is still being verified. Please check back soon.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to check status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
 
   // Refresh artist data on mount (server handles auto-verification)
   useEffect(() => {
@@ -92,8 +121,12 @@ export default function ArtistDashboard() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Go Home
           </Button>
-          <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/artists/me"] })} data-testid="button-refresh-status">
-            Check Status
+          <Button 
+            onClick={handleCheckStatus} 
+            disabled={isCheckingStatus}
+            data-testid="button-refresh-status"
+          >
+            {isCheckingStatus ? "Checking..." : "Check Status"}
           </Button>
         </div>
       </div>
