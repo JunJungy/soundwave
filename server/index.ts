@@ -103,6 +103,26 @@ const checkArtistVerification = async () => {
   }
 };
 
+// Scheduled release checker - publishes songs when their release date arrives
+const checkScheduledReleases = async () => {
+  try {
+    const songs = await storage.getAllSongs();
+    const scheduledSongs = songs.filter(s => s.releaseStatus === 'scheduled');
+    const now = new Date();
+
+    for (const song of scheduledSongs) {
+      if (song.releaseDate && new Date(song.releaseDate) <= now) {
+        await storage.updateSong(song.id, {
+          releaseStatus: 'published'
+        });
+        log(`Song "${song.title}" (${song.id}) published on scheduled release date`);
+      }
+    }
+  } catch (error) {
+    console.error('Scheduled release check failed:', error);
+  }
+};
+
 (async () => {
   // Seed the database with initial music data
   await storage.seedDatabase();
@@ -147,5 +167,10 @@ const checkArtistVerification = async () => {
     setInterval(checkArtistVerification, 60 * 60 * 1000);
     // Also run once on startup
     checkArtistVerification();
+    
+    // Run scheduled release check every 10 minutes
+    setInterval(checkScheduledReleases, 10 * 60 * 1000);
+    // Also run once on startup
+    checkScheduledReleases();
   });
 })();

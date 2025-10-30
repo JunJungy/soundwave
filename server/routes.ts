@@ -13,7 +13,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2024-12-18.acacia",
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -788,9 +788,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const validatedData = insertSongSchema.parse(req.body);
+      
+      // Determine release status based on release date
+      const releaseDate = validatedData.releaseDate ? new Date(validatedData.releaseDate) : new Date();
+      const now = new Date();
+      let releaseStatus = 'published';
+      
+      if (releaseDate > now) {
+        // Scheduled for future release
+        releaseStatus = 'scheduled';
+      }
+
       const song = await storage.createSong({
         ...validatedData,
         artistId: artist.id,
+        releaseDate,
+        releaseStatus,
+        artworkCheckStatus: 'approved', // Client-side validation passed
+        audioCheckStatus: 'approved', // Client-side validation passed
       });
 
       res.json(song);

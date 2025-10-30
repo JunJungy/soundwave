@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import { insertAlbumSchema, insertSongSchema, type InsertAlbum, type InsertSong, type Album, type Song, type Artist } from "@shared/schema";
+import { type Album, type Song, type Artist } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,37 +12,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Music, Disc, ArrowLeft, Plus, Upload, Image as ImageIcon, BadgeCheck } from "lucide-react";
-import { ObjectUploader } from "@/components/ObjectUploader";
+import { Music, Disc, ArrowLeft, Upload } from "lucide-react";
 import { UploadSongDialog } from "@/components/upload-song-dialog";
-import type { UploadResult } from "@uppy/core";
 
 export default function ArtistDashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const { toast } = useToast();
   const [uploadSongDialogOpen, setUploadSongDialogOpen] = useState(false);
-  const [albumCoverUrl, setAlbumCoverUrl] = useState("");
-  const [songAudioUrl, setSongAudioUrl] = useState("");
 
   const { data: albums = [] } = useQuery<Album[]>({
     queryKey: ["/api/albums"],
@@ -69,72 +45,6 @@ export default function ArtistDashboard() {
     // Refresh artist data to get latest verification status
     queryClient.invalidateQueries({ queryKey: ["/api/artists/me"] });
   }, [artist?.id]);
-
-  const albumForm = useForm<Omit<InsertAlbum, "artistId">>({
-    resolver: zodResolver(insertAlbumSchema.omit({ artistId: true })),
-    defaultValues: {
-      title: "",
-      coverUrl: "",
-      year: new Date().getFullYear(),
-      genre: "",
-    },
-  });
-
-  const songForm = useForm<Omit<InsertSong, "artistId">>({
-    resolver: zodResolver(insertSongSchema.omit({ artistId: true })),
-    defaultValues: {
-      title: "",
-      albumId: "",
-      duration: 180,
-      audioUrl: "",
-    },
-  });
-
-  const createAlbumMutation = useMutation({
-    mutationFn: async (data: Omit<InsertAlbum, "artistId">) => {
-      const res = await apiRequest("POST", "/api/albums", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/albums"] });
-      toast({
-        title: "Album created",
-        description: "Your album has been created successfully.",
-      });
-      setAlbumDialogOpen(false);
-      albumForm.reset();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to create album",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const createSongMutation = useMutation({
-    mutationFn: async (data: Omit<InsertSong, "artistId">) => {
-      const res = await apiRequest("POST", "/api/songs", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/songs"] });
-      toast({
-        title: "Song created",
-        description: "Your song has been uploaded successfully.",
-      });
-      setSongDialogOpen(false);
-      songForm.reset();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to create song",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   if (user?.isArtist !== 1) {
     return (
@@ -227,9 +137,9 @@ export default function ArtistDashboard() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Create your first album to get started.
                 </p>
-                <Button onClick={() => setAlbumDialogOpen(true)} data-testid="button-create-first-album">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Album
+                <Button onClick={() => setUploadSongDialogOpen(true)} data-testid="button-create-first-album">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Song
                 </Button>
               </CardContent>
             </Card>

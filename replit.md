@@ -59,6 +59,36 @@ I prefer that the agent focuses on iterative development, delivering functional,
 
 ## Recent Changes
 
+### October 30, 2025 (Latest)
+- **Unified Song Upload System**: Replaced separate album/song creation with streamlined upload flow
+  - Removed "New Album" and "New Song" buttons, replaced with single "Upload a Song" action
+  - Multi-step validation UI with progress tracking for artwork and audio uploads
+  - Genre selection dropdown with 17 options (Pop, Rock, Hip-Hop, R&B, Country, Electronic, Jazz, Classical, Indie, Folk, Metal, Punk, Reggae, Blues, Latin, K-pop, Other)
+  - Scheduled release date picker - songs can be scheduled for future publication
+  - Payment-gated promotion options:
+    - Global Promotion ($4): Featured placement across the platform
+    - Other Platforms ($5): Cross-platform distribution
+  - Terms of service agreement checkbox required before upload
+  - Integrated Stripe payment processing for monetization options
+- **Scheduled Releases System**: Background job automatically publishes songs on their release date
+  - Songs schema expanded with `releaseDate`, `releaseStatus` (draft/pending_review/scheduled/published)
+  - Background job runs every 10 minutes to check for scheduled releases
+  - Idempotent release transitions - songs move from 'scheduled' to 'published' when date arrives
+  - Storage methods added: `getAllSongs()` and `updateSong()` for release management
+- **Song Schema Enhancements**: Extended songs table with new fields
+  - `genre`: Selected from dropdown (nullable)
+  - `artworkUrl`: Square album artwork URL (nullable)
+  - `releaseDate`: Timestamp for scheduled releases
+  - `releaseStatus`: Current publication status
+  - `globalPromotion`, `otherPlatforms`: Boolean flags for monetization
+  - `paymentIntentId`: Stripe payment reference (nullable)
+  - `artworkCheckStatus`, `audioCheckStatus`: Validation tracking ('pending'/'approved'/'rejected')
+  - Made `albumId` nullable - songs can exist independently without albums
+- **Artist Dashboard Cleanup**: Simplified UI for song-first workflow
+  - Removed legacy album creation form and dialogs
+  - "No Albums Yet" empty state now shows "Upload Song" action
+  - Cleaned up unused imports and state management
+
 ### October 30, 2025
 - **Two-step artist verification system**: Implemented post-approval waiting period before artists can upload
   - Added `verificationStatus` (pending/verified) and `approvedAt` timestamp fields to artists table

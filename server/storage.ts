@@ -49,10 +49,12 @@ export interface IStorage {
 
   // Songs
   getSongs(): Promise<Song[]>;
+  getAllSongs(): Promise<Song[]>;
   getSong(id: string): Promise<Song | undefined>;
   getSongsByAlbum(albumId: string): Promise<Song[]>;
   getSongsByArtist(artistId: string): Promise<Song[]>;
   createSong(song: InsertSong): Promise<Song>;
+  updateSong(id: string, updates: Partial<Song>): Promise<Song | undefined>;
   incrementSongStreams(songId: string): Promise<Song | undefined>;
   updateSongAudioUrl(songId: string, audioUrl: string): Promise<Song | undefined>;
 
@@ -190,6 +192,10 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(songs);
   }
 
+  async getAllSongs(): Promise<Song[]> {
+    return await db.select().from(songs);
+  }
+
   async getSong(id: string): Promise<Song | undefined> {
     const [song] = await db.select().from(songs).where(eq(songs.id, id));
     return song;
@@ -205,6 +211,24 @@ export class DatabaseStorage implements IStorage {
 
   async createSong(insertSong: InsertSong): Promise<Song> {
     const [song] = await db.insert(songs).values(insertSong).returning();
+    return song;
+  }
+
+  async updateSong(id: string, updates: Partial<Song>): Promise<Song | undefined> {
+    // Filter out undefined values to prevent overwriting with nulls
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== undefined)
+    );
+    
+    if (Object.keys(filteredUpdates).length === 0) {
+      return undefined;
+    }
+    
+    const [song] = await db
+      .update(songs)
+      .set(filteredUpdates)
+      .where(eq(songs.id, id))
+      .returning();
     return song;
   }
 
