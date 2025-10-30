@@ -322,11 +322,11 @@ export default function AdminPanel() {
                 {allUsers.map((targetUser) => (
                   <div
                     key={targetUser.id}
-                    className="flex items-center justify-between p-4 rounded-lg border"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border"
                     data-testid={`user-row-${targetUser.id}`}
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-medium" data-testid={`text-username-${targetUser.id}`}>
                           {targetUser.username}
                         </p>
@@ -354,7 +354,7 @@ export default function AdminPanel() {
                       )}
                     </div>
                     {targetUser.id !== user?.id && targetUser.username !== "Jinsoo" && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 w-full sm:w-auto">
                         {targetUser.isAdmin === 1 ? (
                           <Button
                             variant="outline"
@@ -362,9 +362,11 @@ export default function AdminPanel() {
                             onClick={() => demoteMutation.mutate(targetUser.id)}
                             disabled={demoteMutation.isPending || promoteMutation.isPending}
                             data-testid={`button-demote-${targetUser.id}`}
+                            className="flex-1 sm:flex-none"
                           >
-                            <UserMinus className="w-4 h-4 mr-2" />
-                            {demoteMutation.isPending ? "Removing..." : "Remove Admin"}
+                            <UserMinus className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">{demoteMutation.isPending ? "Removing..." : "Remove Admin"}</span>
+                            <span className="sm:hidden ml-2">{demoteMutation.isPending ? "Remove..." : "Remove"}</span>
                           </Button>
                         ) : (
                           <Button
@@ -373,9 +375,11 @@ export default function AdminPanel() {
                             onClick={() => promoteMutation.mutate(targetUser.id)}
                             disabled={promoteMutation.isPending || demoteMutation.isPending}
                             data-testid={`button-promote-${targetUser.id}`}
+                            className="flex-1 sm:flex-none"
                           >
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            {promoteMutation.isPending ? "Promoting..." : "Make Admin"}
+                            <UserPlus className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">{promoteMutation.isPending ? "Promoting..." : "Make Admin"}</span>
+                            <span className="sm:hidden ml-2">{promoteMutation.isPending ? "Making..." : "Make"}</span>
                           </Button>
                         )}
                         <Button
@@ -384,9 +388,10 @@ export default function AdminPanel() {
                           onClick={() => handleDeleteClick(targetUser)}
                           disabled={deleteMutation.isPending}
                           data-testid={`button-delete-${targetUser.id}`}
+                          className="flex-1 sm:flex-none"
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
+                          <Trash2 className="w-4 h-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Delete</span>
                         </Button>
                       </div>
                     )}
