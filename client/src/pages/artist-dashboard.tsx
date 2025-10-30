@@ -36,14 +36,14 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Music, Disc, ArrowLeft, Plus, Upload, Image as ImageIcon, BadgeCheck } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { UploadSongDialog } from "@/components/upload-song-dialog";
 import type { UploadResult } from "@uppy/core";
 
 export default function ArtistDashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
-  const [songDialogOpen, setSongDialogOpen] = useState(false);
+  const [uploadSongDialogOpen, setUploadSongDialogOpen] = useState(false);
   const [albumCoverUrl, setAlbumCoverUrl] = useState("");
   const [songAudioUrl, setSongAudioUrl] = useState("");
 
@@ -200,16 +200,10 @@ export default function ArtistDashboard() {
             <p className="text-muted-foreground">Manage your music</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={() => setAlbumDialogOpen(true)} data-testid="button-create-album">
-            <Plus className="w-4 h-4 mr-2" />
-            New Album
-          </Button>
-          <Button onClick={() => setSongDialogOpen(true)} data-testid="button-create-song">
-            <Plus className="w-4 h-4 mr-2" />
-            New Song
-          </Button>
-        </div>
+        <Button onClick={() => setUploadSongDialogOpen(true)} data-testid="button-upload-song">
+          <Upload className="w-4 h-4 mr-2" />
+          Upload a Song
+        </Button>
       </div>
 
       <Tabs defaultValue="albums" className="w-full">
@@ -295,8 +289,8 @@ export default function ArtistDashboard() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Upload your first song to get started.
                 </p>
-                <Button onClick={() => setSongDialogOpen(true)} data-testid="button-create-first-song">
-                  <Plus className="w-4 h-4 mr-2" />
+                <Button onClick={() => setUploadSongDialogOpen(true)} data-testid="button-create-first-song">
+                  <Upload className="w-4 h-4 mr-2" />
                   Upload Song
                 </Button>
               </CardContent>
@@ -323,201 +317,14 @@ export default function ArtistDashboard() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={albumDialogOpen} onOpenChange={setAlbumDialogOpen}>
-        <DialogContent data-testid="dialog-create-album">
-          <DialogHeader>
-            <DialogTitle>Create New Album</DialogTitle>
-            <DialogDescription>Add a new album to your discography.</DialogDescription>
-          </DialogHeader>
-          <Form {...albumForm}>
-            <form onSubmit={albumForm.handleSubmit((data) => createAlbumMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={albumForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Album Title *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Album name" data-testid="input-album-title" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={albumForm.control}
-                name="genre"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Genre</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} placeholder="e.g., Pop, Rock" data-testid="input-album-genre" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={albumForm.control}
-                name="year"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Year</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} type="number" placeholder="2024" data-testid="input-album-year" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Album Cover (Square, No Logos) *</label>
-                <div className="flex items-center gap-3">
-                  <ObjectUploader
-                    maxNumberOfFiles={1}
-                    maxFileSize={5242880}
-                    allowedFileTypes={['image/*']}
-                    onGetUploadParameters={async () => {
-                      const res = await apiRequest("POST", "/api/objects/upload");
-                      const { uploadURL } = await res.json();
-                      return { method: "PUT" as const, url: uploadURL };
-                    }}
-                    onComplete={async (result) => {
-                      if (result.successful && result.successful.length > 0) {
-                        const uploadURL = result.successful[0].uploadURL;
-                        const aclRes = await apiRequest("PUT", "/api/objects/acl", { objectURL: uploadURL });
-                        const { objectPath } = await aclRes.json();
-                        setAlbumCoverUrl(objectPath);
-                        albumForm.setValue("coverUrl", objectPath);
-                        toast({
-                          title: "Image uploaded",
-                          description: "Album cover uploaded successfully",
-                        });
-                      }
-                    }}
-                    buttonVariant="outline"
-                  >
-                    <ImageIcon className="w-4 h-4 mr-2" />
-                    {albumCoverUrl ? "Change Cover" : "Upload Cover"}
-                  </ObjectUploader>
-                  {albumCoverUrl && (
-                    <span className="text-sm text-muted-foreground">Cover uploaded ✓</span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Square images only. No branded logos (Spotify, Snapchat, etc.)
-                </p>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => setAlbumDialogOpen(false)} className="flex-1" data-testid="button-cancel-album">
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1" disabled={createAlbumMutation.isPending} data-testid="button-submit-album">
-                  {createAlbumMutation.isPending ? "Creating..." : "Create Album"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={songDialogOpen} onOpenChange={setSongDialogOpen}>
-        <DialogContent data-testid="dialog-create-song">
-          <DialogHeader>
-            <DialogTitle>Upload New Song</DialogTitle>
-            <DialogDescription>Add a new song to your catalog.</DialogDescription>
-          </DialogHeader>
-          <Form {...songForm}>
-            <form onSubmit={songForm.handleSubmit((data) => createSongMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={songForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Song Title *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Song name" data-testid="input-song-title" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={songForm.control}
-                name="albumId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Album *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Album ID" data-testid="input-song-album" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={songForm.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duration (seconds) *</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} type="number" placeholder="180" data-testid="input-song-duration" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Audio File *</label>
-                <div className="flex items-center gap-3">
-                  <ObjectUploader
-                    maxNumberOfFiles={1}
-                    maxFileSize={20971520}
-                    allowedFileTypes={['audio/*', '.mp3', '.wav', '.ogg', '.m4a']}
-                    onGetUploadParameters={async () => {
-                      const res = await apiRequest("POST", "/api/objects/upload");
-                      const { uploadURL } = await res.json();
-                      return { method: "PUT" as const, url: uploadURL };
-                    }}
-                    onComplete={async (result) => {
-                      if (result.successful && result.successful.length > 0) {
-                        const uploadURL = result.successful[0].uploadURL;
-                        const aclRes = await apiRequest("PUT", "/api/objects/acl", { objectURL: uploadURL });
-                        const { objectPath } = await aclRes.json();
-                        setSongAudioUrl(objectPath);
-                        songForm.setValue("audioUrl", objectPath);
-                        toast({
-                          title: "Audio uploaded",
-                          description: "Song audio uploaded successfully",
-                        });
-                      }
-                    }}
-                    buttonVariant="outline"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {songAudioUrl ? "Change Audio" : "Upload Audio"}
-                  </ObjectUploader>
-                  {songAudioUrl && (
-                    <span className="text-sm text-muted-foreground">Audio uploaded ✓</span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Supported formats: MP3, WAV, OGG, M4A (Max 20MB)
-                </p>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => setSongDialogOpen(false)} className="flex-1" data-testid="button-cancel-song">
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1" disabled={createSongMutation.isPending} data-testid="button-submit-song">
-                  {createSongMutation.isPending ? "Uploading..." : "Upload Song"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      {/* Upload Song Dialog */}
+      {artist && (
+        <UploadSongDialog
+          open={uploadSongDialogOpen}
+          onOpenChange={setUploadSongDialogOpen}
+          artistId={artist.id}
+        />
+      )}
     </div>
   );
 }
