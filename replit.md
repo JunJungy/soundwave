@@ -55,7 +55,19 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Form Validation**: React Hook Form, Zod (for schema validation)
 - **Spotify API**: `@spotify/web-api-ts-sdk` (helper module ready for OAuth integration)
 
-## Recent Changes (October 29, 2025)
+## Recent Changes
+
+### October 30, 2025
+- **Fixed registration/login flow**: Removed unused form field defaults causing validation errors
+  - Simplified registration form to only require username and password
+  - Fixed form validation to match current schema (removed email, firstName, lastName defaults)
+- **Mobile responsive fixes**: Improved admin panel layout for mobile devices
+  - User management buttons: Now stack vertically on mobile with shortened text
+  - Admin panel tabs: Changed from overlapping grid to horizontally scrollable list on mobile
+  - Buttons display full width on mobile (< 640px), compact on desktop (≥ 640px)
+  - Tab text shortened on mobile: "Make Admin" → "Make", "Delete" → icon only
+
+### October 29, 2025
 - **Removed pre-seeded content**: Database now starts empty for authentic artist-driven growth
 - **Removed YouTube integration**: Completely removed YouTube dependencies for actual audio file uploads
   - Removed `youtubeId` field from songs schema

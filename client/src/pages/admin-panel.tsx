@@ -218,14 +218,14 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="applications" data-testid="tab-applications">
+        <TabsList className="inline-flex h-auto w-full sm:grid sm:grid-cols-3 flex-nowrap overflow-x-auto">
+          <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap">
             Artist Applications
           </TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-users">
+          <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap">
             User Management
           </TabsTrigger>
-          <TabsTrigger value="system" data-testid="tab-system">
+          <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap">
             System Tools
           </TabsTrigger>
         </TabsList>
