@@ -349,22 +349,32 @@ export class DatabaseStorage implements IStorage {
 
   // Seed database with initial data (now empty - artists must upload their own songs)
   async seedDatabase(): Promise<void> {
-    // Ensure owner account exists
-    const ownerUsername = "Jinsoo";
-    const existingOwner = await this.getUserByUsername(ownerUsername);
-    
-    if (!existingOwner) {
-      const passwordHash = await bcrypt.hash("Laughy@12", 10);
-      await db.insert(users).values({
-        username: ownerUsername,
-        passwordHash,
-        isAdmin: 1,
-        isArtist: 0,
-      });
-      console.log("Owner account created: Jinsoo");
+    try {
+      // Ensure owner account exists
+      const ownerUsername = "Jinsoo";
+      console.log("Checking for owner account:", ownerUsername);
+      
+      const existingOwner = await this.getUserByUsername(ownerUsername);
+      
+      if (!existingOwner) {
+        console.log("Owner account not found, creating...");
+        const passwordHash = await bcrypt.hash("Laughy@12", 10);
+        await db.insert(users).values({
+          username: ownerUsername,
+          passwordHash,
+          isAdmin: 1,
+          isArtist: 0,
+        });
+        console.log("✓ Owner account created successfully: Jinsoo");
+      } else {
+        console.log("✓ Owner account already exists: Jinsoo");
+      }
+      
+      console.log("Database ready - no pre-seeded content. Artists can now upload songs.");
+    } catch (error) {
+      console.error("ERROR in seedDatabase:", error);
+      throw error;
     }
-    
-    console.log("Database ready - no pre-seeded content. Artists can now upload songs.");
   }
 }
 
