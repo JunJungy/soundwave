@@ -59,6 +59,8 @@ export const artists = pgTable("artists", {
   genre: text("genre"),
   verified: integer("verified").default(0).notNull(),
   streams: integer("streams").default(0).notNull(),
+  verificationStatus: text("verification_status").default("pending").notNull(),
+  approvedAt: timestamp("approved_at"),
 });
 
 export const albums = pgTable("albums", {
@@ -102,7 +104,7 @@ export const artistApplications = pgTable("artist_applications", {
   reviewedBy: varchar("reviewed_by"),
 });
 
-export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true });
+export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
 export const insertAlbumSchema = createInsertSchema(albums).omit({ id: true });
 export const insertSongSchema = createInsertSchema(songs).omit({ id: true, streams: true });
 export const insertPlaylistSchema = createInsertSchema(playlists).omit({ id: true, createdAt: true });

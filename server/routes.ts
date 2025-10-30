@@ -708,6 +708,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Artist profile not found" });
       }
 
+      if (artist.verificationStatus !== 'verified') {
+        return res.status(403).json({ error: "Your artist account is pending verification. This usually takes up to 1 hour after approval." });
+      }
+
       const validatedData = insertAlbumSchema.parse(req.body);
       const album = await storage.createAlbum({
         ...validatedData,
@@ -733,6 +737,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const artist = await storage.getArtistByUserId(userId);
       if (!artist) {
         return res.status(404).json({ error: "Artist profile not found" });
+      }
+
+      if (artist.verificationStatus !== 'verified') {
+        return res.status(403).json({ error: "Your artist account is pending verification. This usually takes up to 1 hour after approval." });
       }
 
       const validatedData = insertSongSchema.parse(req.body);

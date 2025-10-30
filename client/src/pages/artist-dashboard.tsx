@@ -152,6 +152,33 @@ export default function ArtistDashboard() {
     );
   }
 
+  if (artist?.verificationStatus === 'pending') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center max-w-2xl mx-auto">
+        <div className="mb-6 p-6 rounded-full bg-yellow-500/10">
+          <Music className="h-16 w-16 text-yellow-500" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Account Verification in Progress</h2>
+        <p className="text-muted-foreground mb-4">
+          Your artist application has been approved! We're now performing a final verification of your account.
+        </p>
+        <p className="text-sm text-muted-foreground mb-6">
+          This process typically takes up to <strong className="text-foreground">1 hour</strong> and happens automatically. 
+          You'll be able to upload music as soon as verification is complete.
+        </p>
+        <div className="flex gap-3">
+          <Button onClick={() => navigate("/")} variant="outline" data-testid="button-go-home">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Go Home
+          </Button>
+          <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/artists/me"] })} data-testid="button-refresh-status">
+            Check Status
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-8">

@@ -318,6 +318,8 @@ export class DatabaseStorage implements IStorage {
       userId: application.userId,
       name: application.artistName,
       genre: application.genre,
+      verificationStatus: "pending",
+      approvedAt: new Date(),
     });
 
     const [updated] = await db

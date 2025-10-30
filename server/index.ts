@@ -54,6 +54,30 @@ app.use((req, res, next) => {
   next();
 });
 
+// Second verification - auto-verifies pending artists after up to 1 hour
+const checkPendingArtistVerification = async () => {
+  try {
+    const artists = await storage.getArtists();
+    const pendingArtists = artists.filter(a => a.verificationStatus === 'pending' && a.approvedAt);
+
+    for (const artist of pendingArtists) {
+      const approvedAt = new Date(artist.approvedAt!);
+      const now = new Date();
+      const hoursSinceApproval = (now.getTime() - approvedAt.getTime()) / (1000 * 60 * 60);
+
+      // Auto-verify after 1 hour
+      if (hoursSinceApproval >= 1) {
+        await storage.updateArtist(artist.id, {
+          verificationStatus: 'verified'
+        });
+        log(`Artist ${artist.name} (${artist.id}) auto-verified after second verification period`);
+      }
+    }
+  } catch (error) {
+    console.error('Pending artist verification check failed:', error);
+  }
+};
+
 // Auto-verification checker - runs every hour
 const checkArtistVerification = async () => {
   try {
@@ -114,7 +138,12 @@ const checkArtistVerification = async () => {
   }, () => {
     log(`serving on port ${port}`);
     
-    // Run verification check every hour
+    // Run second verification check every 10 minutes (more frequent for 1-hour verification)
+    setInterval(checkPendingArtistVerification, 10 * 60 * 1000);
+    // Also run once on startup
+    checkPendingArtistVerification();
+    
+    // Run stream-based verification check every hour
     setInterval(checkArtistVerification, 60 * 60 * 1000);
     // Also run once on startup
     checkArtistVerification();
