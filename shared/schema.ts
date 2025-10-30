@@ -76,10 +76,20 @@ export const songs = pgTable("songs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   artistId: varchar("artist_id").notNull(),
-  albumId: varchar("album_id").notNull(),
+  albumId: varchar("album_id"), // Now nullable - songs can exist without albums
   duration: integer("duration").notNull(),
   audioUrl: text("audio_url"),
+  artworkUrl: text("artwork_url"), // Song-specific artwork
+  genre: text("genre"), // Song genre (includes K-pop)
+  releaseDate: timestamp("release_date").defaultNow(), // Scheduled release date
+  releaseStatus: text("release_status").default("draft").notNull(), // draft/pending_review/scheduled/published
+  globalPromotion: integer("global_promotion").default(0).notNull(), // +$4 feature
+  otherPlatforms: integer("other_platforms").default(0).notNull(), // +$5 feature
+  paymentIntentId: varchar("payment_intent_id"), // Stripe payment tracking
+  artworkCheckStatus: text("artwork_check_status").default("pending"), // pending/checking/approved/rejected
+  audioCheckStatus: text("audio_check_status").default("pending"), // pending/checking/approved/rejected
   streams: integer("streams").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const playlists = pgTable("playlists", {
@@ -106,7 +116,14 @@ export const artistApplications = pgTable("artist_applications", {
 
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
 export const insertAlbumSchema = createInsertSchema(albums).omit({ id: true });
-export const insertSongSchema = createInsertSchema(songs).omit({ id: true, streams: true });
+export const insertSongSchema = createInsertSchema(songs).omit({ 
+  id: true, 
+  streams: true, 
+  createdAt: true,
+  releaseStatus: true, // Set by system
+  artworkCheckStatus: true, // Set by system
+  audioCheckStatus: true, // Set by system
+});
 export const insertPlaylistSchema = createInsertSchema(playlists).omit({ id: true, createdAt: true });
 export const insertArtistApplicationSchema = createInsertSchema(artistApplications).omit({ 
   id: true, 
