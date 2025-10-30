@@ -6,6 +6,15 @@ import { insertPlaylistSchema, insertUserSchema, loginSchema, insertArtistApplic
 import { setupSession, isAuthenticated } from "./auth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
+import Stripe from "stripe";
+
+// Initialize Stripe - Reference: blueprint:javascript_stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
@@ -557,6 +566,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(rejected);
     } catch (error) {
       res.status(500).json({ error: "Failed to reject application" });
+    }
+  });
+
+  // Stripe payment intent for song upload monetization - Reference: blueprint:javascript_stripe
+  app.post("/api/create-payment-intent", isAuthenticated, async (req: any, res) => {
+    try {
+      const { globalPromotion, otherPlatforms } = req.body;
+      
+      // Calculate amount based on selected features
+      let amount = 0;
+      if (globalPromotion) amount += 4;
+      if (otherPlatforms) amount += 5;
+      
+      if (amount === 0) {
+        return res.json({ clientSecret: null, amount: 0 });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: "usd",
+        metadata: {
+          userId: req.session.userId,
+          globalPromotion: globalPromotion ? 'true' : 'false',
+          otherPlatforms: otherPlatforms ? 'true' : 'false',
+        },
+      });
+      
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        amount 
+      });
+    } catch (error: any) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
     }
   });
 
