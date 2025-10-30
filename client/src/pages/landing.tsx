@@ -25,9 +25,6 @@ export default function Landing() {
     defaultValues: {
       username: "",
       password: "",
-      email: "",
-      firstName: "",
-      lastName: "",
     },
   });
 
