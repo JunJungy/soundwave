@@ -16,7 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Music, Disc, ArrowLeft, Upload } from "lucide-react";
+import { Music, Disc, ArrowLeft, Upload, BadgeCheck } from "lucide-react";
 import { UploadSongDialog } from "@/components/upload-song-dialog";
 
 export default function ArtistDashboard() {
