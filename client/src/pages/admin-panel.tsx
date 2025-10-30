@@ -55,7 +55,7 @@ export default function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
         title: "Application approved",
-        description: "The artist can now upload music.",
+        description: "The artist will be able to upload music after automatic verification (up to 1 hour).",
       });
     },
     onError: (error: Error) => {

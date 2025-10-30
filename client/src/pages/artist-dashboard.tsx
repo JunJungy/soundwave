@@ -57,7 +57,7 @@ export default function ArtistDashboard() {
     enabled: user?.isArtist === 1,
   });
 
-  const { data: artist } = useQuery<Artist>({
+  const { data: artist, isLoading: isLoadingArtist } = useQuery<Artist>({
     queryKey: ["/api/artists/me"],
     enabled: user?.isArtist === 1,
   });
@@ -148,6 +148,17 @@ export default function ArtistDashboard() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Go Home
         </Button>
+      </div>
+    );
+  }
+
+  if (isLoadingArtist) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <Music className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Loading artist profile...</p>
+        </div>
       </div>
     );
   }
