@@ -480,7 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "You already have a pending or processed application" });
       }
 
-      const validatedData = insertArtistApplicationSchema.parse(req.body);
+      const validatedData = insertArtistApplicationSchema.omit({ userId: true }).parse(req.body);
       const application = await storage.createArtistApplication({
         ...validatedData,
         userId,

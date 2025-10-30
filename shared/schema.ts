@@ -37,14 +37,8 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ 
-  id: true, 
-  passwordHash: true,
-  isAdmin: true,
-  isArtist: true,
-  createdAt: true, 
-  updatedAt: true 
-}).extend({
+export const insertUserSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
