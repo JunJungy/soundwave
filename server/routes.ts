@@ -205,6 +205,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Email management routes
+  // Add or update email address (permanent binding)
+  app.post("/api/user/add-email", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const rawEmail = req.body.email;
+
+      // Validate email format
+      if (!rawEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
+        return res.status(400).json({ error: "Invalid email address" });
+      }
+
+      // Normalize email: trim whitespace and convert to lowercase
+      const email = rawEmail.trim().toLowerCase();
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user already has boundEmail set
+      if (user.boundEmail) {
+        return res.status(400).json({ 
+          error: "You already have an email permanently bound to this account. Email cannot be changed once set." 
+        });
+      }
+
+      // Check if this email is already bound to another account
+      const existingBoundUser = await storage.getUserByBoundEmail(email);
+      if (existingBoundUser) {
+        return res.status(400).json({ 
+          error: "This email is already bound to another account. Each email can only be used once." 
+        });
+      }
+
+      // Check if this email is currently in use by another account
+      const existingEmailUser = await storage.getUserByEmail(email);
+      if (existingEmailUser && existingEmailUser.id !== userId) {
+        return res.status(400).json({ 
+          error: "This email is already in use by another account." 
+        });
+      }
+
+      // Update email and boundEmail (permanent binding)
+      // Wrap in try/catch to handle unique constraint violations
+      try {
+        const updatedUser = await storage.updateUserEmail(userId, email);
+        
+        if (!updatedUser) {
+          return res.status(500).json({ error: "Failed to update email" });
+        }
+
+        // Return user without password hash
+        const { passwordHash: _, ...safeUser } = updatedUser;
+        res.json(safeUser);
+      } catch (dbError: any) {
+        // Handle unique constraint violations
+        if (dbError.code === '23505' || dbError.message?.includes('unique')) {
+          return res.status(409).json({ 
+            error: "This email is already bound to another account. Each email can only be used once." 
+          });
+        }
+        throw dbError;
+      }
+    } catch (error) {
+      console.error("Error adding email:", error);
+      res.status(500).json({ error: "Failed to add email address" });
+    }
+  });
+
   // Search endpoint - authenticated to scope playlist results
   app.get("/api/search", isAuthenticated, async (req: any, res) => {
     try {

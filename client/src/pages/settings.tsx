@@ -6,7 +6,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Trash2, Settings as SettingsIcon, Link2, Unlink } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Copy, Trash2, Settings as SettingsIcon, Link2, Unlink, Mail } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,7 @@ export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showUnlinkDialog, setShowUnlinkDialog] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
 
   const { data: linkCodeData, refetch: refetchLinkCode } = useQuery<LinkCodeResponse>({
     queryKey: ["/api/discord/link-code"],
@@ -73,6 +75,39 @@ export default function Settings() {
       });
     },
   });
+
+  const addEmailMutation = useMutation({
+    mutationFn: async (email: string) => {
+      return await apiRequest("POST", "/api/user/add-email", { email });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Email added",
+        description: "Your email has been permanently bound to your account.",
+      });
+      setEmailInput("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add email address",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddEmail = () => {
+    if (!emailInput || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    addEmailMutation.mutate(emailInput);
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -136,6 +171,73 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Email Management */}
+        <Card data-testid="card-email-management">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Email Address
+            </CardTitle>
+            <CardDescription>
+              Add an email to your account (permanent binding)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {user?.boundEmail ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                  <div>
+                    <p className="font-medium text-green-600 dark:text-green-400" data-testid="text-email-status">
+                      Email Bound
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                  <Badge variant="secondary">Permanent</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Your email is permanently bound to this account and cannot be changed. This prevents multiple account creation.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="font-medium mb-2">Why add an email?</p>
+                  <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                    <li>Prevents creating multiple accounts</li>
+                    <li>One email = One account forever</li>
+                    <li>Cannot be changed once set</li>
+                    <li>Helps secure your account</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-3">
+                  <Input
+                    type="email"
+                    placeholder="your.email@example.com"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddEmail()}
+                    disabled={addEmailMutation.isPending}
+                    data-testid="input-email"
+                  />
+                  <Button
+                    onClick={handleAddEmail}
+                    disabled={addEmailMutation.isPending || !emailInput}
+                    data-testid="button-add-email"
+                  >
+                    {addEmailMutation.isPending ? "Adding..." : "Add Email (Permanent)"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    ⚠️ Once added, your email cannot be changed or removed (except by admin account deletion)
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

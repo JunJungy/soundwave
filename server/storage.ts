@@ -31,9 +31,12 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByDiscordId(discordId: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByBoundEmail(boundEmail: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   validatePassword(username: string, password: string): Promise<User | null>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  updateUserEmail(userId: string, email: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   updateUserAdminStatus(userId: string, isAdmin: number): Promise<User | undefined>;
   deleteUser(userId: string): Promise<boolean>;
@@ -108,6 +111,20 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    // Normalize email to lowercase for case-insensitive comparison
+    const normalizedEmail = email.trim().toLowerCase();
+    const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail));
+    return user;
+  }
+
+  async getUserByBoundEmail(boundEmail: string): Promise<User | undefined> {
+    // Normalize email to lowercase for case-insensitive comparison
+    const normalizedEmail = boundEmail.trim().toLowerCase();
+    const [user] = await db.select().from(users).where(eq(users.boundEmail, normalizedEmail));
+    return user;
+  }
+
   async createUser(userData: InsertUser): Promise<User> {
     const { password, passwordHash: _, ...userFields } = userData as any;
     const passwordHash = await bcrypt.hash(password, 10);
@@ -135,6 +152,22 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set(updates)
       .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUserEmail(userId: string, email: string): Promise<User | undefined> {
+    // Normalize email to lowercase before storing
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Update both email and boundEmail (boundEmail is permanent)
+    const [user] = await db
+      .update(users)
+      .set({ 
+        email: normalizedEmail,
+        boundEmail: normalizedEmail // Set boundEmail on first add (it stays forever)
+      })
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }
