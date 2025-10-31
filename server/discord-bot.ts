@@ -261,19 +261,41 @@ export async function startDiscordBot() {
                 return;
               }
 
-              // Defer the interaction immediately to prevent timeout
-              await i.deferUpdate();
+              try {
+                console.log(`[Discord] Select menu interaction from ${i.user.tag}, selected: ${i.values[0]}`);
+                
+                // Defer the interaction immediately to prevent timeout
+                await i.deferUpdate();
+                console.log('[Discord] deferUpdate() successful');
 
-              const selectedType = i.values[0];
-              let newEmbed;
+                const selectedType = i.values[0];
+                let newEmbed;
 
-              if (selectedType === 'normal') {
-                newEmbed = await createNormalAccountEmbed(user, interaction);
-              } else {
-                newEmbed = await createArtistAccountEmbed(user, interaction);
+                console.log(`[Discord] Building ${selectedType} account embed...`);
+                if (selectedType === 'normal') {
+                  newEmbed = await createNormalAccountEmbed(user, interaction);
+                } else {
+                  newEmbed = await createArtistAccountEmbed(user, interaction);
+                }
+                console.log('[Discord] Embed created successfully');
+
+                // Update the message with the new embed
+                console.log('[Discord] Updating message with new embed...');
+                await i.editReply({ 
+                  embeds: [newEmbed],
+                  components: [row] // Keep the select menu
+                });
+                console.log('[Discord] Message updated successfully');
+              } catch (error) {
+                console.error('[Discord] Select menu interaction error:', error);
+                // Try to respond with an error if possible
+                if (!i.replied && !i.deferred) {
+                  await i.reply({
+                    content: '❌ An error occurred. Please try `/account` again.',
+                    ephemeral: true
+                  });
+                }
               }
-
-              await i.editReply({ embeds: [newEmbed] });
             });
 
           } catch (error) {
