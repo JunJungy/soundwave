@@ -104,3 +104,20 @@ I prefer that the agent focuses on iterative development, delivering functional,
   - Optimized auto-scrolling that only triggers when active line changes
   - Scroll position resets to top when switching tracks
   - Validation: enforces endTime > startTime to prevent overlapping highlights
+- **Settings Page**: Comprehensive account management and Discord integration
+  - **Account Information Card**: Displays username, email, account type (User/Artist/Admin)
+  - **Discord Integration Features**:
+    - **Link Status Display**: Shows whether Discord is currently linked with visual indicators
+    - **6-Digit Link Code Generation**: Creates time-limited codes (5-minute expiry) for Discord account linking
+    - **Copy to Clipboard**: One-click code copying with toast feedback
+    - **Live Countdown Timer**: Real-time expiry countdown showing remaining minutes and seconds
+    - **Unlink Functionality**: Disconnect Discord with confirmation dialog
+    - **Step-by-Step Instructions**: Clear guidance on linking process via `/link` command
+  - **One-Account-Per-Discord Rule**: Enforces permanent binding between Discord IDs and Soundwave accounts
+    - New database field `boundDiscordId`: Stores permanent Discord association (never cleared)
+    - Account creation via Discord checks for existing `boundDiscordId` or `discordId`
+    - `/link` command validates Discord isn't bound to a different account
+    - Unlinking clears `discordId` but preserves `boundDiscordId` (prevents creating second account)
+    - Error messages inform users they can only have one Soundwave account per Discord
+    - Only admin account deletion can break the permanent binding
+  - **Settings Page Route**: Accessible via `/settings` in sidebar navigation

@@ -185,15 +185,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Unlink Discord account
+  // Unlink Discord account (clears current link but preserves permanent binding)
   app.post("/api/discord/unlink", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.session.userId;
       
+      // Clear current Discord link but keep boundDiscordId (prevents creating new accounts)
       await storage.updateUser(userId, {
         discordId: null,
         discordLinkCode: null,
         discordLinkCodeExpiry: null,
+        // boundDiscordId is NOT cleared - ensures one Discord = one account permanently
       });
 
       res.json({ success: true });

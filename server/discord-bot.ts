@@ -98,19 +98,23 @@ export async function startDiscordBot() {
               return;
             }
 
-            // Check if Discord ID is already linked to another account
-            const existingLink = await storage.getUserByDiscordId(interaction.user.id);
-            if (existingLink && existingLink.id !== user.id) {
+            // Check if this Discord ID is bound to a different account
+            const boundAccount = allUsers.find(u => 
+              (u.boundDiscordId === interaction.user.id || u.discordId === interaction.user.id) && u.id !== user.id
+            );
+            
+            if (boundAccount) {
               await interaction.reply({
-                content: `❌ Your Discord account is already linked to **${existingLink.username}**. Use \`/unlink\` first if you want to link a different account.`,
+                content: `❌ Your Discord account is already bound to **${boundAccount.username}**.\n\nYou can only link to that account. Each Discord can only be used with one Soundwave account.`,
                 ephemeral: true
               });
               return;
             }
 
-            // Link Discord ID and clear the link code
+            // Link Discord ID and clear the link code (set both current and permanent binding)
             await storage.updateUser(user.id, { 
               discordId: interaction.user.id,
+              boundDiscordId: interaction.user.id,
               discordLinkCode: null,
               discordLinkCodeExpiry: null
             });
@@ -140,11 +144,11 @@ export async function startDiscordBot() {
               return;
             }
 
-            // Unlink Discord ID
+            // Unlink Discord ID (but preserve permanent binding)
             await storage.updateUser(user.id, { discordId: null });
 
             await interaction.reply({
-              content: `✅ Successfully unlinked your Discord account from **${user.username}**.`,
+              content: `✅ Successfully unlinked your Discord account from **${user.username}**.\n\nNote: You can relink to this account anytime using \`/link\`, but you cannot create a new Soundwave account with this Discord.`,
               ephemeral: true
             });
           } catch (error) {
@@ -355,11 +359,15 @@ export async function startDiscordBot() {
               return;
             }
 
-            // Check if Discord ID is already linked
-            const existingLink = await storage.getUserByDiscordId(interaction.user.id);
-            if (existingLink) {
+            // Check if Discord ID has EVER been used (even if unlinked)
+            const allUsers = await storage.getAllUsers();
+            const boundAccount = allUsers.find(u => 
+              u.boundDiscordId === interaction.user.id || u.discordId === interaction.user.id
+            );
+            
+            if (boundAccount) {
               await interaction.reply({
-                content: `❌ Your Discord account is already linked to **${existingLink.username}**. Use \`/unlink\` first if you want to create a new account.`,
+                content: `❌ Your Discord account is already bound to **${boundAccount.username}**.\n\nYou can only have one Soundwave account per Discord.\n\nUse \`/link\` to reconnect to your existing account, or contact an admin if your account was deleted.`,
                 ephemeral: true
               });
               return;
@@ -371,9 +379,10 @@ export async function startDiscordBot() {
               password
             });
 
-            // Link Discord ID immediately
+            // Link Discord ID immediately (set both current and permanent binding)
             await storage.updateUser(newUser.id, { 
-              discordId: interaction.user.id 
+              discordId: interaction.user.id,
+              boundDiscordId: interaction.user.id
             });
 
             // Success message
