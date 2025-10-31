@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { useState } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -31,10 +31,12 @@ import EditArtistProfile from "@/pages/edit-artist-profile";
 import FollowingPage from "@/pages/following";
 import Settings from "@/pages/settings";
 import Landing from "@/pages/landing";
+import Banned from "@/pages/banned";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
 
   if (isLoading) {
     return (
@@ -42,6 +44,11 @@ function Router() {
         <div className="text-muted-foreground">Loading...</div>
       </div>
     );
+  }
+
+  // Allow banned page to be accessible without authentication
+  if (location === "/banned") {
+    return <Banned />;
   }
 
   if (!isAuthenticated) {
@@ -61,6 +68,7 @@ function Router() {
       <Route path="/admin-panel" component={AdminPanel} />
       <Route path="/artist-dashboard" component={ArtistDashboard} />
       <Route path="/edit-artist-profile" component={EditArtistProfile} />
+      <Route path="/banned" component={Banned} />
       <Route component={NotFound} />
     </Switch>
   );
