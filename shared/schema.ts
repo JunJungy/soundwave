@@ -31,6 +31,9 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  discordId: varchar("discord_id").unique(), // Link Discord account to Soundwave account
+  discordLinkCode: varchar("discord_link_code"), // One-time code for linking Discord
+  discordLinkCodeExpiry: timestamp("discord_link_code_expiry"), // Code expiration timestamp
   isAdmin: integer("is_admin").default(0).notNull(),
   isArtist: integer("is_artist").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
