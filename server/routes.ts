@@ -787,7 +787,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Your artist account is pending verification. This usually takes up to 1 hour after approval." });
       }
 
-      const validatedData = insertSongSchema.parse(req.body);
+      // Transform frontend data to match schema expectations
+      const transformedData = {
+        ...req.body,
+        // Convert booleans to integers (0 or 1) for PostgreSQL
+        globalPromotion: req.body.globalPromotion ? 1 : 0,
+        otherPlatforms: req.body.otherPlatforms ? 1 : 0,
+        // Ensure releaseDate is a Date object
+        releaseDate: req.body.releaseDate ? new Date(req.body.releaseDate) : new Date(),
+      };
+
+      const validatedData = insertSongSchema.parse(transformedData);
       
       // Determine release status based on release date
       const releaseDate = validatedData.releaseDate ? new Date(validatedData.releaseDate) : new Date();
@@ -803,12 +813,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...validatedData,
         artistId: artist.id,
         releaseDate,
+      } as any); // Type cast needed because we set status fields in the database default
+      
+      // Update song with status fields (which are set by system, not user input)
+      const updatedSong = await storage.updateSong(song.id, {
         releaseStatus,
         artworkCheckStatus: 'approved', // Client-side validation passed
         audioCheckStatus: 'approved', // Client-side validation passed
       });
 
-      res.json(song);
+      res.json(updatedSong || song);
     } catch (error: any) {
       console.error("Song creation error:", error);
       res.status(400).json({ error: error.message || "Failed to create song" });
