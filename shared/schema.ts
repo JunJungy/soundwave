@@ -115,6 +115,13 @@ export const artistApplications = pgTable("artist_applications", {
   reviewedBy: varchar("reviewed_by"),
 });
 
+export const follows = pgTable("follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  artistId: varchar("artist_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
 export const updateArtistProfileSchema = z.object({
   imageUrl: z.string().optional().or(z.literal("")),
@@ -137,6 +144,7 @@ export const insertArtistApplicationSchema = createInsertSchema(artistApplicatio
   reviewedAt: true, 
   reviewedBy: true 
 });
+export const insertFollowSchema = createInsertSchema(follows).omit({ id: true, createdAt: true });
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type UpdateArtistProfile = z.infer<typeof updateArtistProfileSchema>;
@@ -144,9 +152,11 @@ export type InsertAlbum = z.infer<typeof insertAlbumSchema>;
 export type InsertSong = z.infer<typeof insertSongSchema>;
 export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
 export type InsertArtistApplication = z.infer<typeof insertArtistApplicationSchema>;
+export type InsertFollow = z.infer<typeof insertFollowSchema>;
 
 export type Artist = typeof artists.$inferSelect;
 export type Album = typeof albums.$inferSelect;
 export type Song = typeof songs.$inferSelect;
 export type Playlist = typeof playlists.$inferSelect;
 export type ArtistApplication = typeof artistApplications.$inferSelect;
+export type Follow = typeof follows.$inferSelect;
