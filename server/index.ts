@@ -109,13 +109,20 @@ const checkScheduledReleases = async () => {
     const songs = await storage.getAllSongs();
     const scheduledSongs = songs.filter(s => s.releaseStatus === 'scheduled');
     const now = new Date();
+    const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     for (const song of scheduledSongs) {
-      if (song.releaseDate && new Date(song.releaseDate) <= now) {
-        await storage.updateSong(song.id, {
-          releaseStatus: 'published'
-        });
-        log(`Song "${song.title}" (${song.id}) published on scheduled release date`);
+      if (song.releaseDate) {
+        const releaseDate = new Date(song.releaseDate);
+        const releaseDateOnly = new Date(releaseDate.getFullYear(), releaseDate.getMonth(), releaseDate.getDate());
+        
+        // Publish if release date is today or earlier
+        if (releaseDateOnly <= todayOnly) {
+          await storage.updateSong(song.id, {
+            releaseStatus: 'published'
+          });
+          log(`Song "${song.title}" (${song.id}) published on scheduled release date`);
+        }
       }
     }
   } catch (error) {

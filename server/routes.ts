@@ -802,10 +802,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Determine release status based on release date
       const releaseDate = validatedData.releaseDate ? new Date(validatedData.releaseDate) : new Date();
       const now = new Date();
-      let releaseStatus = 'published';
       
-      if (releaseDate > now) {
-        // Scheduled for future release
+      // Compare dates at start of day (ignore time component)
+      // This way, selecting "today" publishes immediately
+      const releaseDateOnly = new Date(releaseDate.getFullYear(), releaseDate.getMonth(), releaseDate.getDate());
+      const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      let releaseStatus = 'published';
+      if (releaseDateOnly > todayOnly) {
+        // Scheduled for future release (date is in the future)
         releaseStatus = 'scheduled';
       }
 
