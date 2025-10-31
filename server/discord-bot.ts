@@ -165,16 +165,16 @@ export async function startDiscordBot() {
               // User doesn't have an account - show account creation options
               const selectMenu = new StringSelectMenuBuilder()
                 .setCustomId('create_account_method')
-                .setPlaceholder('Choose how to create your Soundwave account')
+                .setPlaceholder('Choose how to sign up for Soundwave')
                 .addOptions([
                   {
-                    label: 'Create Account via Discord',
+                    label: 'Sign Up via Discord',
                     description: 'Create your account right here in Discord',
                     value: 'discord',
                     emoji: '💬'
                   },
                   {
-                    label: 'Create Account on Website',
+                    label: 'Sign Up on Website',
                     description: 'Get a direct link to register on Soundwave',
                     value: 'website',
                     emoji: '🌐'
@@ -186,16 +186,16 @@ export async function startDiscordBot() {
               const embed = new EmbedBuilder()
                 .setColor(0x9333EA)
                 .setTitle('Welcome to Soundwave!')
-                .setDescription('You don\'t have a Soundwave account yet. Choose how you\'d like to create one:')
+                .setDescription('You don\'t have a Soundwave account yet. Choose how you\'d like to sign up:')
                 .addFields(
                   {
-                    name: '💬 Create via Discord',
+                    name: '💬 Sign Up via Discord',
                     value: 'Quick and easy - create your account right here in this conversation',
                     inline: false
                   },
                   {
-                    name: '🌐 Create on Website',
-                    value: 'Prefer the full web experience - get a direct link to our registration page',
+                    name: '🌐 Sign Up on Website',
+                    value: 'Prefer the full web experience - get a direct link to our sign-up page',
                     inline: false
                   }
                 )
@@ -289,12 +289,12 @@ export async function startDiscordBot() {
             // Show modal for account creation
             const modal = new ModalBuilder()
               .setCustomId('create_account_modal')
-              .setTitle('Create Soundwave Account');
+              .setTitle('Sign Up for Soundwave');
 
             const usernameInput = new TextInputBuilder()
               .setCustomId('username')
-              .setLabel('Username')
-              .setPlaceholder('Choose a unique username (min 3 characters)')
+              .setLabel('Choose Your Username')
+              .setPlaceholder('Enter a unique username (min 3 characters)')
               .setMinLength(3)
               .setMaxLength(30)
               .setStyle(TextInputStyle.Short)
@@ -302,8 +302,8 @@ export async function startDiscordBot() {
 
             const passwordInput = new TextInputBuilder()
               .setCustomId('password')
-              .setLabel('Password')
-              .setPlaceholder('Choose a secure password (min 8 characters)')
+              .setLabel('Create Your Password')
+              .setPlaceholder('Enter a secure password (min 8 characters)')
               .setMinLength(8)
               .setMaxLength(100)
               .setStyle(TextInputStyle.Short)
@@ -323,8 +323,8 @@ export async function startDiscordBot() {
 
             const embed = new EmbedBuilder()
               .setColor(0x9333EA)
-              .setTitle('Create Account on Website')
-              .setDescription(`Click the link below to create your Soundwave account:\n\n🔗 **[Create Account](${websiteUrl}/login)**\n\nAfter creating your account, you can link it to Discord using the \`/link\` command.`)
+              .setTitle('Sign Up on Website')
+              .setDescription(`Click the link below to sign up for Soundwave:\n\n🔗 **[Sign Up Now](${websiteUrl})**\n\nAfter signing up, you can link your account to Discord using the \`/link\` command.`)
               .setThumbnail(interaction.user.displayAvatarURL())
               .setFooter({ 
                 text: 'Soundwave - Music Streaming Platform',
@@ -380,15 +380,15 @@ export async function startDiscordBot() {
             // Success message
             const embed = new EmbedBuilder()
               .setColor(0x10B981) // Green for success
-              .setTitle('✅ Account Created Successfully!')
-              .setDescription(`Welcome to Soundwave, **${username}**!\n\nYou can now login to the website with your credentials.`)
+              .setTitle('✅ Welcome to Soundwave!')
+              .setDescription(`Your account has been created successfully, **${username}**!\n\nYou can now sign in to the website using these credentials.`)
               .addFields(
                 { name: 'Username', value: username, inline: true },
                 { name: 'Discord Linked', value: '✅ Yes', inline: true }
               )
               .setThumbnail(interaction.user.displayAvatarURL())
               .setFooter({ 
-                text: 'Use /account to view your account info anytime',
+                text: 'Use /account anytime to view your account details',
                 iconURL: interaction.user.displayAvatarURL() 
               })
               .setTimestamp();
