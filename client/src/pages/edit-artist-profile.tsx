@@ -172,12 +172,13 @@ export default function EditArtistProfile() {
                             const data = await res.json();
                             return { method: "PUT", url: data.uploadURL };
                           }}
-                          onComplete={(result) => {
+                          onComplete={async (result) => {
                             if (result.successful && result.successful.length > 0) {
                               const uploadedFile = result.successful[0];
                               if (uploadedFile.uploadURL) {
-                                const url = uploadedFile.uploadURL.split("?")[0];
-                                field.onChange(url);
+                                const aclRes = await apiRequest("PUT", "/api/objects/acl", { objectURL: uploadedFile.uploadURL });
+                                const { objectPath } = await aclRes.json();
+                                field.onChange(objectPath);
                                 toast({
                                   title: "Image Uploaded",
                                   description: "Profile image uploaded successfully!",
