@@ -68,6 +68,7 @@ export function ExpandablePlayer({
       {/* Mini Player Bar */}
       <div 
         className="fixed bottom-0 left-0 right-0 h-20 bg-card border-t border-card-border z-50 hover-elevate active-elevate-2 cursor-pointer"
+        style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}
         onClick={() => setIsExpanded(true)}
         data-testid="mini-player-bar"
       >
