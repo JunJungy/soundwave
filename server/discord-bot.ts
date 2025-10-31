@@ -309,18 +309,10 @@ export async function startDiscordBot() {
               .setStyle(TextInputStyle.Short)
               .setRequired(true);
 
-            const emailInput = new TextInputBuilder()
-              .setCustomId('email')
-              .setLabel('Email (Optional)')
-              .setPlaceholder('your.email@example.com')
-              .setStyle(TextInputStyle.Short)
-              .setRequired(false);
-
             const firstRow = new ActionRowBuilder<TextInputBuilder>().addComponents(usernameInput);
             const secondRow = new ActionRowBuilder<TextInputBuilder>().addComponents(passwordInput);
-            const thirdRow = new ActionRowBuilder<TextInputBuilder>().addComponents(emailInput);
 
-            modal.addComponents(firstRow, secondRow, thirdRow);
+            modal.addComponents(firstRow, secondRow);
 
             await interaction.showModal(modal);
           } else if (method === 'website') {
@@ -353,7 +345,6 @@ export async function startDiscordBot() {
           try {
             const username = interaction.fields.getTextInputValue('username');
             const password = interaction.fields.getTextInputValue('password');
-            const email = interaction.fields.getTextInputValue('email') || undefined;
 
             // Check if username already exists
             const existingUser = await storage.getUserByUsername(username);
@@ -378,8 +369,7 @@ export async function startDiscordBot() {
             // Create the account (storage.createUser will hash the password)
             const newUser = await storage.createUser({
               username,
-              password,
-              email: email || undefined
+              password
             });
 
             // Link Discord ID immediately
@@ -391,15 +381,14 @@ export async function startDiscordBot() {
             const embed = new EmbedBuilder()
               .setColor(0x10B981) // Green for success
               .setTitle('✅ Account Created Successfully!')
-              .setDescription(`Welcome to Soundwave, **${username}**!`)
+              .setDescription(`Welcome to Soundwave, **${username}**!\n\nYou can now login to the website with your credentials.`)
               .addFields(
                 { name: 'Username', value: username, inline: true },
-                { name: 'Email', value: email || 'Not set', inline: true },
                 { name: 'Discord Linked', value: '✅ Yes', inline: true }
               )
               .setThumbnail(interaction.user.displayAvatarURL())
               .setFooter({ 
-                text: 'You can now use /account to view your account info',
+                text: 'Use /account to view your account info anytime',
                 iconURL: interaction.user.displayAvatarURL() 
               })
               .setTimestamp();

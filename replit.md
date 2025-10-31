@@ -61,7 +61,7 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Discord Bot Account Creation**: Users can create Soundwave accounts directly from Discord
   - **`/account` Command Enhancement**: Detects users without linked accounts and offers account creation options
   - **Two Account Creation Paths**:
-    - **Create via Discord**: Modal with username (3-30 chars), password (8-100 chars), and optional email fields
+    - **Create via Discord**: Modal with username (3-30 chars) and password (8-100 chars) fields
       - Instant account creation with password hashing (bcrypt, 10 salt rounds)
       - Auto-links Discord ID to new account
       - Success embed shows account details
