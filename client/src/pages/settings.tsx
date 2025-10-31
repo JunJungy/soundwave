@@ -182,7 +182,7 @@ export default function Settings() {
               Email Address
             </CardTitle>
             <CardDescription>
-              Add an email to your account (permanent binding)
+              Add an email to your account for recovery and notifications
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -200,18 +200,17 @@ export default function Settings() {
                   <Badge variant="secondary">Permanent</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Your email is permanently bound to this account and cannot be changed. This prevents multiple account creation.
+                  Your email is permanently bound to this account and cannot be changed.
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="p-4 bg-muted rounded-lg">
-                  <p className="font-medium mb-2">Why add an email?</p>
+                  <p className="font-medium mb-2">Add Email to Your Account</p>
                   <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-                    <li>Prevents creating multiple accounts</li>
-                    <li>One email = One account forever</li>
-                    <li>Cannot be changed once set</li>
-                    <li>Helps secure your account</li>
+                    <li>Account recovery option</li>
+                    <li>Future email notifications</li>
+                    <li>Enhanced account security</li>
                   </ul>
                 </div>
 
@@ -230,10 +229,10 @@ export default function Settings() {
                     disabled={addEmailMutation.isPending || !emailInput}
                     data-testid="button-add-email"
                   >
-                    {addEmailMutation.isPending ? "Adding..." : "Add Email (Permanent)"}
+                    {addEmailMutation.isPending ? "Adding..." : "Add Email"}
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    ⚠️ Once added, your email cannot be changed or removed (except by admin account deletion)
+                    ⚠️ Once added, your email cannot be changed or removed
                   </p>
                 </div>
               </div>

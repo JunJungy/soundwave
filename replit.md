@@ -148,5 +148,6 @@ I prefer that the agent focuses on iterative development, delivering functional,
   - **UI Features**:
     - Registration form with required email field and real-time validation
     - Login form accepts username OR email seamlessly
-    - Settings page for legacy users to add email (with permanence warning)
+    - Settings page for legacy users to add email (described as recovery/notifications)
     - Toast notifications for all success/error states
+    - All anti-abuse measures work silently without advertising restrictions to users
