@@ -935,6 +935,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/songs/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isArtist !== 1) {
+        return res.status(403).json({ error: "Artist access required" });
+      }
+
+      const artist = await storage.getArtistByUserId(userId);
+      if (!artist) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+
+      const song = await storage.getSong(req.params.id);
+      if (!song) {
+        return res.status(404).json({ error: "Song not found" });
+      }
+
+      if (song.artistId !== artist.id) {
+        return res.status(403).json({ error: "You can only delete your own songs" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+
+      if (song.audioUrl) {
+        try {
+          await objectStorageService.deleteObjectEntity(song.audioUrl);
+        } catch (error) {
+          console.error("Failed to delete audio file:", error);
+        }
+      }
+
+      if (song.artworkUrl) {
+        try {
+          await objectStorageService.deleteObjectEntity(song.artworkUrl);
+        } catch (error) {
+          console.error("Failed to delete artwork file:", error);
+        }
+      }
+
+      const deleted = await storage.deleteSong(req.params.id, artist.id);
+      
+      if (deleted) {
+        res.json({ success: true });
+      } else {
+        res.status(500).json({ error: "Failed to delete song" });
+      }
+    } catch (error: any) {
+      console.error("Song deletion error:", error);
+      res.status(500).json({ error: error.message || "Failed to delete song" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

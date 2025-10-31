@@ -60,6 +60,7 @@ export interface IStorage {
   updateSong(id: string, updates: Partial<Song>): Promise<Song | undefined>;
   incrementSongStreams(songId: string): Promise<Song | undefined>;
   updateSongAudioUrl(songId: string, audioUrl: string): Promise<Song | undefined>;
+  deleteSong(songId: string, artistId: string): Promise<boolean>;
 
   // Playlists
   getPlaylists(userId: string): Promise<Playlist[]>;
@@ -260,6 +261,27 @@ export class DatabaseStorage implements IStorage {
       .where(eq(songs.id, songId))
       .returning();
     return song;
+  }
+
+  async deleteSong(songId: string, artistId: string): Promise<boolean> {
+    const song = await this.getSong(songId);
+    if (!song || song.artistId !== artistId) {
+      return false;
+    }
+
+    const allPlaylists = await db.select().from(playlists);
+    for (const playlist of allPlaylists) {
+      if (playlist.songIds.includes(songId)) {
+        const updatedSongIds = playlist.songIds.filter((id) => id !== songId);
+        await db
+          .update(playlists)
+          .set({ songIds: updatedSongIds })
+          .where(eq(playlists.id, playlist.id));
+      }
+    }
+
+    const result = await db.delete(songs).where(eq(songs.id, songId));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   // Playlists - all operations scoped by userId for security
