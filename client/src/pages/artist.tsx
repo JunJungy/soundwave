@@ -1,16 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { Play, ArrowLeft, BadgeCheck } from "lucide-react";
+import { Play, ArrowLeft, BadgeCheck, UserPlus, UserMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlbumCard } from "@/components/album-card";
 import { TrackList, type Track } from "@/components/track-list";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Artist, Album, Song } from "@shared/schema";
 
 export default function ArtistPage() {
   const [, params] = useRoute("/artist/:id");
   const [, setLocation] = useLocation();
   const artistId = params?.id;
+  const { user } = useAuth();
+  const { toast } = useToast();
   const { playQueue, playTrack, currentTrack, isPlaying, togglePlayPause } = useMusicPlayer();
 
   const { data: artist, isLoading: artistLoading } = useQuery<Artist>({
@@ -25,6 +30,75 @@ export default function ArtistPage() {
   const { data: songs = [] } = useQuery<Song[]>({
     queryKey: ["/api/songs"],
   });
+
+  const { data: followData } = useQuery<{ isFollowing: boolean }>({
+    queryKey: ["/api/artists", artistId, "is-following"],
+    enabled: !!artistId && !!user,
+  });
+
+  const { data: followerData } = useQuery<{ count: number }>({
+    queryKey: ["/api/artists", artistId, "followers"],
+    enabled: !!artistId,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/artists/${artistId}/follow`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists", artistId, "is-following"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/artists", artistId, "followers"] });
+      toast({
+        title: "Followed!",
+        description: `You're now following ${artist?.name}`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to follow artist",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", `/api/artists/${artistId}/follow`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists", artistId, "is-following"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/artists", artistId, "followers"] });
+      toast({
+        title: "Unfollowed",
+        description: `You've unfollowed ${artist?.name}`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to unfollow artist",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFollowToggle = () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to follow artists",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (followData?.isFollowing) {
+      unfollowMutation.mutate();
+    } else {
+      followMutation.mutate();
+    }
+  };
 
   const artistAlbums = albums.filter((album) => album.artistId === artistId);
   const artistSongs = songs.filter((song) => song.artistId === artistId);
@@ -168,6 +242,14 @@ export default function ArtistPage() {
               <span className="text-muted-foreground" data-testid="text-artist-streams">
                 {formatStreams(artist.streams)} monthly listeners
               </span>
+              {followerData && followerData.count > 0 && (
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-muted-foreground" data-testid="text-artist-followers">
+                    {formatStreams(followerData.count)} followers
+                  </span>
+                </>
+              )}
               {artist.genre && (
                 <>
                   <span className="text-muted-foreground">•</span>
@@ -180,7 +262,7 @@ export default function ArtistPage() {
           </div>
         </div>
 
-        {/* Action button */}
+        {/* Action buttons */}
         <div className="flex items-center gap-4 mt-8">
           <Button 
             size="lg" 
@@ -191,6 +273,28 @@ export default function ArtistPage() {
             <Play className="h-5 w-5 mr-2 fill-current" />
             Play
           </Button>
+          {user && (
+            <Button 
+              variant={followData?.isFollowing ? "outline" : "default"}
+              size="lg" 
+              className="h-14 px-8 rounded-full" 
+              onClick={handleFollowToggle}
+              disabled={followMutation.isPending || unfollowMutation.isPending}
+              data-testid="button-follow-artist"
+            >
+              {followData?.isFollowing ? (
+                <>
+                  <UserMinus className="h-5 w-5 mr-2" />
+                  Unfollow
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-5 w-5 mr-2" />
+                  Follow
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
