@@ -58,6 +58,34 @@ I prefer that the agent focuses on iterative development, delivering functional,
 ## Recent Changes
 
 ### October 31, 2025 (Latest)
+- **Comprehensive Ban System**: Full IP tracking and ban enforcement with Discord notifications
+  - **IP Address Tracking**: Captures and stores user IP addresses on login/registration using `x-forwarded-for` header for proxy support
+  - **User Bans**: Admins can ban users with custom reason text
+    - Banned users immediately logged out via session destruction
+    - Cannot access site while banned (403 Forbidden)
+    - Automatic unban functionality available
+    - Owner account (Jinsoo) protected from being banned
+  - **IP Address Bans**: Admins can ban specific IP addresses to block access from locations
+    - IP bans stored separately from user bans
+    - Supports multiple users on same IP
+    - Can ban/unban IP addresses with custom reasons
+  - **Admin Panel Enhancements**: 
+    - Displays user IP addresses in user table
+    - Color-coded status badges: "Active" (green) or "Banned" (red)
+    - Ban/Unban buttons with reason dialog
+    - IP Ban button to quickly ban user's IP address
+    - Dedicated IP Bans tab showing all banned IPs with manage controls
+  - **Discord Ban Notifications**: Automatic notifications sent to admin Discord channel (via DISCORD_BAN_CHANNEL_ID)
+    - User ban notifications: Shows username, user ID, banned by admin, and reason
+    - IP ban notifications: Shows IP address, banned by admin, and reason
+    - Embedded rich messages with red color coding
+    - Fire-and-forget implementation (doesn't block HTTP responses)
+  - **Fail-Secure Middleware**: Global ban enforcement at middleware level
+    - checkIpBan: Blocks IP-banned addresses from all routes
+    - checkUserBan: Blocks banned users from accessing authenticated routes
+    - Returns 503 "Service Temporarily Unavailable" on database errors (fail-secure design)
+    - Critical error logging alerts operators of ban-check failures
+    - Protects against ban bypass during database outages
 - **Discord Bot Account Creation**: Users can create Soundwave accounts directly from Discord
   - **`/account` Command Enhancement**: Detects users without linked accounts and offers account creation options
   - **Two Account Creation Paths**:
