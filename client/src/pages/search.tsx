@@ -273,7 +273,7 @@ export default function Search() {
                       <h3 className="font-semibold group-hover:underline">{artist.name}</h3>
                       {artist.verified === 1 && (
                         <BadgeCheck 
-                          className="h-4 w-4 text-primary fill-current" 
+                          className="h-4 w-4 text-primary" 
                           data-testid={`badge-verified-${artist.id}`}
                         />
                       )}

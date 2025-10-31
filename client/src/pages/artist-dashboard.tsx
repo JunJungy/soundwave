@@ -143,7 +143,7 @@ export default function ArtistDashboard() {
               <h1 className="text-3xl font-bold">Artist Dashboard</h1>
               {artist?.verified === 1 && (
                 <BadgeCheck 
-                  className="h-7 w-7 text-primary fill-current" 
+                  className="h-7 w-7 text-primary" 
                   data-testid="badge-verified-dashboard"
                 />
               )}
