@@ -155,6 +155,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Discord integration routes
+  // Generate 6-digit link code for Discord account linking
+  app.post("/api/discord/generate-link-code", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Generate 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Set expiry to 5 minutes from now
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      
+      // Update user with link code
+      await storage.updateUser(userId, {
+        discordLinkCode: code,
+        discordLinkCodeExpiry: expiresAt,
+      });
+
+      res.json({ code, expiresAt: expiresAt.toISOString() });
+    } catch (error) {
+      console.error("Error generating link code:", error);
+      res.status(500).json({ error: "Failed to generate link code" });
+    }
+  });
+
+  // Unlink Discord account
+  app.post("/api/discord/unlink", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      await storage.updateUser(userId, {
+        discordId: null,
+        discordLinkCode: null,
+        discordLinkCodeExpiry: null,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error unlinking Discord:", error);
+      res.status(500).json({ error: "Failed to unlink Discord account" });
+    }
+  });
+
   // Search endpoint - authenticated to scope playlist results
   app.get("/api/search", isAuthenticated, async (req: any, res) => {
     try {
