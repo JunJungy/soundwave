@@ -1,14 +1,17 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, ListMusic, ChevronDown, X, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import type { Artist } from "@shared/schema";
 
 interface ExpandablePlayerProps {
   currentTrack?: {
     id: string;
     title: string;
     artist: string;
+    artistId?: string;
     albumCover?: string;
     duration: number;
   };
@@ -51,12 +54,31 @@ export function ExpandablePlayer({
 }: ExpandablePlayerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const { data: artist } = useQuery<Artist>({
+    queryKey: ["/api/artists", currentTrack?.artistId],
+    enabled: !!currentTrack?.artistId && isExpanded,
+  });
+
+  const { data: followerData } = useQuery<{ count: number }>({
+    queryKey: ["/api/artists", currentTrack?.artistId, "followers"],
+    enabled: !!currentTrack?.artistId && isExpanded,
+  });
+
   const handleSeek = (value: number[]) => {
     onSeek(value[0]);
   };
 
   const handleVolumeChange = (value: number[]) => {
     onVolumeChange(value[0]);
+  };
+
+  const formatFollowers = (count: number) => {
+    if (count >= 1000000) {
+      return `${(count / 1000000).toFixed(1)}M`;
+    } else if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}K`;
+    }
+    return count.toString();
   };
 
   if (!currentTrack) {
@@ -296,7 +318,7 @@ export function ExpandablePlayer({
               </div>
 
               {/* Volume Control */}
-              <div className="w-full max-w-md">
+              <div className="w-full max-w-md mb-8">
                 <div className="flex items-center gap-3">
                   <Volume2 className="h-5 w-5 text-muted-foreground" />
                   <Slider
@@ -312,6 +334,42 @@ export function ExpandablePlayer({
                   </span>
                 </div>
               </div>
+
+              {/* About the artist */}
+              {artist && (
+                <div className="w-full max-w-md" data-testid="section-about-artist">
+                  <h3 className="text-lg font-semibold mb-4">About the artist</h3>
+                  <div className="bg-muted/30 rounded-lg p-4 flex gap-4">
+                    {artist.imageUrl ? (
+                      <img
+                        src={artist.imageUrl}
+                        alt={artist.name}
+                        className="w-20 h-20 rounded-full object-cover flex-shrink-0"
+                        data-testid="img-artist-avatar"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <Music className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-base mb-1" data-testid="text-artist-name">
+                        {artist.name}
+                      </h4>
+                      {followerData && followerData.count > 0 && (
+                        <p className="text-sm text-muted-foreground mb-2" data-testid="text-artist-followers">
+                          {formatFollowers(followerData.count)} followers
+                        </p>
+                      )}
+                      {artist.bio && (
+                        <p className="text-sm text-muted-foreground line-clamp-3" data-testid="text-artist-bio">
+                          {artist.bio}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </SheetContent>

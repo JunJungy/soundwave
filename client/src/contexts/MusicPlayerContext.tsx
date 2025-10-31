@@ -5,6 +5,7 @@ interface Track {
   id: string;
   title: string;
   artist: string;
+  artistId?: string;
   albumCover?: string;
   duration: number;
   audioUrl?: string | null;
