@@ -7,6 +7,7 @@ import {
   artistApplications,
   follows,
   ipBans,
+  banAppeals,
   type Artist,
   type Album,
   type Song,
@@ -15,6 +16,7 @@ import {
   type ArtistApplication,
   type Follow,
   type IpBan,
+  type BanAppeal,
   type InsertArtist,
   type InsertAlbum,
   type InsertSong,
@@ -23,6 +25,7 @@ import {
   type InsertArtistApplication,
   type InsertFollow,
   type InsertIpBan,
+  type InsertBanAppeal,
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
@@ -100,6 +103,12 @@ export interface IStorage {
   removeIpBan(ipAddress: string): Promise<boolean>;
   isIpBanned(ipAddress: string): Promise<boolean>;
   getIpBans(): Promise<IpBan[]>;
+
+  // Ban Appeals
+  createBanAppeal(data: InsertBanAppeal): Promise<BanAppeal>;
+  getBanAppeals(status?: string): Promise<BanAppeal[]>;
+  approveBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined>;
+  denyBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined>;
 
   // Seeding
   seedDatabase(): Promise<void>;
@@ -593,6 +602,57 @@ export class DatabaseStorage implements IStorage {
 
   async getIpBans(): Promise<IpBan[]> {
     return await db.select().from(ipBans);
+  }
+
+  // Ban Appeals Management
+  async createBanAppeal(data: InsertBanAppeal): Promise<BanAppeal> {
+    const [appeal] = await db
+      .insert(banAppeals)
+      .values(data)
+      .returning();
+    return appeal;
+  }
+
+  async getBanAppeals(status?: string): Promise<BanAppeal[]> {
+    if (status) {
+      return await db
+        .select()
+        .from(banAppeals)
+        .where(eq(banAppeals.status, status))
+        .orderBy(sql`${banAppeals.createdAt} DESC`);
+    }
+    return await db
+      .select()
+      .from(banAppeals)
+      .orderBy(sql`${banAppeals.createdAt} DESC`);
+  }
+
+  async approveBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined> {
+    const [appeal] = await db
+      .update(banAppeals)
+      .set({
+        status: 'approved',
+        reviewedAt: sql`NOW()`,
+        reviewedBy: adminId,
+        adminResponse: response || 'Appeal approved',
+      })
+      .where(eq(banAppeals.id, appealId))
+      .returning();
+    return appeal;
+  }
+
+  async denyBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined> {
+    const [appeal] = await db
+      .update(banAppeals)
+      .set({
+        status: 'denied',
+        reviewedAt: sql`NOW()`,
+        reviewedBy: adminId,
+        adminResponse: response || 'Appeal denied',
+      })
+      .where(eq(banAppeals.id, appealId))
+      .returning();
+    return appeal;
   }
 
   // Seed database with initial data (now empty - artists must upload their own songs)
