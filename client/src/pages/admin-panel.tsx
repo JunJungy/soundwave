@@ -24,8 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw, Ban, Unlock, Network } from "lucide-react";
-import type { ArtistApplication, User } from "@shared/schema";
+import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw, Ban, Unlock, Network, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
+import type { ArtistApplication, User, BanAppeal } from "@shared/schema";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
@@ -41,9 +41,18 @@ export default function AdminPanel() {
   const [ipBanDialogOpen, setIpBanDialogOpen] = useState(false);
   const [userToIpBan, setUserToIpBan] = useState<User | null>(null);
   const [ipBanReason, setIpBanReason] = useState("");
+  const [appealDialogOpen, setAppealDialogOpen] = useState(false);
+  const [appealToReview, setAppealToReview] = useState<BanAppeal | null>(null);
+  const [appealAction, setAppealAction] = useState<'approve' | 'deny'>('approve');
+  const [appealResponse, setAppealResponse] = useState("");
 
   const { data: applications = [], isLoading } = useQuery<ArtistApplication[]>({
     queryKey: ["/api/artist-applications/pending"],
+    enabled: user?.isAdmin === 1,
+  });
+
+  const { data: banAppeals = [], isLoading: isLoadingAppeals } = useQuery<BanAppeal[]>({
+    queryKey: ["/api/admin/ban-appeals"],
     enabled: user?.isAdmin === 1,
   });
 
@@ -233,6 +242,54 @@ export default function AdminPanel() {
     },
   });
 
+  const approveAppealMutation = useMutation({
+    mutationFn: async ({ appealId, response }: { appealId: string; response?: string }) => {
+      const res = await apiRequest("POST", `/api/admin/ban-appeals/${appealId}/approve`, { response });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ban-appeals"] });
+      setAppealDialogOpen(false);
+      setAppealToReview(null);
+      setAppealResponse("");
+      toast({
+        title: "Appeal approved",
+        description: "The ban appeal has been approved.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to approve appeal",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const denyAppealMutation = useMutation({
+    mutationFn: async ({ appealId, response }: { appealId: string; response?: string }) => {
+      const res = await apiRequest("POST", `/api/admin/ban-appeals/${appealId}/deny`, { response });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ban-appeals"] });
+      setAppealDialogOpen(false);
+      setAppealToReview(null);
+      setAppealResponse("");
+      toast({
+        title: "Appeal denied",
+        description: "The ban appeal has been denied.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to deny appeal",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const updateSpotifyUrlsMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/admin/update-spotify-urls");
@@ -287,6 +344,28 @@ export default function AdminPanel() {
     }
   };
 
+  const handleApproveAppealClick = (appeal: BanAppeal) => {
+    setAppealToReview(appeal);
+    setAppealAction('approve');
+    setAppealDialogOpen(true);
+  };
+
+  const handleDenyAppealClick = (appeal: BanAppeal) => {
+    setAppealToReview(appeal);
+    setAppealAction('deny');
+    setAppealDialogOpen(true);
+  };
+
+  const handleAppealReviewConfirm = () => {
+    if (appealToReview) {
+      if (appealAction === 'approve') {
+        approveAppealMutation.mutate({ appealId: appealToReview.id, response: appealResponse });
+      } else {
+        denyAppealMutation.mutate({ appealId: appealToReview.id, response: appealResponse });
+      }
+    }
+  };
+
   if (user?.isAdmin !== 1) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -322,12 +401,15 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="inline-flex h-auto w-full sm:grid sm:grid-cols-3 flex-nowrap overflow-x-auto">
+        <TabsList className="inline-flex h-auto w-full sm:grid sm:grid-cols-4 flex-nowrap overflow-x-auto">
           <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap">
             Artist Applications
           </TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap">
             User Management
+          </TabsTrigger>
+          <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap">
+            Ban Appeals
           </TabsTrigger>
           <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap">
             System Tools
@@ -573,6 +655,98 @@ export default function AdminPanel() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="appeals" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Ban Appeals
+              </CardTitle>
+              <CardDescription>
+                Review and manage user ban appeals
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAppeals ? (
+                <div className="text-center py-8 text-muted-foreground">Loading appeals...</div>
+              ) : banAppeals.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No ban appeals yet</div>
+              ) : (
+                <div className="space-y-4">
+                  {banAppeals.map((appeal) => (
+                    <Card key={appeal.id} data-testid={`card-appeal-${appeal.id}`}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <CardTitle className="text-base">{appeal.username}</CardTitle>
+                            <CardDescription className="text-sm">{appeal.email}</CardDescription>
+                          </div>
+                          <Badge 
+                            variant={
+                              appeal.status === 'pending' ? 'default' : 
+                              appeal.status === 'approved' ? 'outline' : 
+                              'destructive'
+                            }
+                            data-testid={`badge-appeal-status-${appeal.id}`}
+                          >
+                            {appeal.status}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div>
+                          <p className="text-sm font-medium mb-1">Reason for appeal:</p>
+                          <p className="text-sm text-muted-foreground">{appeal.reason}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Submitted:</span>{" "}
+                            {new Date(appeal.createdAt).toLocaleDateString()}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">IP:</span>{" "}
+                            {appeal.ipAddress || "Unknown"}
+                          </div>
+                        </div>
+
+                        {appeal.adminResponse && (
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <p className="text-sm font-medium mb-1">Admin Response:</p>
+                            <p className="text-sm text-muted-foreground">{appeal.adminResponse}</p>
+                          </div>
+                        )}
+
+                        {appeal.status === 'pending' && (
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleApproveAppealClick(appeal)}
+                              data-testid={`button-approve-appeal-${appeal.id}`}
+                            >
+                              <ThumbsUp className="w-4 h-4 mr-2" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDenyAppealClick(appeal)}
+                              data-testid={`button-deny-appeal-${appeal.id}`}
+                            >
+                              <ThumbsDown className="w-4 h-4 mr-2" />
+                              Deny
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="system" className="space-y-4">
           <Card>
             <CardHeader>
@@ -698,6 +872,45 @@ export default function AdminPanel() {
               data-testid="button-confirm-ip-ban"
             >
               Ban IP Address
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={appealDialogOpen} onOpenChange={setAppealDialogOpen}>
+        <AlertDialogContent data-testid="dialog-appeal-review">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {appealAction === 'approve' ? 'Approve Appeal' : 'Deny Appeal'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {appealAction === 'approve' 
+                ? `You are about to approve the ban appeal from ${appealToReview?.username}.` 
+                : `You are about to deny the ban appeal from ${appealToReview?.username}.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <label htmlFor="appeal-response" className="text-sm font-medium mb-2 block">
+              Response Message (Optional)
+            </label>
+            <Textarea
+              id="appeal-response"
+              value={appealResponse}
+              onChange={(e) => setAppealResponse(e.target.value)}
+              placeholder="Enter your response to the user..."
+              className="w-full"
+              data-testid="textarea-appeal-response"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-appeal-review">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleAppealReviewConfirm}
+              className={appealAction === 'approve' ? '' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'}
+              data-testid="button-confirm-appeal-review"
+            >
+              {appealAction === 'approve' ? 'Approve Appeal' : 'Deny Appeal'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
