@@ -3,10 +3,11 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPlaylistSchema, insertUserSchema, loginSchema, insertArtistApplicationSchema, insertSongSchema, insertAlbumSchema, updateArtistProfileSchema, type Artist } from "@shared/schema";
-import { setupSession, isAuthenticated } from "./auth";
+import { setupSession, isAuthenticated, checkIpBan, checkUserBan } from "./auth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import Stripe from "stripe";
+import { sendBanNotification } from "./discord-bot";
 
 // Initialize Stripe - Reference: blueprint:javascript_stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -16,9 +17,27 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-10-29.clover",
 });
 
+// Helper function to extract client IP address
+function getClientIp(req: any): string {
+  // Try x-forwarded-for first (for proxies/load balancers)
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (forwardedFor) {
+    // x-forwarded-for can be a comma-separated list, get the first one
+    return forwardedFor.split(',')[0].trim();
+  }
+  // Fall back to req.ip or remote address
+  return req.ip || req.connection?.remoteAddress || 'unknown';
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
   setupSession(app);
+
+  // Global middleware: Check if IP is banned
+  app.use(checkIpBan);
+
+  // Global middleware: Check if authenticated user is banned
+  app.use(checkUserBan);
 
   // Object Storage routes - Reference: blueprint:javascript_object_storage
   // Serve private objects (audio files, images) with ACL check
@@ -102,15 +121,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "This email is already registered to another account" });
       }
 
+      // Capture user's IP address
+      const clientIp = getClientIp(req);
+
       // Create user with normalized email
       const user = await storage.createUser({
         ...validatedData,
         email: normalizedEmail,
       });
 
-      // Set boundEmail permanently
+      // Set boundEmail and IP address permanently
       await storage.updateUser(user.id, {
         boundEmail: normalizedEmail,
+        lastIpAddress: clientIp,
       });
       
       // Set session
@@ -151,6 +174,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(401).json({ error: "Invalid username or password" });
       }
+
+      // Capture and store user's IP address
+      const clientIp = getClientIp(req);
+      await storage.updateUser(user.id, { lastIpAddress: clientIp });
 
       // Set session
       req.session.userId = user.id;
@@ -964,6 +991,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting user:", error);
       res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
+  // Ban user
+  app.post("/api/admin/users/:id/ban", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { reason } = req.body;
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (targetUser.username === "Jinsoo") {
+        return res.status(400).json({ error: "Cannot ban the owner account" });
+      }
+
+      const bannedUser = await storage.banUser(req.params.id, userId, reason);
+      
+      // Send Discord notification
+      sendBanNotification({
+        type: 'user_ban',
+        username: targetUser.username,
+        userId: req.params.id,
+        reason: reason,
+        adminUsername: user.username
+      }).catch(err => console.error('Failed to send ban notification:', err));
+      
+      res.json(bannedUser);
+    } catch (error) {
+      console.error("Error banning user:", error);
+      res.status(500).json({ error: "Failed to ban user" });
+    }
+  });
+
+  // Unban user
+  app.post("/api/admin/users/:id/unban", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const unbannedUser = await storage.unbanUser(req.params.id);
+      res.json(unbannedUser);
+    } catch (error) {
+      console.error("Error unbanning user:", error);
+      res.status(500).json({ error: "Failed to unban user" });
+    }
+  });
+
+  // IP ban
+  app.post("/api/admin/ip-bans", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { ipAddress, reason } = req.body;
+      if (!ipAddress) {
+        return res.status(400).json({ error: "IP address is required" });
+      }
+
+      const ipBan = await storage.createIpBan(ipAddress, userId, reason);
+      
+      // Send Discord notification
+      sendBanNotification({
+        type: 'ip_ban',
+        ipAddress: ipAddress,
+        reason: reason,
+        adminUsername: user.username
+      }).catch(err => console.error('Failed to send IP ban notification:', err));
+      
+      res.json(ipBan);
+    } catch (error) {
+      console.error("Error creating IP ban:", error);
+      res.status(500).json({ error: "Failed to create IP ban" });
+    }
+  });
+
+  // Remove IP ban
+  app.delete("/api/admin/ip-bans/:ipAddress", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      await storage.removeIpBan(req.params.ipAddress);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing IP ban:", error);
+      res.status(500).json({ error: "Failed to remove IP ban" });
+    }
+  });
+
+  // Get all IP bans
+  app.get("/api/admin/ip-bans", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const ipBans = await storage.getIpBans();
+      res.json(ipBans);
+    } catch (error) {
+      console.error("Error fetching IP bans:", error);
+      res.status(500).json({ error: "Failed to fetch IP bans" });
     }
   });
 

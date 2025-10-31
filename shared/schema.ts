@@ -36,6 +36,11 @@ export const users = pgTable("users", {
   boundDiscordId: varchar("bound_discord_id").unique(), // Permanent Discord association (never cleared)
   discordLinkCode: varchar("discord_link_code"), // One-time code for linking Discord
   discordLinkCodeExpiry: timestamp("discord_link_code_expiry"), // Code expiration timestamp
+  lastIpAddress: varchar("last_ip_address"), // Track user's last login IP
+  isBanned: integer("is_banned").default(0).notNull(), // 1 = banned, 0 = active
+  bannedAt: timestamp("banned_at"), // When user was banned
+  bannedBy: varchar("banned_by"), // Admin user ID who banned them
+  banReason: text("ban_reason"), // Reason for ban
   isAdmin: integer("is_admin").default(0).notNull(),
   isArtist: integer("is_artist").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -130,6 +135,14 @@ export const follows = pgTable("follows", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const ipBans = pgTable("ip_bans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ipAddress: varchar("ip_address").notNull().unique(),
+  bannedBy: varchar("banned_by").notNull(), // Admin user ID who banned this IP
+  banReason: text("ban_reason"),
+  bannedAt: timestamp("banned_at").defaultNow().notNull(),
+});
+
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
 export const updateArtistProfileSchema = z.object({
   imageUrl: z.string().optional().or(z.literal("")),
@@ -153,6 +166,7 @@ export const insertArtistApplicationSchema = createInsertSchema(artistApplicatio
   reviewedBy: true 
 });
 export const insertFollowSchema = createInsertSchema(follows).omit({ id: true, createdAt: true });
+export const insertIpBanSchema = createInsertSchema(ipBans).omit({ id: true, bannedAt: true });
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type UpdateArtistProfile = z.infer<typeof updateArtistProfileSchema>;
@@ -161,6 +175,7 @@ export type InsertSong = z.infer<typeof insertSongSchema>;
 export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
 export type InsertArtistApplication = z.infer<typeof insertArtistApplicationSchema>;
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
+export type InsertIpBan = z.infer<typeof insertIpBanSchema>;
 
 export type Artist = typeof artists.$inferSelect;
 export type Album = typeof albums.$inferSelect;
@@ -168,3 +183,4 @@ export type Song = typeof songs.$inferSelect;
 export type Playlist = typeof playlists.$inferSelect;
 export type ArtistApplication = typeof artistApplications.$inferSelect;
 export type Follow = typeof follows.$inferSelect;
+export type IpBan = typeof ipBans.$inferSelect;

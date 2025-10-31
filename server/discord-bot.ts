@@ -35,6 +35,9 @@ export async function startDiscordBot() {
     client.once(Events.ClientReady, async (readyClient) => {
       console.log(`✓ Discord bot is online as ${readyClient.user.tag}`);
       
+      // Store client reference for ban notifications
+      discordClient = client;
+      
       // Set bot status
       readyClient.user.setPresence({
         activities: [{ name: 'Developing features...', type: 0 }], // Type 0 = Playing
@@ -545,4 +548,67 @@ async function createArtistAccountEmbed(user: any, interaction: any) {
     .setTimestamp();
 
   return embed;
+}
+
+// Global client reference for sending notifications
+let discordClient: Client | null = null;
+
+// Export function to send ban notifications
+export async function sendBanNotification(data: {
+  type: 'user_ban' | 'ip_ban';
+  username?: string;
+  userId?: string;
+  ipAddress?: string;
+  reason?: string;
+  adminUsername: string;
+}) {
+  if (!discordClient) {
+    console.log('[Discord] Bot not initialized, skipping ban notification');
+    return;
+  }
+
+  const channelId = process.env.DISCORD_BAN_CHANNEL_ID;
+  
+  if (!channelId) {
+    console.log('[Discord] DISCORD_BAN_CHANNEL_ID not set, skipping ban notification');
+    return;
+  }
+
+  try {
+    const channel = await discordClient.channels.fetch(channelId);
+    
+    if (!channel || !channel.isTextBased()) {
+      console.error('[Discord] Invalid ban notification channel');
+      return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0xEF4444)
+      .setTimestamp();
+
+    if (data.type === 'user_ban') {
+      embed
+        .setTitle('🚫 User Banned')
+        .setDescription(`**${data.username}** has been banned from Soundwave`)
+        .addFields(
+          { name: 'User ID', value: data.userId || 'Unknown', inline: true },
+          { name: 'Banned By', value: data.adminUsername, inline: true },
+          { name: 'Reason', value: data.reason || 'No reason provided', inline: false }
+        );
+    } else {
+      embed
+        .setTitle('🚫 IP Address Banned')
+        .setDescription(`IP Address has been banned from Soundwave`)
+        .addFields(
+          { name: 'IP Address', value: data.ipAddress || 'Unknown', inline: true },
+          { name: 'Banned By', value: data.adminUsername, inline: true },
+          { name: 'Reason', value: data.reason || 'No reason provided', inline: false }
+        );
+    }
+
+    await channel.send({ embeds: [embed] });
+    console.log(`[Discord] Ban notification sent for ${data.type}`);
+  } catch (error) {
+    console.error('[Discord] Error sending ban notification:', error);
+  }
 }

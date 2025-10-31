@@ -6,6 +6,7 @@ import {
   users,
   artistApplications,
   follows,
+  ipBans,
   type Artist,
   type Album,
   type Song,
@@ -13,6 +14,7 @@ import {
   type User,
   type ArtistApplication,
   type Follow,
+  type IpBan,
   type InsertArtist,
   type InsertAlbum,
   type InsertSong,
@@ -20,6 +22,7 @@ import {
   type InsertUser,
   type InsertArtistApplication,
   type InsertFollow,
+  type InsertIpBan,
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
@@ -89,6 +92,14 @@ export interface IStorage {
   getFollowerCount(artistId: string): Promise<number>;
   getFollowedArtists(userId: string): Promise<Artist[]>;
   getFollowersByArtist(artistId: string): Promise<User[]>;
+
+  // Bans and IP Bans
+  banUser(userId: string, adminId: string, reason?: string): Promise<User | undefined>;
+  unbanUser(userId: string): Promise<User | undefined>;
+  createIpBan(ipAddress: string, adminId: string, reason?: string): Promise<IpBan>;
+  removeIpBan(ipAddress: string): Promise<boolean>;
+  isIpBanned(ipAddress: string): Promise<boolean>;
+  getIpBans(): Promise<IpBan[]>;
 
   // Seeding
   seedDatabase(): Promise<void>;
@@ -521,6 +532,67 @@ export class DatabaseStorage implements IStorage {
       .where(eq(follows.artistId, artistId));
 
     return followers.map((row) => row.user);
+  }
+
+  // Ban/Unban Users
+  async banUser(userId: string, adminId: string, reason?: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isBanned: 1,
+        bannedAt: new Date(),
+        bannedBy: adminId,
+        banReason: reason || 'No reason provided',
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async unbanUser(userId: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isBanned: 0,
+        bannedAt: null,
+        bannedBy: null,
+        banReason: null,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  // IP Ban Management
+  async createIpBan(ipAddress: string, adminId: string, reason?: string): Promise<IpBan> {
+    const [ipBan] = await db
+      .insert(ipBans)
+      .values({
+        ipAddress,
+        bannedBy: adminId,
+        banReason: reason || 'No reason provided',
+      })
+      .returning();
+    return ipBan;
+  }
+
+  async removeIpBan(ipAddress: string): Promise<boolean> {
+    const result = await db
+      .delete(ipBans)
+      .where(eq(ipBans.ipAddress, ipAddress));
+    return true;
+  }
+
+  async isIpBanned(ipAddress: string): Promise<boolean> {
+    const [ban] = await db
+      .select()
+      .from(ipBans)
+      .where(eq(ipBans.ipAddress, ipAddress));
+    return !!ban;
+  }
+
+  async getIpBans(): Promise<IpBan[]> {
+    return await db.select().from(ipBans);
   }
 
   // Seed database with initial data (now empty - artists must upload their own songs)

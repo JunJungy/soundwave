@@ -24,8 +24,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw } from "lucide-react";
+import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw, Ban, Unlock, Network } from "lucide-react";
 import type { ArtistApplication, User } from "@shared/schema";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -33,6 +35,12 @@ export default function AdminPanel() {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [userToBan, setUserToBan] = useState<User | null>(null);
+  const [banReason, setBanReason] = useState("");
+  const [ipBanDialogOpen, setIpBanDialogOpen] = useState(false);
+  const [userToIpBan, setUserToIpBan] = useState<User | null>(null);
+  const [ipBanReason, setIpBanReason] = useState("");
 
   const { data: applications = [], isLoading } = useQuery<ArtistApplication[]>({
     queryKey: ["/api/artist-applications/pending"],
@@ -153,6 +161,75 @@ export default function AdminPanel() {
     },
   });
 
+  const banMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason?: string }) => {
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/ban`, { reason });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setBanDialogOpen(false);
+      setUserToBan(null);
+      setBanReason("");
+      toast({
+        title: "User banned",
+        description: "The user has been banned from the platform.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to ban user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unbanMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/unban`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "User unbanned",
+        description: "The user can now access the platform again.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to unban user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const ipBanMutation = useMutation({
+    mutationFn: async ({ ipAddress, reason }: { ipAddress: string; reason?: string }) => {
+      const res = await apiRequest("POST", `/api/admin/ip-bans`, { ipAddress, reason });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setIpBanDialogOpen(false);
+      setUserToIpBan(null);
+      setIpBanReason("");
+      toast({
+        title: "IP Address banned",
+        description: "This IP address has been banned from the platform.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to ban IP",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const updateSpotifyUrlsMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/admin/update-spotify-urls");
@@ -182,6 +259,28 @@ export default function AdminPanel() {
   const handleDeleteConfirm = () => {
     if (userToDelete) {
       deleteMutation.mutate(userToDelete.id);
+    }
+  };
+
+  const handleBanClick = (targetUser: User) => {
+    setUserToBan(targetUser);
+    setBanDialogOpen(true);
+  };
+
+  const handleBanConfirm = () => {
+    if (userToBan) {
+      banMutation.mutate({ userId: userToBan.id, reason: banReason });
+    }
+  };
+
+  const handleIpBanClick = (targetUser: User) => {
+    setUserToIpBan(targetUser);
+    setIpBanDialogOpen(true);
+  };
+
+  const handleIpBanConfirm = () => {
+    if (userToIpBan && userToIpBan.lastIpAddress) {
+      ipBanMutation.mutate({ ipAddress: userToIpBan.lastIpAddress, reason: ipBanReason });
     }
   };
 
@@ -348,53 +447,110 @@ export default function AdminPanel() {
                             Artist
                           </Badge>
                         )}
+                        {targetUser.isBanned === 1 && (
+                          <Badge variant="destructive" data-testid={`badge-banned-${targetUser.id}`}>
+                            <Ban className="w-3 h-3 mr-1" />
+                            Banned
+                          </Badge>
+                        )}
                       </div>
                       {targetUser.email && (
                         <p className="text-sm text-muted-foreground" data-testid={`text-email-${targetUser.id}`}>
                           {targetUser.email}
                         </p>
                       )}
+                      {targetUser.lastIpAddress && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1" data-testid={`text-ip-${targetUser.id}`}>
+                          <Network className="w-3 h-3" />
+                          {targetUser.lastIpAddress}
+                        </p>
+                      )}
                     </div>
                     {targetUser.id !== user?.id && targetUser.username !== "Jinsoo" && (
-                      <div className="flex gap-2 w-full sm:w-auto">
-                        {targetUser.isAdmin === 1 ? (
+                      <div className="flex flex-col gap-2 w-full sm:w-auto">
+                        <div className="flex gap-2">
+                          {targetUser.isBanned === 1 ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => unbanMutation.mutate(targetUser.id)}
+                              disabled={unbanMutation.isPending}
+                              data-testid={`button-unban-${targetUser.id}`}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <Unlock className="w-4 h-4 sm:mr-2" />
+                              <span className="hidden sm:inline">{unbanMutation.isPending ? "Unbanning..." : "Unban"}</span>
+                              <span className="sm:hidden ml-2">{unbanMutation.isPending ? "..." : "Unban"}</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleBanClick(targetUser)}
+                              disabled={banMutation.isPending}
+                              data-testid={`button-ban-${targetUser.id}`}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <Ban className="w-4 h-4 sm:mr-2" />
+                              <span className="hidden sm:inline">Ban User</span>
+                              <span className="sm:hidden ml-2">Ban</span>
+                            </Button>
+                          )}
+                          {targetUser.lastIpAddress && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleIpBanClick(targetUser)}
+                              disabled={ipBanMutation.isPending}
+                              data-testid={`button-ip-ban-${targetUser.id}`}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <Network className="w-4 h-4 sm:mr-2" />
+                              <span className="hidden sm:inline">IP Ban</span>
+                              <span className="sm:hidden ml-2">IP Ban</span>
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {targetUser.isAdmin === 1 ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => demoteMutation.mutate(targetUser.id)}
+                              disabled={demoteMutation.isPending || promoteMutation.isPending}
+                              data-testid={`button-demote-${targetUser.id}`}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <UserMinus className="w-4 h-4 sm:mr-2" />
+                              <span className="hidden sm:inline">{demoteMutation.isPending ? "Removing..." : "Remove Admin"}</span>
+                              <span className="sm:hidden ml-2">{demoteMutation.isPending ? "Remove..." : "Remove"}</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => promoteMutation.mutate(targetUser.id)}
+                              disabled={promoteMutation.isPending || demoteMutation.isPending}
+                              data-testid={`button-promote-${targetUser.id}`}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <UserPlus className="w-4 h-4 sm:mr-2" />
+                              <span className="hidden sm:inline">{promoteMutation.isPending ? "Promoting..." : "Make Admin"}</span>
+                              <span className="sm:hidden ml-2">{promoteMutation.isPending ? "Making..." : "Make"}</span>
+                            </Button>
+                          )}
                           <Button
-                            variant="outline"
+                            variant="destructive"
                             size="sm"
-                            onClick={() => demoteMutation.mutate(targetUser.id)}
-                            disabled={demoteMutation.isPending || promoteMutation.isPending}
-                            data-testid={`button-demote-${targetUser.id}`}
+                            onClick={() => handleDeleteClick(targetUser)}
+                            disabled={deleteMutation.isPending}
+                            data-testid={`button-delete-${targetUser.id}`}
                             className="flex-1 sm:flex-none"
                           >
-                            <UserMinus className="w-4 h-4 sm:mr-2" />
-                            <span className="hidden sm:inline">{demoteMutation.isPending ? "Removing..." : "Remove Admin"}</span>
-                            <span className="sm:hidden ml-2">{demoteMutation.isPending ? "Remove..." : "Remove"}</span>
+                            <Trash2 className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Delete</span>
                           </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => promoteMutation.mutate(targetUser.id)}
-                            disabled={promoteMutation.isPending || demoteMutation.isPending}
-                            data-testid={`button-promote-${targetUser.id}`}
-                            className="flex-1 sm:flex-none"
-                          >
-                            <UserPlus className="w-4 h-4 sm:mr-2" />
-                            <span className="hidden sm:inline">{promoteMutation.isPending ? "Promoting..." : "Make Admin"}</span>
-                            <span className="sm:hidden ml-2">{promoteMutation.isPending ? "Making..." : "Make"}</span>
-                          </Button>
-                        )}
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteClick(targetUser)}
-                          disabled={deleteMutation.isPending}
-                          data-testid={`button-delete-${targetUser.id}`}
-                          className="flex-1 sm:flex-none"
-                        >
-                          <Trash2 className="w-4 h-4 sm:mr-2" />
-                          <span className="hidden sm:inline">Delete</span>
-                        </Button>
+                        </div>
                       </div>
                     )}
                     {targetUser.id === user?.id && (
@@ -464,6 +620,76 @@ export default function AdminPanel() {
               data-testid="button-confirm-delete"
             >
               Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <AlertDialogContent data-testid="dialog-ban-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ban User</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to ban <span className="font-semibold">{userToBan?.username}</span>. 
+              They will not be able to access the platform until unbanned.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <label htmlFor="ban-reason" className="text-sm font-medium mb-2 block">
+              Ban Reason (Optional)
+            </label>
+            <Textarea
+              id="ban-reason"
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+              placeholder="Enter reason for ban..."
+              className="w-full"
+              data-testid="input-ban-reason"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-ban">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBanConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-ban"
+            >
+              Ban User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={ipBanDialogOpen} onOpenChange={setIpBanDialogOpen}>
+        <AlertDialogContent data-testid="dialog-ip-ban-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>IP Ban</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to ban the IP address <span className="font-semibold">{userToIpBan?.lastIpAddress}</span> used by {userToIpBan?.username}. 
+              Anyone using this IP will not be able to access the platform.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <label htmlFor="ip-ban-reason" className="text-sm font-medium mb-2 block">
+              Ban Reason (Optional)
+            </label>
+            <Textarea
+              id="ip-ban-reason"
+              value={ipBanReason}
+              onChange={(e) => setIpBanReason(e.target.value)}
+              placeholder="Enter reason for IP ban..."
+              className="w-full"
+              data-testid="input-ip-ban-reason"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-ip-ban">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleIpBanConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-ip-ban"
+            >
+              Ban IP Address
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
