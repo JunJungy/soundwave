@@ -302,6 +302,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Follow routes
+  app.post("/api/artists/:id/follow", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const artistId = req.params.id;
+
+      const artist = await storage.getArtist(artistId);
+      if (!artist) {
+        return res.status(404).json({ error: "Artist not found" });
+      }
+
+      const follow = await storage.followArtist(userId, artistId);
+      res.json(follow);
+    } catch (error) {
+      console.error("Error following artist:", error);
+      res.status(500).json({ error: "Failed to follow artist" });
+    }
+  });
+
+  app.delete("/api/artists/:id/follow", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const artistId = req.params.id;
+
+      await storage.unfollowArtist(userId, artistId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error unfollowing artist:", error);
+      res.status(500).json({ error: "Failed to unfollow artist" });
+    }
+  });
+
+  app.get("/api/artists/:id/is-following", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const artistId = req.params.id;
+
+      const isFollowing = await storage.isFollowing(userId, artistId);
+      res.json({ isFollowing });
+    } catch (error) {
+      console.error("Error checking follow status:", error);
+      res.status(500).json({ error: "Failed to check follow status" });
+    }
+  });
+
+  app.get("/api/artists/:id/followers", async (req, res) => {
+    try {
+      const artistId = req.params.id;
+      const count = await storage.getFollowerCount(artistId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Error getting follower count:", error);
+      res.status(500).json({ error: "Failed to get follower count" });
+    }
+  });
+
+  app.get("/api/following", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const followedArtists = await storage.getFollowedArtists(userId);
+      res.json(followedArtists);
+    } catch (error) {
+      console.error("Error getting followed artists:", error);
+      res.status(500).json({ error: "Failed to get followed artists" });
+    }
+  });
+
   // Albums - public access
   app.get("/api/albums", async (_req, res) => {
     try {
