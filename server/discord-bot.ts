@@ -7,7 +7,10 @@ import {
   StringSelectMenuBuilder, 
   ComponentType,
   REST,
-  Routes
+  Routes,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
 } from 'discord.js';
 import { storage } from './storage';
 
@@ -36,7 +39,7 @@ export async function startDiscordBot() {
       const commands = [
         {
           name: 'account',
-          description: 'View your Soundwave account information',
+          description: 'View your Soundwave account information or create a new account',
         },
         {
           name: 'link',
@@ -69,166 +72,353 @@ export async function startDiscordBot() {
       }
     });
 
-    // Handle slash commands
+    // Handle all interactions (commands, modals, select menus)
     client.on(Events.InteractionCreate, async (interaction) => {
-      if (!interaction.isChatInputCommand()) return;
-
-      if (interaction.commandName === 'link') {
-        const code = interaction.options.getString('code', true);
-        
-        try {
-          // Find user by link code
-          const allUsers = await storage.getAllUsers();
-          const user = allUsers.find(u => {
-            if (!u.discordLinkCode || !u.discordLinkCodeExpiry) return false;
-            if (u.discordLinkCode !== code) return false;
-            // Check if code is expired
-            const expiry = new Date(u.discordLinkCodeExpiry);
-            return expiry > new Date();
-          });
-
-          if (!user) {
-            await interaction.reply({
-              content: '❌ Invalid or expired link code. Please generate a new code from your Soundwave account settings.',
-              ephemeral: true
-            });
-            return;
-          }
-
-          // Check if Discord ID is already linked to another account
-          const existingLink = await storage.getUserByDiscordId(interaction.user.id);
-          if (existingLink && existingLink.id !== user.id) {
-            await interaction.reply({
-              content: `❌ Your Discord account is already linked to **${existingLink.username}**. Use \`/unlink\` first if you want to link a different account.`,
-              ephemeral: true
-            });
-            return;
-          }
-
-          // Link Discord ID and clear the link code
-          await storage.updateUser(user.id, { 
-            discordId: interaction.user.id,
-            discordLinkCode: null,
-            discordLinkCodeExpiry: null
-          });
-
-          await interaction.reply({
-            content: `✅ Successfully linked your Discord account to **${user.username}**!\n\nYou can now use \`/account\` to view your account info.`,
-            ephemeral: true
-          });
-        } catch (error) {
-          console.error('Link command error:', error);
-          await interaction.reply({
-            content: '❌ An error occurred while linking your account. Please try again.',
-            ephemeral: true
-          });
-        }
-      }
-
-      if (interaction.commandName === 'unlink') {
-        try {
-          const user = await storage.getUserByDiscordId(interaction.user.id);
-
-          if (!user) {
-            await interaction.reply({
-              content: '❌ Your Discord account is not linked to any Soundwave account.',
-              ephemeral: true
-            });
-            return;
-          }
-
-          // Unlink Discord ID
-          await storage.updateUser(user.id, { discordId: null });
-
-          await interaction.reply({
-            content: `✅ Successfully unlinked your Discord account from **${user.username}**.`,
-            ephemeral: true
-          });
-        } catch (error) {
-          console.error('Unlink command error:', error);
-          await interaction.reply({
-            content: '❌ An error occurred while unlinking your account. Please try again.',
-            ephemeral: true
-          });
-        }
-      }
-
-      if (interaction.commandName === 'account') {
-        try {
-          // Find user by Discord ID
-          const user = await storage.getUserByDiscordId(interaction.user.id);
+      // Handle slash commands
+      if (interaction.isChatInputCommand()) {
+        if (interaction.commandName === 'link') {
+          const code = interaction.options.getString('code', true);
           
-          if (!user) {
-            await interaction.reply({
-              content: '❌ Your Discord account is not linked to a Soundwave account.\n\nTo link your account:\n1. Go to your Soundwave account settings\n2. Generate a Discord link code\n3. Use \`/link code:YOUR_CODE\` here',
-              ephemeral: true
+          try {
+            // Find user by link code
+            const allUsers = await storage.getAllUsers();
+            const user = allUsers.find(u => {
+              if (!u.discordLinkCode || !u.discordLinkCodeExpiry) return false;
+              if (u.discordLinkCode !== code) return false;
+              // Check if code is expired
+              const expiry = new Date(u.discordLinkCodeExpiry);
+              return expiry > new Date();
             });
-            return;
-          }
 
-          // Create select menu
-          const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId('account_type')
-            .setPlaceholder('Select account type to view')
-            .addOptions([
-              {
-                label: 'Normal Account',
-                description: 'View your general account information',
-                value: 'normal',
-                emoji: '👤'
-              },
-              {
-                label: 'Artist Account',
-                description: 'View your artist stats and information',
-                value: 'artist',
-                emoji: '🎵'
-              }
-            ]);
-
-          const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
-
-          // Get initial account info (normal view)
-          const embed = await createNormalAccountEmbed(user, interaction);
-
-          const response = await interaction.reply({
-            embeds: [embed],
-            components: [row],
-            fetchReply: true
-          });
-
-          // Create collector for select menu
-          const collector = response.createMessageComponentCollector({
-            componentType: ComponentType.StringSelect,
-            time: 300000 // 5 minutes
-          });
-
-          collector.on('collect', async (i) => {
-            if (i.user.id !== interaction.user.id) {
-              await i.reply({ 
-                content: 'This menu is not for you!', 
-                ephemeral: true 
+            if (!user) {
+              await interaction.reply({
+                content: '❌ Invalid or expired link code. Please generate a new code from your Soundwave account settings.',
+                ephemeral: true
               });
               return;
             }
 
-            const selectedType = i.values[0];
-            let newEmbed;
-
-            if (selectedType === 'normal') {
-              newEmbed = await createNormalAccountEmbed(user, interaction);
-            } else {
-              newEmbed = await createArtistAccountEmbed(user, interaction);
+            // Check if Discord ID is already linked to another account
+            const existingLink = await storage.getUserByDiscordId(interaction.user.id);
+            if (existingLink && existingLink.id !== user.id) {
+              await interaction.reply({
+                content: `❌ Your Discord account is already linked to **${existingLink.username}**. Use \`/unlink\` first if you want to link a different account.`,
+                ephemeral: true
+              });
+              return;
             }
 
-            await i.update({ embeds: [newEmbed] });
-          });
+            // Link Discord ID and clear the link code
+            await storage.updateUser(user.id, { 
+              discordId: interaction.user.id,
+              discordLinkCode: null,
+              discordLinkCodeExpiry: null
+            });
 
-        } catch (error) {
-          console.error('Account command error:', error);
-          await interaction.reply({
-            content: '❌ An error occurred while fetching your account. Please try again.',
-            ephemeral: true
-          });
+            await interaction.reply({
+              content: `✅ Successfully linked your Discord account to **${user.username}**!\n\nYou can now use \`/account\` to view your account info.`,
+              ephemeral: true
+            });
+          } catch (error) {
+            console.error('Link command error:', error);
+            await interaction.reply({
+              content: '❌ An error occurred while linking your account. Please try again.',
+              ephemeral: true
+            });
+          }
+        }
+
+        if (interaction.commandName === 'unlink') {
+          try {
+            const user = await storage.getUserByDiscordId(interaction.user.id);
+
+            if (!user) {
+              await interaction.reply({
+                content: '❌ Your Discord account is not linked to any Soundwave account.',
+                ephemeral: true
+              });
+              return;
+            }
+
+            // Unlink Discord ID
+            await storage.updateUser(user.id, { discordId: null });
+
+            await interaction.reply({
+              content: `✅ Successfully unlinked your Discord account from **${user.username}**.`,
+              ephemeral: true
+            });
+          } catch (error) {
+            console.error('Unlink command error:', error);
+            await interaction.reply({
+              content: '❌ An error occurred while unlinking your account. Please try again.',
+              ephemeral: true
+            });
+          }
+        }
+
+        if (interaction.commandName === 'account') {
+          try {
+            // Find user by Discord ID
+            const user = await storage.getUserByDiscordId(interaction.user.id);
+            
+            if (!user) {
+              // User doesn't have an account - show account creation options
+              const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('create_account_method')
+                .setPlaceholder('Choose how to create your Soundwave account')
+                .addOptions([
+                  {
+                    label: 'Create Account via Discord',
+                    description: 'Create your account right here in Discord',
+                    value: 'discord',
+                    emoji: '💬'
+                  },
+                  {
+                    label: 'Create Account on Website',
+                    description: 'Get a direct link to register on Soundwave',
+                    value: 'website',
+                    emoji: '🌐'
+                  }
+                ]);
+
+              const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+
+              const embed = new EmbedBuilder()
+                .setColor(0x9333EA)
+                .setTitle('Welcome to Soundwave!')
+                .setDescription('You don\'t have a Soundwave account yet. Choose how you\'d like to create one:')
+                .addFields(
+                  {
+                    name: '💬 Create via Discord',
+                    value: 'Quick and easy - create your account right here in this conversation',
+                    inline: false
+                  },
+                  {
+                    name: '🌐 Create on Website',
+                    value: 'Prefer the full web experience - get a direct link to our registration page',
+                    inline: false
+                  }
+                )
+                .setThumbnail(interaction.user.displayAvatarURL())
+                .setFooter({ 
+                  text: 'Soundwave - Music Streaming Platform',
+                  iconURL: interaction.user.displayAvatarURL() 
+                });
+
+              await interaction.reply({
+                embeds: [embed],
+                components: [row],
+                ephemeral: true
+              });
+              return;
+            }
+
+            // User has an account - show account info with type selector
+            const selectMenu = new StringSelectMenuBuilder()
+              .setCustomId('account_type')
+              .setPlaceholder('Select account type to view')
+              .addOptions([
+                {
+                  label: 'Normal Account',
+                  description: 'View your general account information',
+                  value: 'normal',
+                  emoji: '👤'
+                },
+                {
+                  label: 'Artist Account',
+                  description: 'View your artist stats and information',
+                  value: 'artist',
+                  emoji: '🎵'
+                }
+              ]);
+
+            const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+
+            // Get initial account info (normal view)
+            const embed = await createNormalAccountEmbed(user, interaction);
+
+            const response = await interaction.reply({
+              embeds: [embed],
+              components: [row],
+              fetchReply: true
+            });
+
+            // Create collector for select menu
+            const collector = response.createMessageComponentCollector({
+              componentType: ComponentType.StringSelect,
+              time: 300000 // 5 minutes
+            });
+
+            collector.on('collect', async (i) => {
+              if (i.user.id !== interaction.user.id) {
+                await i.reply({ 
+                  content: 'This menu is not for you!', 
+                  ephemeral: true 
+                });
+                return;
+              }
+
+              const selectedType = i.values[0];
+              let newEmbed;
+
+              if (selectedType === 'normal') {
+                newEmbed = await createNormalAccountEmbed(user, interaction);
+              } else {
+                newEmbed = await createArtistAccountEmbed(user, interaction);
+              }
+
+              await i.update({ embeds: [newEmbed] });
+            });
+
+          } catch (error) {
+            console.error('Account command error:', error);
+            await interaction.reply({
+              content: '❌ An error occurred while fetching your account. Please try again.',
+              ephemeral: true
+            });
+          }
+        }
+      }
+
+      // Handle select menu interactions
+      if (interaction.isStringSelectMenu()) {
+        if (interaction.customId === 'create_account_method') {
+          const method = interaction.values[0];
+
+          if (method === 'discord') {
+            // Show modal for account creation
+            const modal = new ModalBuilder()
+              .setCustomId('create_account_modal')
+              .setTitle('Create Soundwave Account');
+
+            const usernameInput = new TextInputBuilder()
+              .setCustomId('username')
+              .setLabel('Username')
+              .setPlaceholder('Choose a unique username (min 3 characters)')
+              .setMinLength(3)
+              .setMaxLength(30)
+              .setStyle(TextInputStyle.Short)
+              .setRequired(true);
+
+            const passwordInput = new TextInputBuilder()
+              .setCustomId('password')
+              .setLabel('Password')
+              .setPlaceholder('Choose a secure password (min 8 characters)')
+              .setMinLength(8)
+              .setMaxLength(100)
+              .setStyle(TextInputStyle.Short)
+              .setRequired(true);
+
+            const emailInput = new TextInputBuilder()
+              .setCustomId('email')
+              .setLabel('Email (Optional)')
+              .setPlaceholder('your.email@example.com')
+              .setStyle(TextInputStyle.Short)
+              .setRequired(false);
+
+            const firstRow = new ActionRowBuilder<TextInputBuilder>().addComponents(usernameInput);
+            const secondRow = new ActionRowBuilder<TextInputBuilder>().addComponents(passwordInput);
+            const thirdRow = new ActionRowBuilder<TextInputBuilder>().addComponents(emailInput);
+
+            modal.addComponents(firstRow, secondRow, thirdRow);
+
+            await interaction.showModal(modal);
+          } else if (method === 'website') {
+            // Get the website URL from environment or use a default
+            const websiteUrl = process.env.REPLIT_DEV_DOMAIN 
+              ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+              : 'https://soundwave.replit.app';
+
+            const embed = new EmbedBuilder()
+              .setColor(0x9333EA)
+              .setTitle('Create Account on Website')
+              .setDescription(`Click the link below to create your Soundwave account:\n\n🔗 **[Create Account](${websiteUrl}/login)**\n\nAfter creating your account, you can link it to Discord using the \`/link\` command.`)
+              .setThumbnail(interaction.user.displayAvatarURL())
+              .setFooter({ 
+                text: 'Soundwave - Music Streaming Platform',
+                iconURL: interaction.user.displayAvatarURL() 
+              });
+
+            await interaction.update({
+              embeds: [embed],
+              components: []
+            });
+          }
+        }
+      }
+
+      // Handle modal submissions
+      if (interaction.isModalSubmit()) {
+        if (interaction.customId === 'create_account_modal') {
+          try {
+            const username = interaction.fields.getTextInputValue('username');
+            const password = interaction.fields.getTextInputValue('password');
+            const email = interaction.fields.getTextInputValue('email') || undefined;
+
+            // Check if username already exists
+            const existingUser = await storage.getUserByUsername(username);
+            if (existingUser) {
+              await interaction.reply({
+                content: '❌ Username already taken. Please choose a different username.',
+                ephemeral: true
+              });
+              return;
+            }
+
+            // Check if Discord ID is already linked
+            const existingLink = await storage.getUserByDiscordId(interaction.user.id);
+            if (existingLink) {
+              await interaction.reply({
+                content: `❌ Your Discord account is already linked to **${existingLink.username}**. Use \`/unlink\` first if you want to create a new account.`,
+                ephemeral: true
+              });
+              return;
+            }
+
+            // Create the account (storage.createUser will hash the password)
+            const newUser = await storage.createUser({
+              username,
+              password,
+              email: email || undefined
+            });
+
+            // Link Discord ID immediately
+            await storage.updateUser(newUser.id, { 
+              discordId: interaction.user.id 
+            });
+
+            // Success message
+            const embed = new EmbedBuilder()
+              .setColor(0x10B981) // Green for success
+              .setTitle('✅ Account Created Successfully!')
+              .setDescription(`Welcome to Soundwave, **${username}**!`)
+              .addFields(
+                { name: 'Username', value: username, inline: true },
+                { name: 'Email', value: email || 'Not set', inline: true },
+                { name: 'Discord Linked', value: '✅ Yes', inline: true }
+              )
+              .setThumbnail(interaction.user.displayAvatarURL())
+              .setFooter({ 
+                text: 'You can now use /account to view your account info',
+                iconURL: interaction.user.displayAvatarURL() 
+              })
+              .setTimestamp();
+
+            await interaction.reply({
+              embeds: [embed],
+              ephemeral: true
+            });
+
+            // Log account creation
+            console.log(`✓ Discord account created: ${username} (${interaction.user.tag})`);
+
+          } catch (error) {
+            console.error('Account creation error:', error);
+            await interaction.reply({
+              content: '❌ An error occurred while creating your account. Please try again.',
+              ephemeral: true
+            });
+          }
         }
       }
     });
