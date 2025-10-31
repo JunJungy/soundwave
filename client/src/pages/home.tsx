@@ -41,9 +41,11 @@ export default function Home() {
       title: song.title,
       artist: artistMap[song.artistId] || "Unknown Artist",
       artistId: song.artistId,
-      albumCover: albumMap[song.albumId]?.coverUrl,
+      albumCover: song.albumId ? albumMap[song.albumId]?.coverUrl : undefined,
       duration: song.duration,
       audioUrl: song.audioUrl || undefined,
+      lyrics: (song.lyrics as any) || undefined,
+      language: song.language || undefined,
     }));
     if (tracks.length > 0) {
       playQueue(tracks);
@@ -59,6 +61,8 @@ export default function Home() {
       albumCover: song.artworkUrl || undefined,
       duration: song.duration,
       audioUrl: song.audioUrl || undefined,
+      lyrics: (song.lyrics as any) || undefined,
+      language: song.language || undefined,
     };
     playQueue([track]);
   };

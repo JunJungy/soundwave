@@ -16,6 +16,7 @@ interface Track {
       text: string;
     }>;
   } | null;
+  language?: string | null;
 }
 
 interface MusicPlayerContextType {

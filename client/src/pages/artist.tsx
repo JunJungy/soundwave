@@ -130,6 +130,9 @@ export default function ArtistPage() {
         albumCover: album?.coverUrl || undefined,
         duration: song.duration,
         audioUrl: song.audioUrl || undefined,
+        lyrics: (song.lyrics as any) || undefined,
+        language: song.language || undefined,
+        artistId: song.artistId,
       };
     });
     playQueue(playerTracks);
@@ -145,6 +148,9 @@ export default function ArtistPage() {
       albumCover: album?.coverUrl || undefined,
       duration: track.duration,
       audioUrl: song?.audioUrl || undefined,
+      lyrics: (song?.lyrics as any) || undefined,
+      language: song?.language || undefined,
+      artistId: song?.artistId,
     });
   };
 

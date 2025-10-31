@@ -47,9 +47,9 @@ export default function PlaylistPage() {
     id: song.id,
     title: song.title,
     artist: artistMap[song.artistId] || "Unknown Artist",
-    album: albumMap[song.albumId] || "Unknown Album",
+    album: song.albumId ? albumMap[song.albumId] || "Unknown Album" : "Unknown Album",
     duration: song.duration,
-    albumId: song.albumId,
+    albumId: song.albumId || undefined,
     artistId: song.artistId,
   }));
 
@@ -66,6 +66,9 @@ export default function PlaylistPage() {
         albumCover: album?.coverUrl || undefined,
         duration: song.duration,
         audioUrl: song.audioUrl || undefined,
+        lyrics: (song.lyrics as any) || undefined,
+        language: song.language || undefined,
+        artistId: song.artistId,
       };
     });
     playQueue(playerTracks);
@@ -81,6 +84,9 @@ export default function PlaylistPage() {
       albumCover: album?.coverUrl || undefined,
       duration: track.duration,
       audioUrl: song?.audioUrl || undefined,
+      lyrics: (song?.lyrics as any) || undefined,
+      language: song?.language || undefined,
+      artistId: song?.artistId,
     });
   };
 
