@@ -27,6 +27,7 @@ import ArtistPage from "@/pages/artist";
 import PlaylistPage from "@/pages/playlist";
 import AdminPanel from "@/pages/admin-panel";
 import ArtistDashboard from "@/pages/artist-dashboard";
+import EditArtistProfile from "@/pages/edit-artist-profile";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/playlist/:id" component={PlaylistPage} />
       <Route path="/admin-panel" component={AdminPanel} />
       <Route path="/artist-dashboard" component={ArtistDashboard} />
+      <Route path="/edit-artist-profile" component={EditArtistProfile} />
       <Route component={NotFound} />
     </Switch>
   );

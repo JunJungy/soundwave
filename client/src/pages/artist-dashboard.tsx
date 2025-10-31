@@ -16,7 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Music, Disc, ArrowLeft, Upload, BadgeCheck } from "lucide-react";
+import { Music, Disc, ArrowLeft, Upload, BadgeCheck, Settings } from "lucide-react";
 import { UploadSongDialog } from "@/components/upload-song-dialog";
 
 export default function ArtistDashboard() {
@@ -151,10 +151,20 @@ export default function ArtistDashboard() {
             <p className="text-muted-foreground">Manage your music</p>
           </div>
         </div>
-        <Button onClick={() => setUploadSongDialogOpen(true)} data-testid="button-upload-song">
-          <Upload className="w-4 h-4 mr-2" />
-          Upload a Song
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => navigate("/edit-artist-profile")} 
+            variant="outline"
+            data-testid="button-edit-profile"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Edit Profile
+          </Button>
+          <Button onClick={() => setUploadSongDialogOpen(true)} data-testid="button-upload-song">
+            <Upload className="w-4 h-4 mr-2" />
+            Upload a Song
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="albums" className="w-full">

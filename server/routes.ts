@@ -2,7 +2,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPlaylistSchema, insertUserSchema, loginSchema, insertArtistApplicationSchema, insertSongSchema, insertAlbumSchema } from "@shared/schema";
+import { insertPlaylistSchema, insertUserSchema, loginSchema, insertArtistApplicationSchema, insertSongSchema, insertAlbumSchema, updateArtistProfileSchema, type Artist } from "@shared/schema";
 import { setupSession, isAuthenticated } from "./auth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
@@ -222,6 +222,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(artist);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch artist profile" });
+    }
+  });
+
+  app.put("/api/artists/me", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (user?.isArtist !== 1) {
+        return res.status(403).json({ error: "User is not an artist" });
+      }
+      
+      const artist = await storage.getArtistByUserId(userId);
+      if (!artist) {
+        return res.status(404).json({ error: "Artist profile not found" });
+      }
+
+      const validatedData = updateArtistProfileSchema.parse(req.body);
+      const updates: Partial<Artist> = {};
+      
+      if (validatedData.imageUrl !== undefined) {
+        updates.imageUrl = validatedData.imageUrl || null;
+      }
+      if (validatedData.bio !== undefined) {
+        updates.bio = validatedData.bio || null;
+      }
+
+      const updatedArtist = await storage.updateArtist(artist.id, updates);
+      res.json(updatedArtist);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update artist profile" });
     }
   });
 

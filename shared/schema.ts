@@ -116,6 +116,10 @@ export const artistApplications = pgTable("artist_applications", {
 });
 
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
+export const updateArtistProfileSchema = z.object({
+  imageUrl: z.string().url().optional().or(z.literal("")),
+  bio: z.string().max(1000, "Bio must be 1000 characters or less").optional().or(z.literal("")),
+});
 export const insertAlbumSchema = createInsertSchema(albums).omit({ id: true });
 export const insertSongSchema = createInsertSchema(songs).omit({ 
   id: true, 
@@ -135,6 +139,7 @@ export const insertArtistApplicationSchema = createInsertSchema(artistApplicatio
 });
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
+export type UpdateArtistProfile = z.infer<typeof updateArtistProfileSchema>;
 export type InsertAlbum = z.infer<typeof insertAlbumSchema>;
 export type InsertSong = z.infer<typeof insertSongSchema>;
 export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
