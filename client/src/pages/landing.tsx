@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Landing() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const registerForm = useForm<RegisterFormData>({
     resolver: zodResolver(insertUserSchema),
@@ -46,6 +48,9 @@ export default function Landing() {
         title: "Welcome to Soundwave!",
         description: "Your account has been created successfully.",
       });
+      
+      // Navigate to home after successful registration
+      navigate("/");
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -66,6 +71,9 @@ export default function Landing() {
         title: "Welcome back!",
         description: "You've successfully logged in.",
       });
+      
+      // Navigate to home after successful login
+      navigate("/");
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
