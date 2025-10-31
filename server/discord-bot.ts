@@ -261,6 +261,9 @@ export async function startDiscordBot() {
                 return;
               }
 
+              // Defer the interaction immediately to prevent timeout
+              await i.deferUpdate();
+
               const selectedType = i.values[0];
               let newEmbed;
 
@@ -270,7 +273,7 @@ export async function startDiscordBot() {
                 newEmbed = await createArtistAccountEmbed(user, interaction);
               }
 
-              await i.update({ embeds: [newEmbed] });
+              await i.editReply({ embeds: [newEmbed] });
             });
 
           } catch (error) {
@@ -374,6 +377,7 @@ export async function startDiscordBot() {
             }
 
             // Create the account (storage.createUser will hash the password)
+            // Discord accounts don't require email
             const newUser = await storage.createUser({
               username,
               password

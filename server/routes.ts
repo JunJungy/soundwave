@@ -82,6 +82,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertUserSchema.parse(req.body);
       
+      // Email is required for website registrations
+      if (!validatedData.email) {
+        return res.status(400).json({ error: "Email is required for registration" });
+      }
+      
       // Normalize email to lowercase
       const normalizedEmail = validatedData.email.trim().toLowerCase();
       
