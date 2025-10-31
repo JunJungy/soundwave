@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ import { insertUserSchema, loginSchema } from "@shared/schema";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import logoUrl from "@assets/soundwave-logo.png";
 
 type RegisterFormData = z.infer<typeof insertUserSchema>;
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -80,15 +80,12 @@ export default function Landing() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-background to-accent/5 p-6">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="rounded-full bg-primary/10 p-6">
-              <Music className="w-16 h-16 text-primary" />
-            </div>
+          <div className="flex justify-center items-center gap-4">
+            <img src={logoUrl} alt="Soundwave Logo" className="w-20 h-20 rounded-xl" />
+            <h1 className="text-5xl font-bold tracking-tight text-foreground font-display">
+              Soundwave
+            </h1>
           </div>
-          
-          <h1 className="text-5xl font-bold tracking-tight text-foreground font-display">
-            Soundwave
-          </h1>
           
           <p className="text-lg text-muted-foreground">
             Your music, your way
