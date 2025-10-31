@@ -121,19 +121,32 @@ I prefer that the agent focuses on iterative development, delivering functional,
     - Error messages inform users they can only have one Soundwave account per Discord
     - Only admin account deletion can break the permanent binding
   - **Settings Page Route**: Accessible via `/settings` in sidebar navigation
-- **Email Binding System**: Permanent email association to prevent multiple account creation
-  - **Email Management Card**: Add email address in Settings page with permanent binding
+- **Email-Based Registration & Login System**: Complete email integration for account security
+  - **Registration Changes**: Email now required for all new accounts (existing users grandfathered)
+    - Email field added to registration form with normalization (trim + lowercase)
+    - Backend checks if email is already bound before account creation
+    - Returns 409 conflict with clear error if email already in use
+    - Sets both `email` and `boundEmail` fields on successful registration
+  - **Login Improvements**: Username OR email authentication with robust detection
+    - Detects email vs username using proper regex: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
+    - Fixes critical bug: usernames containing "@" now work correctly (e.g., "artist@home")
+    - Email login normalizes to lowercase before authentication
+    - Username login uses exact match (no normalization)
   - **Database Fields**:
     - `email`: Current email address (unique, normalized to lowercase)
-    - `boundEmail`: Permanent email binding (unique, never cleared except by admin deletion)
-  - **Normalization**: All emails are trimmed and converted to lowercase before storage/lookup
-  - **One-Email-Per-Account Rule**: Each email can only be bound to one account forever
-    - Prevents multiple accounts via case variations (Test@x.com vs test@x.com)
-    - Backend checks both `email` and `boundEmail` uniqueness
-    - Returns 409 conflict on duplicate email binding attempts
-  - **Permanent Binding**: Once an email is added, it cannot be changed or removed
+    - `boundEmail`: Permanent email binding (unique, immutable, never cleared except by admin deletion)
+  - **Permanent Email Binding**: Once `boundEmail` is set, it can NEVER be changed
+    - `updateUserEmail` only sets `boundEmail` if not already present
+    - Prevents account sharing and multi-account creation abuse
+    - Backend enforces immutability at storage layer
+  - **Email Normalization Security**: Prevents bypass attacks via casing
+    - All emails trimmed and converted to lowercase before storage/lookup
+    - Prevents multiple accounts: Test@x.com vs test@x.com vs TEST@X.COM
+  - **Legacy User Support**: Existing users without email can still login with username
+    - Settings page allows optional email addition (one-time only)
+    - Once added, boundEmail becomes permanent
   - **UI Features**:
-    - Input field for adding email (Settings page)
-    - "Email Bound" status with permanent badge when set
-    - Clear warning about permanent nature of email binding
-    - Toast notifications for success/error feedback
+    - Registration form with required email field and real-time validation
+    - Login form accepts username OR email seamlessly
+    - Settings page for legacy users to add email (with permanence warning)
+    - Toast notifications for all success/error states
