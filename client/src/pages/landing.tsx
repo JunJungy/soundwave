@@ -11,7 +11,7 @@ import { insertUserSchema, loginSchema } from "@shared/schema";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import logoUrl from "@assets/soundwave-logo.png";
+import logoUrl from "@assets/generated_images/Purple_circular_waveform_logo_0c42b1be.png";
 
 type RegisterFormData = z.infer<typeof insertUserSchema>;
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -81,16 +81,7 @@ export default function Landing() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center space-y-4">
           <div className="flex justify-center items-center gap-4">
-            <div className="w-20 h-20 rounded-xl bg-primary flex items-center justify-center p-4">
-              <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
-                <rect x="2" y="8" width="2" height="8" fill="currentColor" className="text-primary-foreground" rx="1"/>
-                <rect x="6" y="5" width="2" height="14" fill="currentColor" className="text-primary-foreground" rx="1"/>
-                <rect x="10" y="3" width="2" height="18" fill="currentColor" className="text-primary-foreground" rx="1"/>
-                <rect x="14" y="6" width="2" height="12" fill="currentColor" className="text-primary-foreground" rx="1"/>
-                <rect x="18" y="4" width="2" height="16" fill="currentColor" className="text-primary-foreground" rx="1"/>
-                <rect x="22" y="9" width="2" height="6" fill="currentColor" className="text-primary-foreground" rx="1"/>
-              </svg>
-            </div>
+            <img src={logoUrl} alt="Soundwave Logo" className="w-20 h-20" />
             <h1 className="text-5xl font-bold tracking-tight text-foreground font-display">
               Soundwave
             </h1>
