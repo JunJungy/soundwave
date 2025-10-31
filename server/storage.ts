@@ -160,13 +160,21 @@ export class DatabaseStorage implements IStorage {
     // Normalize email to lowercase before storing
     const normalizedEmail = email.trim().toLowerCase();
     
-    // Update both email and boundEmail (boundEmail is permanent)
+    // Get current user to check if boundEmail is already set
+    const currentUser = await this.getUser(userId);
+    if (!currentUser) {
+      throw new Error("User not found");
+    }
+
+    // Only set boundEmail if it's not already set (permanent binding)
+    const updateData: Partial<User> = { email: normalizedEmail };
+    if (!currentUser.boundEmail) {
+      updateData.boundEmail = normalizedEmail; // Set once, never changed
+    }
+    
     const [user] = await db
       .update(users)
-      .set({ 
-        email: normalizedEmail,
-        boundEmail: normalizedEmail // Set boundEmail on first add (it stays forever)
-      })
+      .set(updateData)
       .where(eq(users.id, userId))
       .returning();
     return user;

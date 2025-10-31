@@ -26,6 +26,7 @@ export default function Landing() {
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
       username: "",
+      email: "",
       password: "",
     },
   });
@@ -33,7 +34,7 @@ export default function Landing() {
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      usernameOrEmail: "",
       password: "",
     },
   });
@@ -62,7 +63,7 @@ export default function Landing() {
 
   const handleLogin = async (data: LoginFormData) => {
     try {
-      console.log("Attempting login with:", { username: data.username });
+      console.log("Attempting login with:", { usernameOrEmail: data.usernameOrEmail });
       await apiRequest("POST", "/api/auth/login", data);
       
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -119,15 +120,16 @@ export default function Landing() {
                   <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
                     <FormField
                       control={loginForm.control}
-                      name="username"
+                      name="usernameOrEmail"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Username or Email</FormLabel>
                           <FormControl>
                             <Input 
                               {...field} 
                               data-testid="input-login-username"
                               autoComplete="username"
+                              placeholder="username or email@example.com"
                             />
                           </FormControl>
                           <FormMessage />
@@ -190,6 +192,26 @@ export default function Landing() {
                               {...field} 
                               data-testid="input-register-username"
                               autoComplete="username"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={registerForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="email"
+                              data-testid="input-register-email"
+                              autoComplete="email"
+                              placeholder="your.email@example.com"
                             />
                           </FormControl>
                           <FormMessage />

@@ -82,13 +82,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertUserSchema.parse(req.body);
       
+      // Normalize email to lowercase
+      const normalizedEmail = validatedData.email.trim().toLowerCase();
+      
       // Check if username already exists
       const existingUser = await storage.getUserByUsername(validatedData.username);
       if (existingUser) {
         return res.status(400).json({ error: "Username already taken" });
       }
 
-      const user = await storage.createUser(validatedData);
+      // Check if email is already bound to another account
+      const existingBoundEmail = await storage.getUserByBoundEmail(normalizedEmail);
+      if (existingBoundEmail) {
+        return res.status(400).json({ error: "This email is already registered to another account" });
+      }
+
+      // Create user with normalized email
+      const user = await storage.createUser({
+        ...validatedData,
+        email: normalizedEmail,
+      });
+
+      // Set boundEmail permanently
+      await storage.updateUser(user.id, {
+        boundEmail: normalizedEmail,
+      });
       
       // Set session
       req.session.userId = user.id;
@@ -106,8 +124,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req: any, res) => {
     try {
       const validatedData = loginSchema.parse(req.body);
+      const { usernameOrEmail, password } = validatedData;
       
-      const user = await storage.validatePassword(validatedData.username, validatedData.password);
+      // Robustly detect if input is an email (proper email format check)
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isEmail = emailRegex.test(usernameOrEmail);
+      
+      let user = null;
+      if (isEmail) {
+        // Login with email - normalize and look up
+        const normalizedEmail = usernameOrEmail.trim().toLowerCase();
+        const foundUser = await storage.getUserByEmail(normalizedEmail);
+        if (foundUser) {
+          user = await storage.validatePassword(foundUser.username, password);
+        }
+      } else {
+        // Login with username (exact match)
+        user = await storage.validatePassword(usernameOrEmail, password);
+      }
+      
       if (!user) {
         return res.status(401).json({ error: "Invalid username or password" });
       }
