@@ -139,62 +139,64 @@ function AppContent() {
   }
 
   return (
-    <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-      <div className="flex h-screen w-full overflow-hidden">
-        <AppSidebar
-          playlists={playlists.map((p) => ({ id: p.id, name: p.name }))}
-          onCreatePlaylist={() => setCreatePlaylistOpen(true)}
-        />
-        
-        <div className="flex flex-col flex-1 min-w-0">
-          <header className="flex items-center justify-between p-4 border-b shrink-0">
-            <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <div className="flex items-center gap-3">
-              {user?.username === "Jinsoo" ? (
-                <Badge className="bg-amber-600 text-white" data-testid="badge-owner">
-                  <Crown className="w-3 h-3 mr-1" />
-                  Owner
-                </Badge>
-              ) : user?.isAdmin === 1 ? (
-                <Badge className="bg-primary text-primary-foreground" data-testid="badge-admin">
-                  <Shield className="w-3 h-3 mr-1" />
-                  Admin
-                </Badge>
-              ) : null}
-              {user?.isArtist === 1 && (
-                <Badge className="bg-green-600 text-white" data-testid="badge-artist">
-                  <Music className="w-3 h-3 mr-1" />
-                  Artist
-                </Badge>
-              )}
-              {user?.isArtist !== 1 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setArtistApplicationOpen(true)}
-                  data-testid="button-apply-artist"
-                >
-                  <Music className="w-4 h-4 mr-2" />
-                  Become an Artist
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                data-testid="button-logout"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </header>
+    <>
+      <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+        <div className="flex h-screen w-full overflow-hidden">
+          <AppSidebar
+            playlists={playlists.map((p) => ({ id: p.id, name: p.name }))}
+            onCreatePlaylist={() => setCreatePlaylistOpen(true)}
+          />
           
-          <main className="flex-1 overflow-y-auto pb-20">
-            <Router />
-          </main>
+          <div className="flex flex-col flex-1 min-w-0">
+            <header className="flex items-center justify-between p-4 border-b shrink-0">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <div className="flex items-center gap-3">
+                {user?.username === "Jinsoo" ? (
+                  <Badge className="bg-amber-600 text-white" data-testid="badge-owner">
+                    <Crown className="w-3 h-3 mr-1" />
+                    Owner
+                  </Badge>
+                ) : user?.isAdmin === 1 ? (
+                  <Badge className="bg-primary text-primary-foreground" data-testid="badge-admin">
+                    <Shield className="w-3 h-3 mr-1" />
+                    Admin
+                  </Badge>
+                ) : null}
+                {user?.isArtist === 1 && (
+                  <Badge className="bg-green-600 text-white" data-testid="badge-artist">
+                    <Music className="w-3 h-3 mr-1" />
+                    Artist
+                  </Badge>
+                )}
+                {user?.isArtist !== 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setArtistApplicationOpen(true)}
+                    data-testid="button-apply-artist"
+                  >
+                    <Music className="w-4 h-4 mr-2" />
+                    Become an Artist
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  data-testid="button-logout"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            </header>
+            
+            <main className="flex-1 overflow-y-auto pb-20">
+              <Router />
+            </main>
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
 
       <ExpandablePlayer
         currentTrack={currentTrack || undefined}
@@ -240,7 +242,7 @@ function AppContent() {
       />
 
       <Toaster />
-    </SidebarProvider>
+    </>
   );
 }
 
