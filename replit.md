@@ -58,6 +58,13 @@ I prefer that the agent focuses on iterative development, delivering functional,
 ## Recent Changes
 
 ### October 31, 2025 (Latest)
+- **Song Deletion Feature**: Artists can delete their uploaded songs with comprehensive cleanup
+  - **Delete Button**: Trash icon on each song card in artist dashboard
+  - **Confirmation Dialog**: Warns about permanent deletion of song, files, and playlist removal
+  - **Backend Cleanup**: Automatically removes song from all playlists before deletion
+  - **File Deletion**: Deletes both audio and artwork files from object storage
+  - **Security**: Enforces artist ownership - artists can only delete their own songs
+  - **UI Feedback**: Toast notifications for success/error, loading states during deletion
 - **Auto-Time Lyrics Feature**: Smart AI-powered lyrics timing system
   - **Smart Distribution Algorithm**: Automatically distributes plain lyrics across song duration
     - 80% of duration divided evenly among lyrics lines
