@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, ListMusic, ChevronDown, X, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,13 @@ interface ExpandablePlayerProps {
     artist: string;
     artistId?: string;
     albumCover?: string;
+    lyrics?: {
+      lines: Array<{
+        startTime: number;
+        endTime: number;
+        text: string;
+      }>;
+    } | null;
   };
   isPlaying: boolean;
   currentTime: number;
@@ -54,6 +61,9 @@ export function ExpandablePlayer({
   repeat = false,
 }: ExpandablePlayerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeLyricIndex, setActiveLyricIndex] = useState<number>(-1);
+  const lyricsContainerRef = useRef<HTMLDivElement>(null);
+  const activeLyricRef = useRef<HTMLDivElement>(null);
 
   const { data: artist } = useQuery<Artist>({
     queryKey: ["/api/artists", currentTrack?.artistId],
@@ -64,6 +74,36 @@ export function ExpandablePlayer({
     queryKey: ["/api/artists", currentTrack?.artistId, "followers"],
     enabled: !!currentTrack?.artistId && isExpanded,
   });
+
+  // Calculate active lyric index based on current time
+  useEffect(() => {
+    if (currentTrack?.lyrics?.lines) {
+      const newIndex = currentTrack.lyrics.lines.findIndex(
+        line => currentTime >= line.startTime && currentTime <= line.endTime
+      );
+      setActiveLyricIndex(newIndex);
+    } else {
+      setActiveLyricIndex(-1);
+    }
+  }, [currentTime, currentTrack?.lyrics]);
+
+  // Auto-scroll to active lyrics line only when index changes
+  useEffect(() => {
+    if (activeLyricIndex >= 0 && activeLyricRef.current) {
+      activeLyricRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [activeLyricIndex]);
+
+  // Reset scroll position when track changes
+  useEffect(() => {
+    if (lyricsContainerRef.current) {
+      lyricsContainerRef.current.scrollTop = 0;
+    }
+    setActiveLyricIndex(-1);
+  }, [currentTrack?.id]);
 
   const handleSeek = (value: number[]) => {
     onSeek(value[0]);
@@ -335,6 +375,36 @@ export function ExpandablePlayer({
                   </span>
                 </div>
               </div>
+
+              {/* Lyrics Display */}
+              {currentTrack.lyrics && currentTrack.lyrics.lines && currentTrack.lyrics.lines.length > 0 && (
+                <div className="w-full max-w-md mb-8" data-testid="section-lyrics">
+                  <h3 className="text-lg font-semibold mb-4">Lyrics</h3>
+                  <div 
+                    ref={lyricsContainerRef}
+                    className="bg-muted/30 rounded-lg p-6 max-h-[300px] overflow-y-auto"
+                  >
+                    {currentTrack.lyrics.lines.map((line, index) => {
+                      const isActive = index === activeLyricIndex;
+                      return (
+                        <div
+                          key={index}
+                          ref={isActive ? activeLyricRef : null}
+                          className={`py-2 px-3 rounded transition-all duration-200 ${
+                            isActive 
+                              ? 'bg-primary/20 text-primary font-semibold scale-105' 
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                          data-testid={`lyrics-line-${index}`}
+                          data-active={isActive}
+                        >
+                          {line.text}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* About the artist */}
               {artist && (

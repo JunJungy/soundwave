@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
@@ -70,6 +71,28 @@ const GENRES = [
   "Other"
 ];
 
+// Language options for songs
+const LANGUAGES = [
+  "English",
+  "Spanish",
+  "Japanese",
+  "Korean",
+  "Mandarin Chinese",
+  "Cantonese",
+  "French",
+  "German",
+  "Italian",
+  "Portuguese",
+  "Russian",
+  "Arabic",
+  "Hindi",
+  "Thai",
+  "Vietnamese",
+  "Filipino",
+  "Indonesian",
+  "Other"
+];
+
 // Song upload form schema
 const uploadSongSchema = insertSongSchema.extend({
   title: z.string().min(1, "Song name is required"),
@@ -77,6 +100,8 @@ const uploadSongSchema = insertSongSchema.extend({
   audioUrl: z.string().min(1, "Audio file is required"),
   artworkUrl: z.string().min(1, "Album artwork is required"),
   genre: z.string().min(1, "Genre is required"),
+  language: z.string().optional(),
+  lyricsText: z.string().optional(), // Raw lyrics text input
   releaseDate: z.date(),
   globalPromotion: z.boolean().default(false),
   otherPlatforms: z.boolean().default(false),
@@ -193,6 +218,8 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
       audioUrl: "",
       artworkUrl: "",
       genre: "",
+      language: "",
+      lyricsText: "",
       releaseDate: new Date(),
       globalPromotion: false,
       otherPlatforms: false,
@@ -238,6 +265,38 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
   // After upload to object storage, URLs don't preserve file extensions
   // so we skip URL-based validation and trust Uppy's validation
 
+  // Parse lyrics text into JSON format for database storage
+  const parseLyrics = (lyricsText: string): object | null => {
+    if (!lyricsText || !lyricsText.trim()) return null;
+
+    const lines: Array<{ startTime: number; endTime: number; text: string }> = [];
+    const lyricsLines = lyricsText.split('\n').filter(line => line.trim());
+
+    for (const line of lyricsLines) {
+      // Match format: [startTime-endTime] lyrics text
+      const match = line.match(/^\[(\d+\.?\d*)-(\d+\.?\d*)\]\s*(.+)$/);
+      if (match) {
+        const startTime = parseFloat(match[1]);
+        const endTime = parseFloat(match[2]);
+        const text = match[3].trim();
+        
+        // Validate that endTime is greater than startTime
+        if (endTime <= startTime) {
+          toast({
+            title: "Invalid Lyrics Format",
+            description: `Line "${text}" has invalid timestamps. End time must be greater than start time.`,
+            variant: "destructive",
+          });
+          return null;
+        }
+        
+        lines.push({ startTime, endTime, text });
+      }
+    }
+
+    return lines.length > 0 ? { lines } : null;
+  };
+
   // Create payment intent if needed
   const createPaymentIntent = async () => {
     if (!needsPayment) return null;
@@ -251,7 +310,7 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
   };
 
   const uploadSongMutation = useMutation({
-    mutationFn: async (data: Omit<UploadSongForm, "termsAgreed">) => {
+    mutationFn: async (data: Omit<UploadSongForm, "termsAgreed" | "lyricsText"> & { lyrics?: object | null }) => {
       const res = await apiRequest("POST", "/api/songs", data);
       return res.json();
     },
@@ -319,9 +378,11 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
 
     // Step 4: Upload song
     setValidationStage("complete");
-    const { termsAgreed: _, ...songData } = data;
+    const { termsAgreed: _, lyricsText, ...songData } = data;
+    const parsedLyrics = lyricsText ? parseLyrics(lyricsText) : null;
     uploadSongMutation.mutate({
       ...songData,
+      lyrics: parsedLyrics,
       paymentIntentId,
     });
   };
@@ -333,9 +394,11 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
     
     // Submit the form with payment intent
     const formData = form.getValues();
-    const { termsAgreed: _, ...songData } = formData;
+    const { termsAgreed: _, lyricsText, ...songData } = formData;
+    const parsedLyrics = lyricsText ? parseLyrics(lyricsText) : null;
     uploadSongMutation.mutate({
       ...songData,
+      lyrics: parsedLyrics,
       paymentIntentId: intentId,
     });
   };
@@ -551,6 +614,59 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Language Selection */}
+              <FormField
+                control={form.control}
+                name="language"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Language (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-language">
+                          <SelectValue placeholder="Select a language" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {LANGUAGES.map((language) => (
+                          <SelectItem key={language} value={language}>
+                            {language}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Select the primary language of your song
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Lyrics Input */}
+              <FormField
+                control={form.control}
+                name="lyricsText"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lyrics (Optional)</FormLabel>
+                    <FormDescription>
+                      Add timestamped lyrics for line-by-line highlighting. Format: [startTime-endTime] Lyrics text
+                      <br />Example: [0.5-3.2] First line of the song
+                    </FormDescription>
+                    <FormControl>
+                      <Textarea 
+                        {...field} 
+                        placeholder="[0.5-3.2] First line of lyrics&#10;[3.5-6.8] Second line of lyrics&#10;[7.0-10.5] Third line..."
+                        className="min-h-[150px] font-mono text-sm"
+                        data-testid="textarea-lyrics"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -9,6 +9,13 @@ interface Track {
   albumCover?: string;
   duration: number;
   audioUrl?: string | null;
+  lyrics?: {
+    lines: Array<{
+      startTime: number;
+      endTime: number;
+      text: string;
+    }>;
+  } | null;
 }
 
 interface MusicPlayerContextType {

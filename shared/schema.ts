@@ -82,6 +82,8 @@ export const songs = pgTable("songs", {
   audioUrl: text("audio_url"),
   artworkUrl: text("artwork_url"), // Song-specific artwork
   genre: text("genre"), // Song genre (includes K-pop)
+  language: text("language"), // Song language (English, Spanish, Japanese, Korean, etc.)
+  lyrics: jsonb("lyrics"), // Timestamped lyrics data: { lines: [{ startTime, endTime, text }] }
   releaseDate: timestamp("release_date").defaultNow(), // Scheduled release date
   releaseStatus: text("release_status").default("draft").notNull(), // draft/pending_review/scheduled/published
   globalPromotion: integer("global_promotion").default(0).notNull(), // +$4 feature

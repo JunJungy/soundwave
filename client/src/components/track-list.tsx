@@ -9,6 +9,13 @@ export interface Track {
   duration: number;
   albumId?: string;
   artistId?: string;
+  lyrics?: {
+    lines: Array<{
+      startTime: number;
+      endTime: number;
+      text: string;
+    }>;
+  } | null;
 }
 
 interface TrackListProps {
