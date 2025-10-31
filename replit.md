@@ -91,6 +91,16 @@ I prefer that the agent focuses on iterative development, delivering functional,
   - Verified badge (✓) now displays on Artist Dashboard, Search results, and Artist pages
   - Form state properly managed via useEffect to prevent React render issues
   - All changes invalidate artist cache for real-time updates across the platform
+- **Expandable Music Player**: Spotify-style expandable player with mini and full-screen views
+  - Mini player bar at bottom (80px height) shows album artwork, song title, artist, and play controls
+  - Click mini player to expand to full-screen overlay with large artwork and complete controls
+  - Desktop view: Shows previous/next/queue buttons in mini player
+  - Mobile view: Shows only essential play/pause button in mini player
+  - Expanded view features: Large album artwork (max-w-md), progress bar with seek, all playback controls (shuffle, previous, play/pause, next, repeat), volume slider
+  - Built with Shadcn Sheet component for smooth transitions
+  - Maintains all existing MusicPlayerContext functionality
+  - Accessibility improvements: aria-labels on all icon-only buttons, proper button sizing via Shadcn variants
+  - Click propagation prevented on buttons within mini player for correct expand behavior
 
 ### October 30, 2025
 - **Unified Song Upload System**: Replaced separate album/song creation with streamlined upload flow
