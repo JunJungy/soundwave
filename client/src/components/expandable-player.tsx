@@ -97,11 +97,12 @@ export function ExpandablePlayer({
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 hidden sm:flex"
+              className="hidden sm:flex"
               onClick={(e) => {
                 e.stopPropagation();
                 onPrevious();
               }}
+              aria-label="Previous track"
               data-testid="button-mini-previous"
             >
               <SkipBack className="h-5 w-5 fill-current" />
@@ -109,11 +110,11 @@ export function ExpandablePlayer({
             
             <Button
               size="icon"
-              className="h-10 w-10"
               onClick={(e) => {
                 e.stopPropagation();
                 onPlayPause();
               }}
+              aria-label={isPlaying ? "Pause" : "Play"}
               data-testid="button-mini-play-pause"
             >
               {isPlaying ? (
@@ -126,11 +127,12 @@ export function ExpandablePlayer({
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 hidden sm:flex"
+              className="hidden sm:flex"
               onClick={(e) => {
                 e.stopPropagation();
                 onNext();
               }}
+              aria-label="Next track"
               data-testid="button-mini-next"
             >
               <SkipForward className="h-5 w-5 fill-current" />
@@ -142,11 +144,11 @@ export function ExpandablePlayer({
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8"
               onClick={(e) => {
                 e.stopPropagation();
                 onShowQueue?.();
               }}
+              aria-label="Show queue"
               data-testid="button-mini-queue"
             >
               <ListMusic className="h-4 w-4" />
@@ -170,6 +172,7 @@ export function ExpandablePlayer({
                 size="icon"
                 variant="ghost"
                 onClick={() => setIsExpanded(false)}
+                aria-label="Collapse player"
                 data-testid="button-collapse-player"
               >
                 <ChevronDown className="h-6 w-6" />
@@ -179,6 +182,7 @@ export function ExpandablePlayer({
                 size="icon"
                 variant="ghost"
                 onClick={onShowQueue}
+                aria-label="Show queue"
                 data-testid="button-expanded-queue"
               >
                 <ListMusic className="h-5 w-5" />
@@ -235,8 +239,9 @@ export function ExpandablePlayer({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={`h-10 w-10 ${shuffle ? 'text-primary' : ''}`}
+                    className={shuffle ? 'text-primary' : ''}
                     onClick={onToggleShuffle}
+                    aria-label={shuffle ? "Disable shuffle" : "Enable shuffle"}
                     data-testid="button-expanded-shuffle"
                   >
                     <Shuffle className="h-5 w-5" />
@@ -245,8 +250,8 @@ export function ExpandablePlayer({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-12 w-12"
                     onClick={onPrevious}
+                    aria-label="Previous track"
                     data-testid="button-expanded-previous"
                   >
                     <SkipBack className="h-7 w-7 fill-current" />
@@ -254,8 +259,9 @@ export function ExpandablePlayer({
                   
                   <Button
                     size="icon"
-                    className="h-16 w-16"
+                    className="scale-125"
                     onClick={onPlayPause}
+                    aria-label={isPlaying ? "Pause" : "Play"}
                     data-testid="button-expanded-play-pause"
                   >
                     {isPlaying ? (
@@ -268,8 +274,8 @@ export function ExpandablePlayer({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-12 w-12"
                     onClick={onNext}
+                    aria-label="Next track"
                     data-testid="button-expanded-next"
                   >
                     <SkipForward className="h-7 w-7 fill-current" />
@@ -278,8 +284,9 @@ export function ExpandablePlayer({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className={`h-10 w-10 ${repeat ? 'text-primary' : ''}`}
+                    className={repeat ? 'text-primary' : ''}
                     onClick={onToggleRepeat}
+                    aria-label={repeat ? "Disable repeat" : "Enable repeat"}
                     data-testid="button-expanded-repeat"
                   >
                     <Repeat className="h-5 w-5" />
