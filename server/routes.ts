@@ -3,7 +3,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPlaylistSchema, insertUserSchema, loginSchema, insertArtistApplicationSchema, insertSongSchema, insertAlbumSchema, updateArtistProfileSchema, type Artist } from "@shared/schema";
-import { setupSession, isAuthenticated, checkIpBan, checkUserBan } from "./auth";
+import { setupSession, isAuthenticated, checkIpBan, checkUserBan, getClientIp } from "./auth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import Stripe from "stripe";
@@ -16,18 +16,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-10-29.clover",
 });
-
-// Helper function to extract client IP address
-function getClientIp(req: any): string {
-  // Try x-forwarded-for first (for proxies/load balancers)
-  const forwardedFor = req.headers['x-forwarded-for'];
-  if (forwardedFor) {
-    // x-forwarded-for can be a comma-separated list, get the first one
-    return forwardedFor.split(',')[0].trim();
-  }
-  // Fall back to req.ip or remote address
-  return req.ip || req.connection?.remoteAddress || 'unknown';
-}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware

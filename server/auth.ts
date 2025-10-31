@@ -32,7 +32,7 @@ export function setupSession(app: Express) {
 }
 
 // Helper to get client IP - prefers IPv4 addresses
-function getClientIp(req: any): string {
+export function getClientIp(req: any): string {
   const forwardedFor = req.headers['x-forwarded-for'];
   if (forwardedFor) {
     // Split by comma to get all forwarded IPs
