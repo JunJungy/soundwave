@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search as SearchIcon } from "lucide-react";
+import { Search as SearchIcon, BadgeCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlbumCard } from "@/components/album-card";
@@ -269,7 +269,15 @@ export default function Search() {
                         </div>
                       )}
                     </div>
-                    <h3 className="font-semibold group-hover:underline">{artist.name}</h3>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <h3 className="font-semibold group-hover:underline">{artist.name}</h3>
+                      {artist.verified === 1 && (
+                        <BadgeCheck 
+                          className="h-4 w-4 text-primary fill-current" 
+                          data-testid={`badge-verified-${artist.id}`}
+                        />
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">Artist</p>
                   </div>
                 ))}

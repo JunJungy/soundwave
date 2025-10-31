@@ -139,7 +139,15 @@ export default function ArtistDashboard() {
         <div className="flex items-center gap-3">
           <Music className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold">Artist Dashboard</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">Artist Dashboard</h1>
+              {artist?.verified === 1 && (
+                <BadgeCheck 
+                  className="h-7 w-7 text-primary fill-current" 
+                  data-testid="badge-verified-dashboard"
+                />
+              )}
+            </div>
             <p className="text-muted-foreground">Manage your music</p>
           </div>
         </div>

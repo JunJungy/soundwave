@@ -55,6 +55,7 @@ export const artists = pgTable("artists", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id"),
   name: text("name").notNull(),
+  bio: text("bio"),
   imageUrl: text("image_url"),
   genre: text("genre"),
   verified: integer("verified").default(0).notNull(),
