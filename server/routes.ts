@@ -1106,6 +1106,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ban Appeals - Public route (no auth required)
+  app.post("/api/ban-appeals", async (req: any, res) => {
+    try {
+      const { username, email, reason } = req.body;
+      
+      if (!username || !email || !reason) {
+        return res.status(400).json({ error: "Username, email, and reason are required" });
+      }
+
+      // Capture IP address
+      const ipAddress = getClientIp(req);
+
+      const appeal = await storage.createBanAppeal({
+        username,
+        email,
+        reason,
+        ipAddress,
+      });
+
+      res.json(appeal);
+    } catch (error) {
+      console.error("Error creating ban appeal:", error);
+      res.status(500).json({ error: "Failed to submit appeal" });
+    }
+  });
+
+  // Get all ban appeals (admin only)
+  app.get("/api/admin/ban-appeals", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const status = req.query.status as string | undefined;
+      const appeals = await storage.getBanAppeals(status);
+      res.json(appeals);
+    } catch (error) {
+      console.error("Error fetching ban appeals:", error);
+      res.status(500).json({ error: "Failed to fetch appeals" });
+    }
+  });
+
+  // Approve ban appeal (admin only)
+  app.post("/api/admin/ban-appeals/:id/approve", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { response } = req.body;
+      const appeal = await storage.approveBanAppeal(req.params.id, userId, response);
+      res.json(appeal);
+    } catch (error) {
+      console.error("Error approving appeal:", error);
+      res.status(500).json({ error: "Failed to approve appeal" });
+    }
+  });
+
+  // Deny ban appeal (admin only)
+  app.post("/api/admin/ban-appeals/:id/deny", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { response } = req.body;
+      const appeal = await storage.denyBanAppeal(req.params.id, userId, response);
+      res.json(appeal);
+    } catch (error) {
+      console.error("Error denying appeal:", error);
+      res.status(500).json({ error: "Failed to deny appeal" });
+    }
+  });
+
   // Song stream tracking
   app.post("/api/songs/:id/play", isAuthenticated, async (req: any, res) => {
     try {
