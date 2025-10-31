@@ -83,6 +83,7 @@ function AppContent() {
     shuffle,
     repeat,
     currentTime,
+    duration,
     volume,
     togglePlayPause,
     nextTrack,
@@ -202,6 +203,7 @@ function AppContent() {
         currentTrack={currentTrack || undefined}
         isPlaying={isPlaying}
         currentTime={currentTime}
+        duration={duration}
         volume={volume}
         onPlayPause={togglePlayPause}
         onNext={nextTrack}

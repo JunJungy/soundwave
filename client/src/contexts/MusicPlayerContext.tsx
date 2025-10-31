@@ -18,6 +18,7 @@ interface MusicPlayerContextType {
   shuffle: boolean;
   repeat: boolean;
   currentTime: number;
+  duration: number;
   volume: number;
   playTrack: (track: Track) => void;
   playQueue: (tracks: Track[], startIndex?: number) => void;
@@ -42,6 +43,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(80);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -55,6 +57,18 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       audioRef.current.addEventListener("timeupdate", () => {
         if (audioRef.current) {
           setCurrentTime(audioRef.current.currentTime);
+        }
+      });
+      
+      audioRef.current.addEventListener("loadedmetadata", () => {
+        if (audioRef.current && !isNaN(audioRef.current.duration)) {
+          setDuration(audioRef.current.duration);
+        }
+      });
+      
+      audioRef.current.addEventListener("durationchange", () => {
+        if (audioRef.current && !isNaN(audioRef.current.duration)) {
+          setDuration(audioRef.current.duration);
         }
       });
       
@@ -89,6 +103,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     
     audioRef.current.src = currentTrack.audioUrl;
     audioRef.current.load();
+    setDuration(0);
     
     if (isPlaying) {
       const playPromise = audioRef.current.play();
@@ -224,6 +239,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
         shuffle,
         repeat,
         currentTime,
+        duration,
         volume,
         playTrack,
         playQueue,

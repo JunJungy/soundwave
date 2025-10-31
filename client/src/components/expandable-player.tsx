@@ -13,10 +13,10 @@ interface ExpandablePlayerProps {
     artist: string;
     artistId?: string;
     albumCover?: string;
-    duration: number;
   };
   isPlaying: boolean;
   currentTime: number;
+  duration: number;
   volume: number;
   onPlayPause: () => void;
   onNext: () => void;
@@ -40,6 +40,7 @@ export function ExpandablePlayer({
   currentTrack,
   isPlaying,
   currentTime,
+  duration,
   volume,
   onPlayPause,
   onNext,
@@ -244,7 +245,7 @@ export function ExpandablePlayer({
               <div className="w-full max-w-md mb-8">
                 <Slider
                   value={[currentTime]}
-                  max={currentTrack.duration}
+                  max={duration || 1}
                   step={1}
                   onValueChange={handleSeek}
                   className="mb-2"
@@ -252,7 +253,7 @@ export function ExpandablePlayer({
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span data-testid="text-expanded-current-time">{formatDuration(currentTime)}</span>
-                  <span data-testid="text-expanded-duration">{formatDuration(currentTrack.duration)}</span>
+                  <span data-testid="text-expanded-duration">{formatDuration(duration)}</span>
                 </div>
               </div>
 

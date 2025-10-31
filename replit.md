@@ -65,6 +65,13 @@ I prefer that the agent focuses on iterative development, delivering functional,
 ## Recent Changes
 
 ### October 31, 2025 (Latest)
+- **CRITICAL BUG FIX - Song Duration Tracking**: Fixed progress bar not reaching 100% when songs finish playing
+  - Added `duration` state to MusicPlayerContext tracking actual audio duration from HTML5 Audio element
+  - Audio element automatically loads duration metadata via `loadedmetadata` and `durationchange` events
+  - Progress bar now uses actual audio file duration instead of potentially incorrect database duration value
+  - ExpandablePlayer updated to receive duration prop from context instead of currentTrack.duration
+  - Ensures progress bar accurately reflects song playback and reaches 100% exactly when song ends
+  - Fixes issue where 2-3 minute songs were showing incorrect durations and incomplete progress
 - **Color Scheme Update**: Changed primary color from Spotify green to vibrant purple
   - Updated all primary, ring, and chart color variables in both light and dark modes
   - Light mode: `hsl(270 70% 45%)`, Dark mode: `hsl(270 70% 55%)`
