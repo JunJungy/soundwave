@@ -35,6 +35,12 @@ export async function startDiscordBot() {
     client.once(Events.ClientReady, async (readyClient) => {
       console.log(`✓ Discord bot is online as ${readyClient.user.tag}`);
       
+      // Set bot status
+      readyClient.user.setPresence({
+        activities: [{ name: 'Developing features...', type: 0 }], // Type 0 = Playing
+        status: 'online'
+      });
+      
       // Register slash commands
       const commands = [
         {
