@@ -221,7 +221,7 @@ export function ExpandablePlayer({
                   <img
                     src={currentTrack.albumCover}
                     alt={currentTrack.title}
-                    className="w-full h-full object-contain rounded-lg shadow-2xl"
+                    className="w-full h-full object-contain"
                     data-testid="img-expanded-album-cover"
                   />
                 ) : (
