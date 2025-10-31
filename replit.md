@@ -58,6 +58,19 @@ I prefer that the agent focuses on iterative development, delivering functional,
 ## Recent Changes
 
 ### October 31, 2025 (Latest)
+- **Discord Bot Account Creation**: Users can create Soundwave accounts directly from Discord
+  - **`/account` Command Enhancement**: Detects users without linked accounts and offers account creation options
+  - **Two Account Creation Paths**:
+    - **Create via Discord**: Modal with username (3-30 chars), password (8-100 chars), and optional email fields
+      - Instant account creation with password hashing (bcrypt, 10 salt rounds)
+      - Auto-links Discord ID to new account
+      - Success embed shows account details
+      - Users can immediately login to website with same credentials
+    - **Create on Website**: Provides direct link to Soundwave login/register page
+      - Dynamic URL generation from REPLIT_DEV_DOMAIN environment variable
+      - Users register on website, can optionally link Discord later with `/link` command
+  - **Account Creation Security**: Validates username uniqueness, prevents duplicate Discord links, single password hashing
+  - **Login Redirect Fix**: Post-login/register navigation now properly redirects to home page instead of showing 404
 - **Song Deletion Feature**: Artists can delete their uploaded songs with comprehensive cleanup
   - **Delete Button**: Trash icon on each song card in artist dashboard
   - **Confirmation Dialog**: Warns about permanent deletion of song, files, and playlist removal
