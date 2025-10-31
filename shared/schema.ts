@@ -143,6 +143,19 @@ export const ipBans = pgTable("ip_bans", {
   bannedAt: timestamp("banned_at").defaultNow().notNull(),
 });
 
+export const banAppeals = pgTable("ban_appeals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username").notNull(), // Username of banned user
+  email: varchar("email").notNull(), // Contact email
+  reason: text("reason").notNull(), // Why they think they should be unbanned
+  status: text("status").default("pending").notNull(), // pending/approved/denied
+  ipAddress: varchar("ip_address"), // IP they submitted from
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: varchar("reviewed_by"), // Admin user ID who reviewed
+  adminResponse: text("admin_response"), // Admin's response message
+});
+
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
 export const updateArtistProfileSchema = z.object({
   imageUrl: z.string().optional().or(z.literal("")),
@@ -167,6 +180,14 @@ export const insertArtistApplicationSchema = createInsertSchema(artistApplicatio
 });
 export const insertFollowSchema = createInsertSchema(follows).omit({ id: true, createdAt: true });
 export const insertIpBanSchema = createInsertSchema(ipBans).omit({ id: true, bannedAt: true });
+export const insertBanAppealSchema = createInsertSchema(banAppeals).omit({ 
+  id: true, 
+  createdAt: true, 
+  status: true,
+  reviewedAt: true,
+  reviewedBy: true,
+  adminResponse: true
+});
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type UpdateArtistProfile = z.infer<typeof updateArtistProfileSchema>;
@@ -176,6 +197,7 @@ export type InsertPlaylist = z.infer<typeof insertPlaylistSchema>;
 export type InsertArtistApplication = z.infer<typeof insertArtistApplicationSchema>;
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
 export type InsertIpBan = z.infer<typeof insertIpBanSchema>;
+export type InsertBanAppeal = z.infer<typeof insertBanAppealSchema>;
 
 export type Artist = typeof artists.$inferSelect;
 export type Album = typeof albums.$inferSelect;
@@ -184,3 +206,4 @@ export type Playlist = typeof playlists.$inferSelect;
 export type ArtistApplication = typeof artistApplications.$inferSelect;
 export type Follow = typeof follows.$inferSelect;
 export type IpBan = typeof ipBans.$inferSelect;
+export type BanAppeal = typeof banAppeals.$inferSelect;
