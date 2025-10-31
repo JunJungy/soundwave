@@ -29,18 +29,15 @@ export default function Settings() {
   const { toast } = useToast();
   const [showUnlinkDialog, setShowUnlinkDialog] = useState(false);
   const [emailInput, setEmailInput] = useState("");
-
-  const { data: linkCodeData, refetch: refetchLinkCode } = useQuery<LinkCodeResponse>({
-    queryKey: ["/api/discord/link-code"],
-    enabled: false, // Only fetch when user clicks "Generate Code"
-  });
+  const [linkCodeData, setLinkCodeData] = useState<LinkCodeResponse | null>(null);
 
   const generateCodeMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("POST", "/api/discord/generate-link-code");
+    mutationFn: async (): Promise<LinkCodeResponse> => {
+      const res = await apiRequest("POST", "/api/discord/generate-link-code");
+      return res.json();
     },
-    onSuccess: () => {
-      refetchLinkCode();
+    onSuccess: (data: LinkCodeResponse) => {
+      setLinkCodeData(data);
       toast({
         title: "Link code generated",
         description: "Your 6-digit code is ready. It expires in 5 minutes.",
