@@ -3,6 +3,7 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
+import { startDiscordBot } from "./discord-bot";
 
 const app = express();
 
@@ -164,6 +165,11 @@ const checkScheduledReleases = async () => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start Discord bot
+    startDiscordBot().catch(err => {
+      console.error('Failed to start Discord bot:', err);
+    });
     
     // Run second verification check every 10 minutes (more frequent for 1-hour verification)
     setInterval(checkPendingArtistVerification, 10 * 60 * 1000);
