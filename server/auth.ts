@@ -31,13 +31,32 @@ export function setupSession(app: Express) {
   );
 }
 
-// Helper to get client IP
+// Helper to get client IP - prefers IPv4 addresses
 function getClientIp(req: any): string {
   const forwardedFor = req.headers['x-forwarded-for'];
   if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim();
+    // Split by comma to get all forwarded IPs
+    const ips = forwardedFor.split(',').map((ip: string) => ip.trim());
+    
+    // Prefer IPv4 addresses (format: xxx.xxx.xxx.xxx)
+    const ipv4 = ips.find((ip: string) => /^(\d{1,3}\.){3}\d{1,3}$/.test(ip));
+    if (ipv4) {
+      return ipv4;
+    }
+    
+    // Fallback to first IP if no IPv4 found
+    return ips[0];
   }
-  return req.ip || req.connection?.remoteAddress || 'unknown';
+  
+  // Fallback to request IP
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  
+  // If it's an IPv6-mapped IPv4 address (::ffff:192.168.1.1), extract the IPv4 part
+  if (ip.startsWith('::ffff:')) {
+    return ip.substring(7);
+  }
+  
+  return ip;
 }
 
 // Middleware to check if IP is banned
