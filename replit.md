@@ -59,7 +59,21 @@ I prefer that the agent focuses on iterative development, delivering functional,
 
 ## Recent Changes
 
-### October 30, 2025 (Latest)
+### October 31, 2025 (Latest)
+- **Edit Artist Profile Feature**: Artists can now update their profile image and bio
+  - Added `bio` field to artists schema (text, nullable)
+  - Created `updateArtistProfileSchema` for validated profile updates
+  - Backend endpoint: PUT /api/artists/me with zod validation and authorization checks
+  - Edit Profile page at `/edit-artist-profile` with react-hook-form + zodResolver
+  - Profile image upload via ObjectUploader (max 5MB, image files only)
+  - Bio textarea with 1000 character limit and validation
+  - Authorization enforced: only verified artists can edit their profiles
+  - "Edit Profile" button added to Artist Dashboard
+  - Verified badge (✓) now displays on Artist Dashboard, Search results, and Artist pages
+  - Form state properly managed via useEffect to prevent React render issues
+  - All changes invalidate artist cache for real-time updates across the platform
+
+### October 30, 2025
 - **Unified Song Upload System**: Replaced separate album/song creation with streamlined upload flow
   - Removed "New Album" and "New Song" buttons, replaced with single "Upload a Song" action
   - Multi-step validation UI with progress tracking for artwork and audio uploads
