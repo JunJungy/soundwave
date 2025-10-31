@@ -1,4 +1,4 @@
-import { Home, Search, Library, Plus, Shield, Music } from "lucide-react";
+import { Home, Search, Library, Plus, Shield, Music, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -20,6 +20,7 @@ const navigationItems = [
   { title: "Home", url: "/", icon: Home, testId: "link-home" },
   { title: "Search", url: "/search", icon: Search, testId: "link-search" },
   { title: "Your Library", url: "/library", icon: Library, testId: "link-library" },
+  { title: "Following", url: "/following", icon: Users, testId: "link-following" },
 ];
 
 interface AppSidebarProps {

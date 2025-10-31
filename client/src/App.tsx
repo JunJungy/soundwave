@@ -28,6 +28,7 @@ import PlaylistPage from "@/pages/playlist";
 import AdminPanel from "@/pages/admin-panel";
 import ArtistDashboard from "@/pages/artist-dashboard";
 import EditArtistProfile from "@/pages/edit-artist-profile";
+import FollowingPage from "@/pages/following";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/search" component={Search} />
       <Route path="/library" component={Library} />
+      <Route path="/following" component={FollowingPage} />
       <Route path="/album/:id" component={AlbumPage} />
       <Route path="/artist/:id" component={ArtistPage} />
       <Route path="/playlist/:id" component={PlaylistPage} />
