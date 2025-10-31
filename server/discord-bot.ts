@@ -314,8 +314,13 @@ export async function startDiscordBot() {
         }
       }
 
-      // Handle select menu interactions
+      // Handle select menu interactions (only for non-collector menus)
       if (interaction.isStringSelectMenu()) {
+        // Skip account_type menu - it's handled by collector in /account command
+        if (interaction.customId === 'account_type') {
+          return; // Let the collector handle it
+        }
+        
         if (interaction.customId === 'create_account_method') {
           const method = interaction.values[0];
 
