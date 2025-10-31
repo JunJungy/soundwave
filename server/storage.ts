@@ -5,18 +5,21 @@ import {
   playlists,
   users,
   artistApplications,
+  follows,
   type Artist,
   type Album,
   type Song,
   type Playlist,
   type User,
   type ArtistApplication,
+  type Follow,
   type InsertArtist,
   type InsertAlbum,
   type InsertSong,
   type InsertPlaylist,
   type InsertUser,
   type InsertArtistApplication,
+  type InsertFollow,
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
@@ -73,6 +76,14 @@ export interface IStorage {
   getPendingArtistApplications(): Promise<ArtistApplication[]>;
   approveArtistApplication(id: string, adminId: string): Promise<ArtistApplication | undefined>;
   rejectArtistApplication(id: string, adminId: string): Promise<ArtistApplication | undefined>;
+
+  // Follows
+  followArtist(userId: string, artistId: string): Promise<Follow>;
+  unfollowArtist(userId: string, artistId: string): Promise<boolean>;
+  isFollowing(userId: string, artistId: string): Promise<boolean>;
+  getFollowerCount(artistId: string): Promise<number>;
+  getFollowedArtists(userId: string): Promise<Artist[]>;
+  getFollowersByArtist(artistId: string): Promise<User[]>;
 
   // Seeding
   seedDatabase(): Promise<void>;
@@ -372,6 +383,75 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return updated;
+  }
+
+  // Follow operations
+  async followArtist(userId: string, artistId: string): Promise<Follow> {
+    const [existing] = await db
+      .select()
+      .from(follows)
+      .where(and(eq(follows.userId, userId), eq(follows.artistId, artistId)));
+
+    if (existing) {
+      return existing;
+    }
+
+    const [follow] = await db
+      .insert(follows)
+      .values({ userId, artistId })
+      .returning();
+
+    return follow;
+  }
+
+  async unfollowArtist(userId: string, artistId: string): Promise<boolean> {
+    const result = await db
+      .delete(follows)
+      .where(and(eq(follows.userId, userId), eq(follows.artistId, artistId)));
+
+    return true;
+  }
+
+  async isFollowing(userId: string, artistId: string): Promise<boolean> {
+    const [follow] = await db
+      .select()
+      .from(follows)
+      .where(and(eq(follows.userId, userId), eq(follows.artistId, artistId)));
+
+    return !!follow;
+  }
+
+  async getFollowerCount(artistId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(follows)
+      .where(eq(follows.artistId, artistId));
+
+    return Number(result[0]?.count || 0);
+  }
+
+  async getFollowedArtists(userId: string): Promise<Artist[]> {
+    const followedArtists = await db
+      .select({
+        artist: artists,
+      })
+      .from(follows)
+      .innerJoin(artists, eq(follows.artistId, artists.id))
+      .where(eq(follows.userId, userId));
+
+    return followedArtists.map((row) => row.artist);
+  }
+
+  async getFollowersByArtist(artistId: string): Promise<User[]> {
+    const followers = await db
+      .select({
+        user: users,
+      })
+      .from(follows)
+      .innerJoin(users, eq(follows.userId, users.id))
+      .where(eq(follows.artistId, artistId));
+
+    return followers.map((row) => row.user);
   }
 
   // Seed database with initial data (now empty - artists must upload their own songs)
