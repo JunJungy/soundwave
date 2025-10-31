@@ -10,7 +10,7 @@ I prefer that the agent focuses on iterative development, delivering functional,
 
 ### UI/UX Decisions
 - **Design Philosophy**: Content-First with no traditional hero section, immediate access to music. Enhanced spacing for readability, strong typography with Inter (UI) and DM Sans (Display/Headlines).
-- **Theming**: Polished dark theme with true black background (`#000000`) and vibrant Spotify green (`#1DB954`) accents.
+- **Theming**: Polished dark theme with true black background (`#000000`) and vibrant purple (`hsl(270 70% 55%)`) accents.
 - **Components**: Custom-styled Shadcn UI components built on Radix primitives, following Spotify-inspired patterns.
 - **Responsiveness**: Responsive design with grid layouts adapting from 2 to 5 columns based on viewport.
 - **Interactions**: Subtle hover states and smooth transitions.
@@ -65,6 +65,9 @@ I prefer that the agent focuses on iterative development, delivering functional,
 ## Recent Changes
 
 ### October 31, 2025 (Latest)
+- **Color Scheme Update**: Changed primary color from Spotify green to vibrant purple
+  - Updated all primary, ring, and chart color variables in both light and dark modes
+  - Light mode: `hsl(270 70% 45%)`, Dark mode: `hsl(270 70% 55%)`
 - **Follow Artists Feature**: Users can now follow/unfollow artists and track their favorites
   - Added `follows` table to database schema (userId, artistId, createdAt)
   - Backend API routes: POST/DELETE /api/artists/:id/follow, GET /api/artists/:id/followers, GET /api/following
