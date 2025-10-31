@@ -54,3 +54,33 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Authentication Hashing**: bcrypt
 - **Form Validation**: React Hook Form, Zod
 - **Spotify API**: `@spotify/web-api-ts-sdk` (helper module)
+
+## Recent Changes
+
+### October 31, 2025 (Latest)
+- **Auto-Time Lyrics Feature**: Smart AI-powered lyrics timing system
+  - **Smart Distribution Algorithm**: Automatically distributes plain lyrics across song duration
+    - 80% of duration divided evenly among lyrics lines
+    - 20% of duration allocated to pauses (detected by blank lines in input)
+    - Blank lines in plain text create longer pauses before the next line
+    - Times rounded to one decimal place for clean alignment
+  - **Audio Duration Extraction**: HTML5 Audio automatically detects duration from uploaded files
+    - Extracts metadata when audio file is uploaded
+    - Updates form duration field for accurate database storage
+    - Shows detected duration below lyrics textarea (MM:SS format)
+    - Toast notification confirms: "Audio Processed - Duration detected: 3:24"
+    - Fallback to 180s if metadata extraction fails (with warning toast)
+  - **Two-Option Workflow** for adding lyrics:
+    - **Option 1 (Auto-Time)**: Paste plain lyrics → Upload audio → Click "Auto-Time Lyrics" button
+    - **Option 2 (Manual)**: Add timestamps manually in format `[startTime-endTime] lyrics text`
+  - **"Auto-Time Lyrics" Button**: Disabled until both audio uploaded and lyrics entered
+    - One-click conversion from plain text to timestamped format
+    - Success toast shows: "Lyrics Auto-Timed - 12 lines distributed across 204s"
+  - **Intelligent Pause Detection**: Recognizes blank lines as intentional pauses in songs
+- **Language Selection & Timestamped Lyrics Display**: Full multi-language support with real-time highlighting
+  - Language selection dropdown with 18 languages (English, Spanish, Japanese, Korean, Chinese, French, German, Italian, Portuguese, Russian, Arabic, Hindi, Dutch, Swedish, Polish, Turkish, Thai, Vietnamese)
+  - Lyrics stored as JSONB: `{ lines: [{ startTime: number, endTime: number, text: string }] }`
+  - Real-time line-by-line highlighting in expanded player (purple accent)
+  - Optimized auto-scrolling that only triggers when active line changes
+  - Scroll position resets to top when switching tracks
+  - Validation: enforces endTime > startTime to prevent overlapping highlights
