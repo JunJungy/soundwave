@@ -234,21 +234,9 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
     });
   };
 
-  // Validate audio file format
-  const validateAudio = (url: string): boolean => {
-    const validExtensions = ['.mp3', '.wav', '.ogg', '.m4a'];
-    const isValid = validExtensions.some(ext => url.toLowerCase().endsWith(ext));
-    
-    if (!isValid) {
-      toast({
-        title: "Invalid Audio File",
-        description: "Audio must be MP3, WAV, OGG, or M4A format",
-        variant: "destructive",
-      });
-    }
-    
-    return isValid;
-  };
+  // Note: Audio file validation is handled by Uppy during upload
+  // After upload to object storage, URLs don't preserve file extensions
+  // so we skip URL-based validation and trust Uppy's validation
 
   // Create payment intent if needed
   const createPaymentIntent = async () => {
@@ -311,21 +299,14 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
       return;
     }
 
-    // Step 2: Validate audio
+    // Step 2: Audio validation (already done by Uppy during upload)
     setValidationStage("checking_audio");
     setAudioProgress(0);
     
-    const audioValid = validateAudio(data.audioUrl);
-    
-    // Simulate progress
+    // Simulate progress for UX consistency
     for (let i = 0; i <= 100; i += 20) {
       setAudioProgress(i);
       await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    if (!audioValid) {
-      setValidationStage("idle");
-      return;
     }
 
     // Step 3: Handle payment if needed
