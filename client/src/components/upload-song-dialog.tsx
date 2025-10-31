@@ -201,6 +201,7 @@ function PaymentForm({
 export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDialogProps) {
   const { toast } = useToast();
   const [audioUrl, setAudioUrl] = useState("");
+  const [audioDuration, setAudioDuration] = useState<number>(0);
   const [artworkUrl, setArtworkUrl] = useState("");
   const [validationStage, setValidationStage] = useState<ValidationStage>("idle");
   const [artworkProgress, setArtworkProgress] = useState(0);
@@ -264,6 +265,71 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
   // Note: Audio file validation is handled by Uppy during upload
   // After upload to object storage, URLs don't preserve file extensions
   // so we skip URL-based validation and trust Uppy's validation
+
+  // Extract audio duration from uploaded file
+  const getAudioDuration = (url: string): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const audio = new Audio(url);
+      audio.addEventListener('loadedmetadata', () => {
+        resolve(audio.duration);
+      });
+      audio.addEventListener('error', () => {
+        reject(new Error('Failed to load audio'));
+      });
+    });
+  };
+
+  // Smart lyrics timing: Auto-distribute plain lyrics across song duration
+  const autoTimeLyrics = (plainLyrics: string, songDuration: number): string => {
+    if (!plainLyrics || !plainLyrics.trim() || !songDuration) {
+      return plainLyrics;
+    }
+
+    const allLines = plainLyrics.split('\n');
+    const textLines = allLines.filter(line => line.trim());
+    
+    if (textLines.length === 0) return plainLyrics;
+
+    // Count blank lines to detect pauses
+    const blankLineIndices = new Set<number>();
+    for (let i = 0; i < allLines.length - 1; i++) {
+      if (!allLines[i].trim() && allLines[i + 1].trim()) {
+        blankLineIndices.add(i);
+      }
+    }
+
+    // Calculate time distribution
+    // Base time per line (80% of total duration)
+    const baseTimePerLine = (songDuration * 0.8) / textLines.length;
+    // Extra pause time (20% of total duration distributed among pauses)
+    const pauseTime = blankLineIndices.size > 0 
+      ? (songDuration * 0.2) / blankLineIndices.size 
+      : 0;
+
+    let currentTime = 0;
+    let lineIndex = 0;
+    const timedLyrics: string[] = [];
+
+    for (let i = 0; i < allLines.length; i++) {
+      const line = allLines[i].trim();
+      
+      if (line) {
+        // Add pause time if there was a blank line before this
+        if (i > 0 && !allLines[i - 1].trim()) {
+          currentTime += pauseTime;
+        }
+
+        const startTime = Math.round(currentTime * 10) / 10;
+        const endTime = Math.round((currentTime + baseTimePerLine) * 10) / 10;
+        
+        timedLyrics.push(`[${startTime}-${endTime}] ${line}`);
+        currentTime += baseTimePerLine;
+        lineIndex++;
+      }
+    }
+
+    return timedLyrics.join('\n');
+  };
 
   // Parse lyrics text into JSON format for database storage
   const parseLyrics = (lyricsText: string): object | null => {
@@ -480,6 +546,28 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
                               const { objectPath } = await aclRes.json();
                               field.onChange(objectPath);
                               setAudioUrl(objectPath);
+                              
+                              // Extract audio duration for auto-timing
+                              try {
+                                const duration = await getAudioDuration(objectPath);
+                                const roundedDuration = Math.round(duration);
+                                setAudioDuration(roundedDuration);
+                                form.setValue('duration', roundedDuration);
+                                toast({
+                                  title: "Audio Processed",
+                                  description: `Duration detected: ${Math.floor(roundedDuration / 60)}:${(roundedDuration % 60).toString().padStart(2, '0')}`,
+                                });
+                              } catch (error) {
+                                console.error('Failed to get audio duration:', error);
+                                toast({
+                                  title: "Duration Detection Failed",
+                                  description: "Using default 3-minute duration. Auto-timing may be less accurate.",
+                                  variant: "destructive",
+                                });
+                                // Fallback to default
+                                form.setValue('duration', 180);
+                                setAudioDuration(180);
+                              }
                             }
                           }}
                           buttonVariant="outline"
@@ -654,19 +742,48 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
                 name="lyricsText"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lyrics (Optional)</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Lyrics (Optional)</FormLabel>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!audioDuration || !field.value}
+                        onClick={() => {
+                          if (field.value && audioDuration) {
+                            const timedLyrics = autoTimeLyrics(field.value, audioDuration);
+                            field.onChange(timedLyrics);
+                            toast({
+                              title: "Lyrics Auto-Timed",
+                              description: `${timedLyrics.split('\n').filter(l => l.trim()).length} lines distributed across ${Math.round(audioDuration)}s`,
+                            });
+                          }
+                        }}
+                        data-testid="button-auto-time"
+                      >
+                        Auto-Time Lyrics
+                      </Button>
+                    </div>
                     <FormDescription>
-                      Add timestamped lyrics for line-by-line highlighting. Format: [startTime-endTime] Lyrics text
-                      <br />Example: [0.5-3.2] First line of the song
+                      <strong>Option 1:</strong> Paste plain lyrics (one per line, blank lines = pauses), upload audio first, then click "Auto-Time Lyrics"
+                      <br />
+                      <strong>Option 2:</strong> Manually add timestamps in format: [startTime-endTime] Lyrics text
+                      <br />
+                      Example: [0.5-3.2] First line of the song
                     </FormDescription>
                     <FormControl>
                       <Textarea 
                         {...field} 
-                        placeholder="[0.5-3.2] First line of lyrics&#10;[3.5-6.8] Second line of lyrics&#10;[7.0-10.5] Third line..."
+                        placeholder="Option 1: Paste plain lyrics here, then click Auto-Time&#10;&#10;Option 2: [0.5-3.2] First line of lyrics&#10;[3.5-6.8] Second line of lyrics"
                         className="min-h-[150px] font-mono text-sm"
                         data-testid="textarea-lyrics"
                       />
                     </FormControl>
+                    {audioDuration > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        Audio duration: {Math.floor(audioDuration / 60)}:{(Math.floor(audioDuration % 60)).toString().padStart(2, '0')}
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
