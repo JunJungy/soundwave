@@ -48,6 +48,7 @@ export default function ArtistPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artists", artistId, "is-following"] });
       queryClient.invalidateQueries({ queryKey: ["/api/artists", artistId, "followers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/following"] });
       toast({
         title: "Followed!",
         description: `You're now following ${artist?.name}`,
@@ -69,6 +70,7 @@ export default function ArtistPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/artists", artistId, "is-following"] });
       queryClient.invalidateQueries({ queryKey: ["/api/artists", artistId, "followers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/following"] });
       toast({
         title: "Unfollowed",
         description: `You've unfollowed ${artist?.name}`,
@@ -112,9 +114,9 @@ export default function ArtistPage() {
     id: song.id,
     title: song.title,
     artist: artist?.name || "Unknown Artist",
-    album: albumMap[song.albumId] || "Unknown Album",
+    album: song.albumId ? (albumMap[song.albumId] || "Unknown Album") : "Single",
     duration: song.duration,
-    albumId: song.albumId,
+    albumId: song.albumId || undefined,
     artistId: song.artistId,
   }));
 

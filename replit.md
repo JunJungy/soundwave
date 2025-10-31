@@ -42,6 +42,11 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Personal Playlists**: Create, manage, and edit user-specific private playlists.
 - **Artist Dashboard**: Dedicated interface for artists to manage their uploaded music.
 - **Stream Tracking**: Counts streams for songs and artists, influencing artist verification.
+- **Follow Artists**: Users can follow/unfollow artists to track their favorite musicians.
+  - Follow/Unfollow button on artist pages
+  - Follower count display on artist profiles
+  - Dedicated "Following" page to view all followed artists
+  - Real-time updates across the platform via React Query cache invalidation
 
 ## External Dependencies
 - **Database**: PostgreSQL
@@ -60,6 +65,17 @@ I prefer that the agent focuses on iterative development, delivering functional,
 ## Recent Changes
 
 ### October 31, 2025 (Latest)
+- **Follow Artists Feature**: Users can now follow/unfollow artists and track their favorites
+  - Added `follows` table to database schema (userId, artistId, createdAt)
+  - Backend API routes: POST/DELETE /api/artists/:id/follow, GET /api/artists/:id/followers, GET /api/following
+  - Storage layer methods: followArtist, unfollowArtist, isFollowing, getFollowerCount, getFollowedArtists
+  - Follow/Unfollow button on artist pages with real-time status updates
+  - Follower count display on artist profiles (formatted: 1K, 1M, etc.)
+  - "Following" page at `/following` showing grid of all followed artists
+  - "Following" link added to sidebar navigation
+  - React Query cache invalidation keeps all views in sync
+  - Toast notifications for follow/unfollow actions
+  - Login required for following (proper authorization guards)
 - **Edit Artist Profile Feature**: Artists can now update their profile image and bio
   - Added `bio` field to artists schema (text, nullable)
   - Created `updateArtistProfileSchema` for validated profile updates
