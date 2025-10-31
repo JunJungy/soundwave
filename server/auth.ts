@@ -51,8 +51,9 @@ export const checkIpBan: RequestHandler = async (req: any, res, next) => {
     }
     next();
   } catch (error) {
-    console.error("Error checking IP ban:", error);
-    next(); // Allow request on error to prevent blocking legitimate users
+    console.error("CRITICAL: Error checking IP ban - failing secure:", error);
+    // Fail-secure: block request on database errors to maintain ban enforcement
+    return res.status(503).json({ error: "Service temporarily unavailable" });
   }
 };
 
@@ -70,8 +71,9 @@ export const checkUserBan: RequestHandler = async (req: any, res, next) => {
     }
     next();
   } catch (error) {
-    console.error("Error checking user ban:", error);
-    next(); // Allow request on error
+    console.error("CRITICAL: Error checking user ban - failing secure:", error);
+    // Fail-secure: block request on database errors to maintain ban enforcement
+    return res.status(503).json({ error: "Service temporarily unavailable" });
   }
 };
 
