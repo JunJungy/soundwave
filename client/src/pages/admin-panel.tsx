@@ -52,6 +52,9 @@ export default function AdminPanel() {
     enabled: user?.isAdmin === 1,
   });
 
+  // Debug: Log user data to check lastIpAddress
+  console.log("All users data:", allUsers);
+
   const approveMutation = useMutation({
     mutationFn: async (applicationId: string) => {
       const res = await apiRequest("POST", `/api/artist-applications/${applicationId}/approve`);
@@ -462,7 +465,12 @@ export default function AdminPanel() {
                       {targetUser.lastIpAddress && (
                         <p className="text-sm text-muted-foreground flex items-center gap-1" data-testid={`text-ip-${targetUser.id}`}>
                           <Network className="w-3 h-3" />
-                          {targetUser.lastIpAddress}
+                          <span className="font-medium">IP:</span> {targetUser.lastIpAddress}
+                        </p>
+                      )}
+                      {!targetUser.lastIpAddress && (
+                        <p className="text-xs text-muted-foreground italic">
+                          No IP recorded (user hasn't logged in since IP tracking was added)
                         </p>
                       )}
                     </div>
