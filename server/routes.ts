@@ -1125,6 +1125,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ipAddress,
       });
 
+      // Send email notification (fire-and-forget)
+      import("./email").then(({ sendBanAppealNotification }) => {
+        sendBanAppealNotification(appeal).catch((err) => {
+          console.error("Failed to send ban appeal email notification:", err);
+        });
+      });
+
       res.json(appeal);
     } catch (error) {
       console.error("Error creating ban appeal:", error);
