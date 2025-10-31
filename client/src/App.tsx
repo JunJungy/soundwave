@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { MusicPlayer } from "@/components/music-player";
+import { ExpandablePlayer } from "@/components/expandable-player";
 import { QueueSheet } from "@/components/queue-sheet";
 import { CreatePlaylistDialog } from "@/components/create-playlist-dialog";
 import { ArtistApplicationDialog } from "@/components/artist-application-dialog";
@@ -196,7 +196,7 @@ function AppContent() {
         </div>
       </div>
 
-      <MusicPlayer
+      <ExpandablePlayer
         currentTrack={currentTrack || undefined}
         isPlaying={isPlaying}
         currentTime={currentTime}
