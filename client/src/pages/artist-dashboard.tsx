@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -16,7 +16,17 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Music, Disc, ArrowLeft, Upload, BadgeCheck, Settings } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Music, Disc, ArrowLeft, Upload, BadgeCheck, Settings, Trash2 } from "lucide-react";
 import { UploadSongDialog } from "@/components/upload-song-dialog";
 
 export default function ArtistDashboard() {
@@ -25,6 +35,7 @@ export default function ArtistDashboard() {
   const { toast } = useToast();
   const [uploadSongDialogOpen, setUploadSongDialogOpen] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [songToDelete, setSongToDelete] = useState<Song | null>(null);
 
   const { data: albums = [] } = useQuery<Album[]>({
     queryKey: ["/api/albums"],
@@ -40,6 +51,37 @@ export default function ArtistDashboard() {
     queryKey: ["/api/artists/me"],
     enabled: user?.isArtist === 1,
   });
+
+  const deleteSongMutation = useMutation({
+    mutationFn: async (songId: string) => {
+      return await apiRequest("DELETE", `/api/songs/${songId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/songs"] });
+      toast({
+        title: "Song Deleted",
+        description: "Your song has been permanently removed.",
+      });
+      setSongToDelete(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete song. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteSong = (song: Song) => {
+    setSongToDelete(song);
+  };
+
+  const confirmDeleteSong = () => {
+    if (songToDelete) {
+      deleteSongMutation.mutate(songToDelete.id);
+    }
+  };
 
   const handleCheckStatus = async () => {
     setIsCheckingStatus(true);
@@ -261,14 +303,24 @@ export default function ArtistDashboard() {
               {songs.map((song) => (
                 <Card key={song.id} data-testid={`card-song-${song.id}`}>
                   <CardHeader className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
                         <CardTitle className="text-base" data-testid="text-song-title">{song.title}</CardTitle>
                         <CardDescription data-testid="text-song-duration">
                           {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, "0")}
                         </CardDescription>
                       </div>
-                      <Badge variant="secondary" data-testid="badge-streams">{song.streams} streams</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" data-testid="badge-streams">{song.streams} streams</Badge>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDeleteSong(song)}
+                          data-testid={`button-delete-song-${song.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                 </Card>
@@ -286,6 +338,29 @@ export default function ArtistDashboard() {
           artistId={artist.id}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!songToDelete} onOpenChange={(open) => !open && setSongToDelete(null)}>
+        <AlertDialogContent data-testid="dialog-delete-song-confirmation">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Song?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{songToDelete?.title}"? This will permanently remove the song,
+              its files, and remove it from all playlists. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSong}
+              disabled={deleteSongMutation.isPending}
+              data-testid="button-confirm-delete"
+            >
+              {deleteSongMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
