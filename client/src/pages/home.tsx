@@ -49,6 +49,21 @@ export default function Home() {
     }
   };
 
+  const handlePlaySong = (song: Song) => {
+    const track = {
+      id: song.id,
+      title: song.title,
+      artist: artistMap[song.artistId] || "Unknown Artist",
+      albumCover: song.artworkUrl || undefined,
+      duration: song.duration,
+      audioUrl: song.audioUrl || undefined,
+    };
+    playQueue([track]);
+  };
+
+  // Filter standalone songs (songs without albums)
+  const standaloneSongs = songs.filter((song) => !song.albumId);
+
   return (
     <div className="pb-24">
       {/* Featured Playlists */}
@@ -87,6 +102,30 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* New Songs */}
+      {standaloneSongs.length > 0 && (
+        <section className="px-6 py-8">
+          <h2 className="font-display text-3xl font-bold mb-6" data-testid="heading-new-songs">
+            New Songs
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {standaloneSongs.slice(0, 10).map((song) => (
+              <AlbumCard
+                key={song.id}
+                id={song.id}
+                title={song.title}
+                subtitle={artistMap[song.artistId] || "Unknown Artist"}
+                coverUrl={song.artworkUrl || "/placeholder-album.png"}
+                onClick={() => handlePlaySong(song)}
+                onPlay={() => handlePlaySong(song)}
+                testId={`card-song-${song.id}`}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* New Albums */}
       <section className="px-6 py-8">

@@ -189,7 +189,8 @@ export class DatabaseStorage implements IStorage {
 
   // Songs
   async getSongs(): Promise<Song[]> {
-    return await db.select().from(songs);
+    // Only return published songs for public view
+    return await db.select().from(songs).where(eq(songs.releaseStatus, 'published'));
   }
 
   async getAllSongs(): Promise<Song[]> {
