@@ -8,6 +8,8 @@ import {
   follows,
   ipBans,
   banAppeals,
+  games,
+  gameScores,
   type Artist,
   type Album,
   type Song,
@@ -17,6 +19,8 @@ import {
   type Follow,
   type IpBan,
   type BanAppeal,
+  type Game,
+  type GameScore,
   type InsertArtist,
   type InsertAlbum,
   type InsertSong,
@@ -26,10 +30,12 @@ import {
   type InsertFollow,
   type InsertIpBan,
   type InsertBanAppeal,
+  type InsertGame,
+  type InsertGameScore,
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, inArray, sql, desc } from "drizzle-orm";
 import { getAlbum, searchTrack } from "./spotify";
 
 export interface IStorage {
@@ -109,6 +115,19 @@ export interface IStorage {
   getBanAppeals(status?: string): Promise<BanAppeal[]>;
   approveBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined>;
   denyBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined>;
+
+  // Games
+  getGames(): Promise<Game[]>;
+  getGame(id: string): Promise<Game | undefined>;
+  createGame(game: InsertGame): Promise<Game>;
+  updateGame(id: string, updates: Partial<Game>): Promise<Game | undefined>;
+  deleteGame(id: string): Promise<boolean>;
+
+  // Game Scores (Leaderboards)
+  submitScore(score: InsertGameScore): Promise<GameScore>;
+  getGameLeaderboard(gameId: string, limit?: number): Promise<Array<GameScore & { username: string }>>;
+  getUserBestScore(gameId: string, userId: string): Promise<GameScore | undefined>;
+  getUserScores(userId: string): Promise<GameScore[]>;
 
   // Seeding
   seedDatabase(): Promise<void>;
@@ -653,6 +672,74 @@ export class DatabaseStorage implements IStorage {
       .where(eq(banAppeals.id, appealId))
       .returning();
     return appeal;
+  }
+
+  // Games Management
+  async getGames(): Promise<Game[]> {
+    return db.select().from(games).where(eq(games.isActive, 1));
+  }
+
+  async getGame(id: string): Promise<Game | undefined> {
+    const [game] = await db.select().from(games).where(eq(games.id, id));
+    return game;
+  }
+
+  async createGame(game: InsertGame): Promise<Game> {
+    const [newGame] = await db.insert(games).values(game).returning();
+    return newGame;
+  }
+
+  async updateGame(id: string, updates: Partial<Game>): Promise<Game | undefined> {
+    const [updatedGame] = await db
+      .update(games)
+      .set({ ...updates, updatedAt: sql`NOW()` })
+      .where(eq(games.id, id))
+      .returning();
+    return updatedGame;
+  }
+
+  async deleteGame(id: string): Promise<boolean> {
+    const result = await db.delete(games).where(eq(games.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // Game Scores (Leaderboards)
+  async submitScore(score: InsertGameScore): Promise<GameScore> {
+    const [newScore] = await db.insert(gameScores).values(score).returning();
+    return newScore;
+  }
+
+  async getGameLeaderboard(gameId: string, limit: number = 10): Promise<Array<GameScore & { username: string }>> {
+    const scores = await db
+      .select({
+        id: gameScores.id,
+        gameId: gameScores.gameId,
+        userId: gameScores.userId,
+        score: gameScores.score,
+        metadata: gameScores.metadata,
+        createdAt: gameScores.createdAt,
+        username: users.username,
+      })
+      .from(gameScores)
+      .innerJoin(users, eq(gameScores.userId, users.id))
+      .where(eq(gameScores.gameId, gameId))
+      .orderBy(desc(gameScores.score))
+      .limit(limit);
+    return scores;
+  }
+
+  async getUserBestScore(gameId: string, userId: string): Promise<GameScore | undefined> {
+    const [score] = await db
+      .select()
+      .from(gameScores)
+      .where(and(eq(gameScores.gameId, gameId), eq(gameScores.userId, userId)))
+      .orderBy(desc(gameScores.score))
+      .limit(1);
+    return score;
+  }
+
+  async getUserScores(userId: string): Promise<GameScore[]> {
+    return db.select().from(gameScores).where(eq(gameScores.userId, userId));
   }
 
   // Seed database with initial data (now empty - artists must upload their own songs)

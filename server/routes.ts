@@ -1381,6 +1381,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Games API Routes
+  // Get all active games
+  app.get("/api/games", async (req, res) => {
+    try {
+      const allGames = await storage.getGames();
+      res.json(allGames);
+    } catch (error) {
+      console.error("Error fetching games:", error);
+      res.status(500).json({ error: "Failed to fetch games" });
+    }
+  });
+
+  // Get specific game
+  app.get("/api/games/:id", async (req, res) => {
+    try {
+      const game = await storage.getGame(req.params.id);
+      if (!game) {
+        return res.status(404).json({ error: "Game not found" });
+      }
+      res.json(game);
+    } catch (error) {
+      console.error("Error fetching game:", error);
+      res.status(500).json({ error: "Failed to fetch game" });
+    }
+  });
+
+  // Get leaderboard for a game
+  app.get("/api/games/:id/leaderboard", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const leaderboard = await storage.getGameLeaderboard(req.params.id, limit);
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      res.status(500).json({ error: "Failed to fetch leaderboard" });
+    }
+  });
+
+  // Submit score for a game (requires authentication)
+  app.post("/api/games/:id/score", isAuthenticated, async (req: any, res) => {
+    try {
+      const { score, metadata } = req.body;
+      const userId = req.session.userId;
+
+      if (typeof score !== 'number') {
+        return res.status(400).json({ error: "Score must be a number" });
+      }
+
+      const gameScore = await storage.submitScore({
+        gameId: req.params.id,
+        userId,
+        score,
+        metadata: metadata || null,
+      });
+
+      res.json(gameScore);
+    } catch (error) {
+      console.error("Error submitting score:", error);
+      res.status(500).json({ error: "Failed to submit score" });
+    }
+  });
+
+  // Get user's best score for a game
+  app.get("/api/games/:id/user-best", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const bestScore = await storage.getUserBestScore(req.params.id, userId);
+      res.json(bestScore || null);
+    } catch (error) {
+      console.error("Error fetching user best score:", error);
+      res.status(500).json({ error: "Failed to fetch user best score" });
+    }
+  });
+
+  // Get all user's scores (requires authentication)
+  app.get("/api/games/user/scores", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const scores = await storage.getUserScores(userId);
+      res.json(scores);
+    } catch (error) {
+      console.error("Error fetching user scores:", error);
+      res.status(500).json({ error: "Failed to fetch user scores" });
+    }
+  });
+
+  // Admin: Create new game
+  app.post("/api/admin/games", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { name, description, thumbnailUrl, gameUrl, gameType, category } = req.body;
+
+      if (!name || !gameUrl) {
+        return res.status(400).json({ error: "Name and game URL are required" });
+      }
+
+      const game = await storage.createGame({
+        name,
+        description: description || null,
+        thumbnailUrl: thumbnailUrl || null,
+        gameUrl,
+        gameType: gameType || 'iframe',
+        category: category || null,
+        createdBy: userId,
+      });
+
+      res.json(game);
+    } catch (error) {
+      console.error("Error creating game:", error);
+      res.status(500).json({ error: "Failed to create game" });
+    }
+  });
+
+  // Admin: Update game
+  app.put("/api/admin/games/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const updates = req.body;
+      const game = await storage.updateGame(req.params.id, updates);
+
+      if (!game) {
+        return res.status(404).json({ error: "Game not found" });
+      }
+
+      res.json(game);
+    } catch (error) {
+      console.error("Error updating game:", error);
+      res.status(500).json({ error: "Failed to update game" });
+    }
+  });
+
+  // Admin: Delete game
+  app.delete("/api/admin/games/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const deleted = await storage.deleteGame(req.params.id);
+
+      if (!deleted) {
+        return res.status(404).json({ error: "Game not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting game:", error);
+      res.status(500).json({ error: "Failed to delete game" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
