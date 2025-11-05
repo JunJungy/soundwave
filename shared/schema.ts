@@ -156,6 +156,29 @@ export const banAppeals = pgTable("ban_appeals", {
   adminResponse: text("admin_response"), // Admin's response message
 });
 
+export const games = pgTable("games", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  thumbnailUrl: text("thumbnail_url"),
+  gameUrl: text("game_url").notNull(), // URL to game (iframe embed or direct link)
+  gameType: text("game_type").default("iframe").notNull(), // iframe/webgl/external
+  category: text("category"), // action/puzzle/racing/etc
+  isActive: integer("is_active").default(1).notNull(), // 1 = active, 0 = hidden
+  createdBy: varchar("created_by").notNull(), // Admin user ID
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const gameScores = pgTable("game_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  gameId: varchar("game_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  score: integer("score").notNull(),
+  metadata: jsonb("metadata"), // Additional game-specific data (level, time, etc.)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
 export const updateArtistProfileSchema = z.object({
   imageUrl: z.string().optional().or(z.literal("")),
@@ -188,6 +211,16 @@ export const insertBanAppealSchema = createInsertSchema(banAppeals).omit({
   reviewedBy: true,
   adminResponse: true
 });
+export const insertGameSchema = createInsertSchema(games).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  isActive: true
+});
+export const insertGameScoreSchema = createInsertSchema(gameScores).omit({ 
+  id: true, 
+  createdAt: true
+});
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type UpdateArtistProfile = z.infer<typeof updateArtistProfileSchema>;
@@ -198,6 +231,8 @@ export type InsertArtistApplication = z.infer<typeof insertArtistApplicationSche
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
 export type InsertIpBan = z.infer<typeof insertIpBanSchema>;
 export type InsertBanAppeal = z.infer<typeof insertBanAppealSchema>;
+export type InsertGame = z.infer<typeof insertGameSchema>;
+export type InsertGameScore = z.infer<typeof insertGameScoreSchema>;
 
 export type Artist = typeof artists.$inferSelect;
 export type Album = typeof albums.$inferSelect;
@@ -207,3 +242,5 @@ export type ArtistApplication = typeof artistApplications.$inferSelect;
 export type Follow = typeof follows.$inferSelect;
 export type IpBan = typeof ipBans.$inferSelect;
 export type BanAppeal = typeof banAppeals.$inferSelect;
+export type Game = typeof games.$inferSelect;
+export type GameScore = typeof gameScores.$inferSelect;
