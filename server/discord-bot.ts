@@ -277,14 +277,24 @@ export async function startDiscordBot() {
                 await i.deferUpdate();
                 console.log('[Discord] deferUpdate() successful');
 
+                // Re-fetch user to get latest data
+                const freshUser = await storage.getUserByDiscordId(interaction.user.id);
+                if (!freshUser) {
+                  await i.editReply({
+                    content: '❌ Account not found. Please try `/account` again.',
+                    components: []
+                  });
+                  return;
+                }
+
                 const selectedType = i.values[0];
                 let newEmbed;
 
-                console.log(`[Discord] Building ${selectedType} account embed...`);
+                console.log(`[Discord] Building ${selectedType} account embed for user: ${freshUser.username}, isArtist: ${freshUser.isArtist}`);
                 if (selectedType === 'normal') {
-                  newEmbed = await createNormalAccountEmbed(user, interaction);
+                  newEmbed = await createNormalAccountEmbed(freshUser, i);
                 } else {
-                  newEmbed = await createArtistAccountEmbed(user, interaction);
+                  newEmbed = await createArtistAccountEmbed(freshUser, i);
                 }
                 console.log('[Discord] Embed created successfully');
 
@@ -579,6 +589,12 @@ export async function sendBanNotification(data: {
     
     if (!channel || !channel.isTextBased()) {
       console.error('[Discord] Invalid ban notification channel');
+      return;
+    }
+
+    // Ensure channel has send method
+    if (!('send' in channel)) {
+      console.error('[Discord] Channel does not support sending messages');
       return;
     }
 
