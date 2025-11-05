@@ -52,7 +52,7 @@ export default function AdminPanel() {
   });
 
   const { data: banAppeals = [], isLoading: isLoadingAppeals } = useQuery<BanAppeal[]>({
-    queryKey: ["/api/admin/ban-appeals"],
+    queryKey: ["/api/admin/ban-appeals?status=pending"],
     enabled: user?.isAdmin === 1,
   });
 
@@ -248,7 +248,7 @@ export default function AdminPanel() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/ban-appeals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ban-appeals?status=pending"] });
       setAppealDialogOpen(false);
       setAppealToReview(null);
       setAppealResponse("");
@@ -272,7 +272,7 @@ export default function AdminPanel() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/ban-appeals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ban-appeals?status=pending"] });
       setAppealDialogOpen(false);
       setAppealToReview(null);
       setAppealResponse("");
