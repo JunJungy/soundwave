@@ -534,12 +534,12 @@ async function createArtistAccountEmbed(user: any, interaction: any) {
     .addFields(
       { name: 'Artist Name', value: artist.name, inline: true },
       { name: 'Genre', value: artist.genre || 'Not specified', inline: true },
-      { name: 'Verification', value: artist.verificationStatus === 'verified' ? '✅ Verified' : '⏳ Pending', inline: true },
+      { name: 'Verified Badge', value: artist.verified === 1 ? '✅ Verified' : '❌ Not Verified', inline: true },
       { name: 'Total Streams', value: totalStreams.toLocaleString(), inline: true },
       { name: 'Published Songs', value: publishedSongs.toString(), inline: true },
       { name: 'Total Songs', value: songs.length.toString(), inline: true },
       { name: 'Followers', value: followerCount.toLocaleString(), inline: true },
-      { name: 'Verified Badge', value: artist.verified ? '✅ Yes' : '❌ No', inline: true }
+      { name: 'Upload Status', value: user.canUpload === 1 ? '✅ Can Upload' : '⏳ Pending Verification', inline: true }
     )
     .setFooter({ 
       text: `Linked Discord: ${interaction.user.tag}`, 
