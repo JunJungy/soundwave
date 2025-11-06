@@ -367,12 +367,23 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
   const createPaymentIntent = async () => {
     if (!needsPayment) return null;
 
-    const res = await apiRequest("POST", "/api/create-payment-intent", {
-      globalPromotion,
-      otherPlatforms,
-    });
-    const data = await res.json();
-    return data;
+    try {
+      const res = await apiRequest("POST", "/api/create-payment-intent", {
+        globalPromotion,
+        otherPlatforms,
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Payment setup failed" }));
+        throw new Error(errorData.message || "Failed to create payment session");
+      }
+      
+      const data = await res.json();
+      return data;
+    } catch (error: any) {
+      console.error("Payment intent creation error:", error);
+      throw error;
+    }
   };
 
   const uploadSongMutation = useMutation({
@@ -437,9 +448,24 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
     // Step 3: Handle payment if needed
     if (needsPayment && !paymentIntentId) {
       setValidationStage("payment");
-      const paymentData = await createPaymentIntent();
-      setClientSecret(paymentData.clientSecret);
-      return;
+      try {
+        const paymentData = await createPaymentIntent();
+        if (!paymentData || !paymentData.clientSecret) {
+          throw new Error("Failed to create payment session");
+        }
+        setClientSecret(paymentData.clientSecret);
+        return;
+      } catch (error: any) {
+        setValidationStage("idle");
+        setArtworkProgress(0);
+        setAudioProgress(0);
+        toast({
+          title: "Payment Setup Failed",
+          description: error.message || "Could not initialize payment. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Step 4: Upload song
