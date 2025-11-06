@@ -628,3 +628,94 @@ export async function sendBanNotification(data: {
     console.error('[Discord] Error sending ban notification:', error);
   }
 }
+
+// Export function to send moderation warnings to users via DM
+export async function sendModerationWarning(data: {
+  userId?: string;
+  discordId?: string;
+  username: string;
+  violationType: string;
+  violationContent?: string;
+  reason?: string;
+  category?: string;
+  warningCount: number;
+}): Promise<boolean> {
+  if (!discordClient) {
+    console.log('[Discord] Bot not initialized, skipping warning notification');
+    return false;
+  }
+
+  // Need either userId or discordId to send DM
+  if (!data.discordId) {
+    console.log('[Discord] No Discord ID provided, cannot send DM warning');
+    return false;
+  }
+
+  try {
+    const user = await discordClient.users.fetch(data.discordId);
+    
+    if (!user) {
+      console.error('[Discord] Could not fetch user for warning');
+      return false;
+    }
+
+    // Create warning color based on count (yellow -> orange -> red)
+    let color = 0xFBBF24; // Yellow for first warning
+    if (data.warningCount === 2) color = 0xF97316; // Orange for second
+    if (data.warningCount >= 3) color = 0xEF4444; // Red for third+
+
+    const embed = new EmbedBuilder()
+      .setColor(color)
+      .setTitle(`⚠️ Content Moderation Warning (${data.warningCount}/3)`)
+      .setDescription(`You have received a moderation warning for violating Soundwave's content policy.`)
+      .addFields(
+        { name: 'Username', value: data.username, inline: true },
+        { name: 'Warning Count', value: `${data.warningCount}/3`, inline: true },
+        { name: 'Violation Type', value: data.violationType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), inline: false },
+      );
+
+    if (data.violationContent) {
+      embed.addFields({ name: 'Content Flagged', value: data.violationContent, inline: false });
+    }
+
+    if (data.reason) {
+      embed.addFields({ name: 'Reason', value: data.reason, inline: false });
+    }
+
+    if (data.category) {
+      embed.addFields({ name: 'Category', value: data.category, inline: true });
+    }
+
+    // Add warning message based on count
+    if (data.warningCount === 1) {
+      embed.addFields({ 
+        name: '⚠️ First Warning', 
+        value: 'This is your first warning. Please review our content policy and ensure all future content complies with our guidelines. Two more warnings will result in a permanent ban.', 
+        inline: false 
+      });
+    } else if (data.warningCount === 2) {
+      embed.addFields({ 
+        name: '⚠️ Second Warning', 
+        value: 'This is your second warning. You are one warning away from a permanent ban. Please be very careful to follow our content policy.', 
+        inline: false 
+      });
+    } else if (data.warningCount >= 3) {
+      embed.addFields({ 
+        name: '🚫 Final Warning - Account Banned', 
+        value: 'You have received 3 warnings and your account has been permanently banned from Soundwave. You may submit a ban appeal through our support channel.', 
+        inline: false 
+      });
+    }
+
+    embed
+      .setFooter({ text: 'Soundwave Moderation Team' })
+      .setTimestamp();
+
+    await user.send({ content: `<@${data.discordId}>`, embeds: [embed] });
+    console.log(`[Discord] Moderation warning sent to ${data.username} (${data.discordId})`);
+    return true;
+  } catch (error) {
+    console.error('[Discord] Error sending moderation warning:', error);
+    return false;
+  }
+}

@@ -8,6 +8,7 @@ import {
   follows,
   ipBans,
   banAppeals,
+  moderationWarnings,
   type Artist,
   type Album,
   type Song,
@@ -17,6 +18,7 @@ import {
   type Follow,
   type IpBan,
   type BanAppeal,
+  type ModerationWarning,
   type InsertArtist,
   type InsertAlbum,
   type InsertSong,
@@ -26,6 +28,7 @@ import {
   type InsertFollow,
   type InsertIpBan,
   type InsertBanAppeal,
+  type InsertModerationWarning,
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
@@ -109,6 +112,11 @@ export interface IStorage {
   getBanAppeals(status?: string): Promise<BanAppeal[]>;
   approveBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined>;
   denyBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined>;
+
+  // Moderation Warnings
+  createModerationWarning(data: InsertModerationWarning): Promise<ModerationWarning>;
+  getModerationWarningsByUser(userId: string): Promise<ModerationWarning[]>;
+  incrementUserWarnings(userId: string): Promise<User | undefined>;
 
   // Seeding
   seedDatabase(): Promise<void>;
@@ -653,6 +661,34 @@ export class DatabaseStorage implements IStorage {
       .where(eq(banAppeals.id, appealId))
       .returning();
     return appeal;
+  }
+
+  // Moderation Warnings Management
+  async createModerationWarning(data: InsertModerationWarning): Promise<ModerationWarning> {
+    const [warning] = await db
+      .insert(moderationWarnings)
+      .values(data)
+      .returning();
+    return warning;
+  }
+
+  async getModerationWarningsByUser(userId: string): Promise<ModerationWarning[]> {
+    return await db
+      .select()
+      .from(moderationWarnings)
+      .where(eq(moderationWarnings.userId, userId))
+      .orderBy(sql`${moderationWarnings.createdAt} DESC`);
+  }
+
+  async incrementUserWarnings(userId: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        moderationWarnings: sql`${users.moderationWarnings} + 1`,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 
   // Seed database with initial data (now empty - artists must upload their own songs)
