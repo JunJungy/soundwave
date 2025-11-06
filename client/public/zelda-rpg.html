@@ -20,6 +20,12 @@
             height: 100vh;
             position: relative;
         }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
         #hud {
             position: absolute;
             top: 20px;
@@ -105,13 +111,14 @@
             font-size: 11px;
         }
         #mobile-controls {
-            position: absolute;
+            position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             height: 200px;
             display: none;
-            z-index: 50;
+            z-index: 1000;
+            pointer-events: none;
         }
         #dpad {
             position: absolute;
@@ -119,10 +126,12 @@
             left: 20px;
             width: 120px;
             height: 120px;
+            pointer-events: auto;
         }
         .dpad-btn {
             position: absolute;
             width: 40px;
+            pointer-events: auto;
             height: 40px;
             background: rgba(255, 255, 255, 0.3);
             border: 2px solid #fff;
@@ -157,6 +166,7 @@
             align-items: center;
             justify-content: center;
             touch-action: none;
+            pointer-events: auto;
         }
         #attack-btn:active {
             background: rgba(255, 0, 0, 0.8);

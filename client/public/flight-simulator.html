@@ -20,6 +20,12 @@
             height: 100vh;
             position: relative;
         }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
         #hud {
             position: absolute;
             top: 20px;
@@ -163,13 +169,14 @@
         
         /* Mobile Controls */
         #mobile-controls {
-            position: absolute;
+            position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             height: 250px;
             display: none;
-            z-index: 50;
+            z-index: 1000;
+            pointer-events: none;
         }
         #joystick-area {
             position: absolute;
@@ -181,6 +188,7 @@
             border: 2px solid #0ff;
             border-radius: 50%;
             touch-action: none;
+            pointer-events: auto;
         }
         #joystick {
             position: absolute;
@@ -192,6 +200,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            pointer-events: auto;
             pointer-events: none;
         }
         .mobile-button {
@@ -209,6 +218,7 @@
             justify-content: center;
             touch-action: none;
             user-select: none;
+            pointer-events: auto;
         }
         .mobile-button:active {
             background: rgba(0, 255, 0, 0.6);
@@ -282,7 +292,12 @@
                 margin: 3px 0;
             }
             #fullscreen-btn {
-                display: none;
+                top: 5px;
+                right: 110px;
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+                z-index: 1001;
             }
             .mobile-button {
                 width: 60px;
