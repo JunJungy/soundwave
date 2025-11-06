@@ -158,6 +158,26 @@ export const banAppeals = pgTable("ban_appeals", {
   adminResponse: text("admin_response"), // Admin's response message
 });
 
+export const aiGenerations = pgTable("ai_generations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  prompt: text("prompt").notNull(),
+  tags: text("tags"), // Genre/style tags
+  title: text("title"),
+  isInstrumental: integer("is_instrumental").default(0).notNull(), // 0 = with vocals, 1 = instrumental
+  status: text("status").default("pending").notNull(), // pending, processing, completed, failed
+  sunoTaskId: text("suno_task_id"), // ID from Suno API
+  audioUrl: text("audio_url"),
+  videoUrl: text("video_url"),
+  imageUrl: text("image_url"), // Cover art
+  duration: integer("duration"), // Duration in seconds
+  lyrics: text("lyrics"),
+  creditsUsed: integer("credits_used").default(0).notNull(),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
 export const updateArtistProfileSchema = z.object({
   imageUrl: z.string().optional().or(z.literal("")),
@@ -190,6 +210,19 @@ export const insertBanAppealSchema = createInsertSchema(banAppeals).omit({
   reviewedBy: true,
   adminResponse: true
 });
+export const insertAiGenerationSchema = createInsertSchema(aiGenerations).omit({ 
+  id: true, 
+  createdAt: true, 
+  completedAt: true,
+  status: true,
+  sunoTaskId: true,
+  audioUrl: true,
+  videoUrl: true,
+  imageUrl: true,
+  duration: true,
+  lyrics: true,
+  errorMessage: true
+});
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type UpdateArtistProfile = z.infer<typeof updateArtistProfileSchema>;
@@ -200,6 +233,7 @@ export type InsertArtistApplication = z.infer<typeof insertArtistApplicationSche
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
 export type InsertIpBan = z.infer<typeof insertIpBanSchema>;
 export type InsertBanAppeal = z.infer<typeof insertBanAppealSchema>;
+export type InsertAiGeneration = z.infer<typeof insertAiGenerationSchema>;
 
 export type Artist = typeof artists.$inferSelect;
 export type Album = typeof albums.$inferSelect;
@@ -209,3 +243,4 @@ export type ArtistApplication = typeof artistApplications.$inferSelect;
 export type Follow = typeof follows.$inferSelect;
 export type IpBan = typeof ipBans.$inferSelect;
 export type BanAppeal = typeof banAppeals.$inferSelect;
+export type AiGeneration = typeof aiGenerations.$inferSelect;

@@ -8,6 +8,7 @@ import {
   follows,
   ipBans,
   banAppeals,
+  aiGenerations,
   type Artist,
   type Album,
   type Song,
@@ -17,6 +18,7 @@ import {
   type Follow,
   type IpBan,
   type BanAppeal,
+  type AiGeneration,
   type InsertArtist,
   type InsertAlbum,
   type InsertSong,
@@ -26,6 +28,7 @@ import {
   type InsertFollow,
   type InsertIpBan,
   type InsertBanAppeal,
+  type InsertAiGeneration,
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
@@ -109,6 +112,13 @@ export interface IStorage {
   getBanAppeals(status?: string): Promise<BanAppeal[]>;
   approveBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined>;
   denyBanAppeal(appealId: string, adminId: string, response?: string): Promise<BanAppeal | undefined>;
+
+  // AI Music Generation
+  createAiGeneration(generation: InsertAiGeneration): Promise<AiGeneration>;
+  getAiGeneration(id: string): Promise<AiGeneration | undefined>;
+  getUserAiGenerations(userId: string): Promise<AiGeneration[]>;
+  updateAiGeneration(id: string, updates: Partial<AiGeneration>): Promise<AiGeneration | undefined>;
+  deleteAiGeneration(id: string): Promise<boolean>;
 
   // Seeding
   seedDatabase(): Promise<void>;
@@ -653,6 +663,39 @@ export class DatabaseStorage implements IStorage {
       .where(eq(banAppeals.id, appealId))
       .returning();
     return appeal;
+  }
+
+  // AI Music Generation
+  async createAiGeneration(generation: InsertAiGeneration): Promise<AiGeneration> {
+    const [newGeneration] = await db.insert(aiGenerations).values(generation).returning();
+    return newGeneration;
+  }
+
+  async getAiGeneration(id: string): Promise<AiGeneration | undefined> {
+    const [generation] = await db.select().from(aiGenerations).where(eq(aiGenerations.id, id));
+    return generation;
+  }
+
+  async getUserAiGenerations(userId: string): Promise<AiGeneration[]> {
+    return await db
+      .select()
+      .from(aiGenerations)
+      .where(eq(aiGenerations.userId, userId))
+      .orderBy(desc(aiGenerations.createdAt));
+  }
+
+  async updateAiGeneration(id: string, updates: Partial<AiGeneration>): Promise<AiGeneration | undefined> {
+    const [updated] = await db
+      .update(aiGenerations)
+      .set(updates)
+      .where(eq(aiGenerations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAiGeneration(id: string): Promise<boolean> {
+    const result = await db.delete(aiGenerations).where(eq(aiGenerations.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   // Seed database with initial data (now empty - artists must upload their own songs)
