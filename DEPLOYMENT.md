@@ -1,12 +1,23 @@
 # Deployment Instructions for Soundwave
 
-## Important: Publishing Game Files
+## Publishing to Production
 
-The games (Flight Simulator and Quest of the Crystal Realm) require a special step before publishing to ensure they appear on the published version.
+**Good news!** The server now **automatically** copies game files on startup in production mode. 
 
-### Automatic Method (Recommended)
+### Just Click Publish!
 
-Run the preparation script before publishing:
+Simply click the **Publish** button in Replit - that's it! The games will automatically be available on your published site.
+
+### What Happens Automatically
+
+When your app starts in production:
+1. The server checks if game files exist in `dist/public`
+2. If not found, it automatically copies them from `client/public`
+3. Games become immediately available
+
+### Optional: Manual Build (Advanced)
+
+If you want to manually prepare the build before publishing:
 
 ```bash
 ./prepare-deploy.sh
@@ -17,28 +28,13 @@ This script will:
 2. Copy game HTML files to the dist/public directory
 3. Prepare everything for deployment
 
-### Manual Method
+But this is **optional** - the automatic system will handle it for you!
 
-If you prefer to do it manually:
-
-```bash
-# Step 1: Build the application
-npm run build
-
-# Step 2: Copy game files
-node copy-games.js
-```
-
-### After Running the Script
-
-1. Click the **Publish** button in Replit
-2. Your games will now be available on the published site!
-
-### Why This Step is Necessary
+### How It Works
 
 - **Development**: Games are served from `client/public/`
-- **Production**: Games must be in `dist/public/` to be included in the deployment
-- The `copy-games.js` script ensures the HTML game files are copied to the correct location
+- **Production**: Games are automatically copied to `dist/public/` on server startup
+- The server's `ensureGameFilesInProduction()` function handles this automatically
 
 ### Verifying It Works
 

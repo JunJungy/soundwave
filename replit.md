@@ -61,10 +61,4 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Payment Processing**: Stripe for premium feature purchases
 
 ## Deployment Instructions
-**IMPORTANT**: Before publishing, run the deployment preparation script to ensure game files are included:
-
-```bash
-./prepare-deploy.sh
-```
-
-This copies game HTML files from `client/public/` to `dist/public/` so they're available in the published version. See `DEPLOYMENT.md` for full details.
+Simply click the **Publish** button in Replit! The server automatically copies game files from `client/public/` to `dist/public/` on production startup, ensuring games are always available in the published version. See `DEPLOYMENT.md` for details.
