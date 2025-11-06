@@ -1,4 +1,4 @@
-import { Home, Search, Library, Plus, Shield, Music, Users, Settings, Sparkles } from "lucide-react";
+import { Home, Search, Library, Plus, Shield, Music, Users, Settings, Sparkles, ExternalLink } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -136,9 +136,16 @@ export function AppSidebar({ playlists = [], onCreatePlaylist }: AppSidebarProps
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        <div className="text-xs text-muted-foreground px-2">
-          Developed by Void AI
-        </div>
+        <a
+          href="https://voidmain.xyz"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-xs text-muted-foreground px-2 py-2 rounded-md hover-elevate transition-colors group"
+          data-testid="link-voidmain"
+        >
+          <span>Powered by VOID AI</span>
+          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </a>
       </SidebarFooter>
     </Sidebar>
   );
