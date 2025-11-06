@@ -23,8 +23,8 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Authentication**: Custom username/password, bcrypt hashing, `connect-pg-simple` for session management. Supports email-based registration/login, with permanent email binding for security.
 - **Authorization**: Role-based access control (admin, artist).
 - **Security**: Comprehensive measures including secure password hashing, session management, authorization checks, cross-tenant protection, fail-secure design, and a comprehensive ban system (user/IP bans with Discord notifications).
-- **Music Player**: Global state via React Context, HTML5 audio, full controls, queue management, now playing display, and timestamped lyrics with multi-language support and real-time highlighting. Lyrics can be auto-timed or manually entered.
-- **File Storage**: Replit Object Storage with presigned URLs for secure uploads of audio files (MP3, WAV, OGG, M4A) and square album artwork, with custom ACL for protected access. Includes song deletion with full cleanup.
+- **Music Player**: Global state via React Context, HTML5 audio, full controls, queue management, now playing display, and timestamped lyrics with multi-language support and real-time highlighting. Lyrics can be auto-timed or manually entered. Includes ad insertion system that plays 15-second placeholder ads between songs for non-premium users.
+- **File Storage**: Replit Object Storage with presigned URLs for secure uploads of audio files (MP3, WAV, OGG, M4A) and square album artwork, with custom ACL for protected access. Includes song deletion with full cleanup. Uses Sharp library to automatically watermark album artwork with Soundwave logo for non-premium users.
 - **Artist System**: Two-step verification (admin approval, then 1-hour automatic verification), upload blocking, dedicated dashboard for profile editing and song uploads. Songs can have scheduled release dates and optional payment-gated promotion.
 - **Admin Panel**: Manages artist applications, user roles, user accounts, ban appeals, and IP/user bans.
 - **Stream Tracking**: Counts streams for songs and artists.
@@ -57,6 +57,8 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Form Validation**: React Hook Form, Zod
 - **Spotify API**: `@spotify/web-api-ts-sdk` (helper module)
 - **SMTP**: For email notifications (requires configuration)
+- **Image Processing**: Sharp for watermarking album artwork
+- **Payment Processing**: Stripe for premium feature purchases
 
 ## Deployment Instructions
 **IMPORTANT**: Before publishing, run the deployment preparation script to ensure game files are included:
