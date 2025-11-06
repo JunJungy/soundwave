@@ -43,6 +43,8 @@ export const users = pgTable("users", {
   banReason: text("ban_reason"), // Reason for ban
   isAdmin: integer("is_admin").default(0).notNull(),
   isArtist: integer("is_artist").default(0).notNull(),
+  premiumNoWatermark: integer("premium_no_watermark").default(0).notNull(), // Remove watermark feature
+  premiumNoAds: integer("premium_no_ads").default(0).notNull(), // Remove ads feature (like Spotify Premium)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
