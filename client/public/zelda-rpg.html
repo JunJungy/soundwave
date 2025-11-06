@@ -219,8 +219,93 @@
         @media (max-width: 768px) {
             #mobile-controls { display: block; }
             #controls { display: none; }
-            #hud { font-size: 11px; padding: 10px; min-width: 180px; }
-            #inventory { font-size: 11px; padding: 10px; min-width: 150px; }
+            
+            #hud {
+                font-size: 10px;
+                padding: 8px;
+                top: 5px;
+                left: 5px;
+                min-width: 150px;
+                max-width: 170px;
+            }
+            #hud h2 {
+                font-size: 12px;
+                margin-bottom: 5px;
+            }
+            .stat-label {
+                font-size: 9px;
+            }
+            .bar-container {
+                width: 130px;
+                height: 16px;
+            }
+            .stat-row {
+                font-size: 11px;
+                margin: 3px 0;
+            }
+            
+            #inventory {
+                font-size: 10px;
+                padding: 8px;
+                top: 5px;
+                right: 5px;
+                min-width: 120px;
+                max-width: 140px;
+            }
+            #inventory h3 {
+                font-size: 11px;
+                margin-bottom: 5px;
+            }
+            .item {
+                font-size: 10px;
+                padding: 4px;
+                margin: 3px 0;
+            }
+            
+            #dpad {
+                width: 100px;
+                height: 100px;
+                bottom: 15px;
+                left: 15px;
+            }
+            .dpad-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+            
+            #attack-btn {
+                width: 65px;
+                height: 65px;
+                bottom: 30px;
+                right: 20px;
+                font-size: 11px;
+            }
+            
+            #message {
+                font-size: 13px;
+                padding: 10px 20px;
+                bottom: 130px;
+                max-width: 90%;
+            }
+            
+            #game-over {
+                padding: 25px;
+                max-width: 90%;
+            }
+            #game-over h1 {
+                font-size: 28px;
+                margin-bottom: 15px;
+            }
+            #game-over .stats {
+                font-size: 14px;
+                margin: 15px 0;
+            }
+            #game-over button {
+                padding: 12px 20px;
+                font-size: 14px;
+                margin: 5px;
+            }
         }
     </style>
 </head>
