@@ -254,8 +254,6 @@ function AppContent() {
         open={artistApplicationOpen}
         onOpenChange={setArtistApplicationOpen}
       />
-
-      <Toaster />
     </>
   );
 }
@@ -266,6 +264,7 @@ export default function App() {
       <TooltipProvider>
         <MusicPlayerProvider>
           <AppContent />
+          <Toaster />
         </MusicPlayerProvider>
       </TooltipProvider>
     </QueryClientProvider>
