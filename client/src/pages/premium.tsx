@@ -1,48 +1,135 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { EyeOff, Check, Volume2, Sparkles } from "lucide-react";
+import { EyeOff, Check, Volume2, Sparkles, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { queryClient } from "@/lib/queryClient";
 
-export default function Premium() {
-  const { user } = useAuth();
+if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
+}
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+
+// Payment form component for premium features
+function PremiumPaymentForm({ 
+  clientSecret, 
+  featureName,
+  onSuccess, 
+  onCancel 
+}: { 
+  clientSecret: string; 
+  featureName: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
   const { toast } = useToast();
-  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const purchaseMutation = useMutation({
-    mutationFn: async (featureId: string) => {
-      const response = await fetch("/api/premium/purchase", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ featureId }),
-      });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to create checkout session");
-      }
+    if (!stripe || !elements) {
+      return;
+    }
 
-      return response.json();
-    },
-    onSuccess: (data) => {
-      if (data.url) {
-        // Redirect to Stripe checkout
-        window.location.href = data.url;
-      }
-    },
-    onError: (error: Error) => {
+    setIsProcessing(true);
+
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: window.location.origin,
+      },
+      redirect: "if_required",
+    });
+
+    if (error) {
+      setIsProcessing(false);
       toast({
-        title: "Error",
+        title: "Payment Failed",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
+    } else if (paymentIntent && paymentIntent.status === "succeeded") {
+      // Call activation endpoint to verify and activate the feature
+      try {
+        const response = await fetch("/api/premium/activate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Failed to activate feature");
+        }
+
+        toast({
+          title: "Payment Successful!",
+          description: `${featureName} has been activated on your account.`,
+        });
+        onSuccess();
+      } catch (error: any) {
+        toast({
+          title: "Activation Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      <div className="flex gap-2">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+          disabled={isProcessing}
+          className="flex-1"
+          data-testid="button-cancel-payment"
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={!stripe || isProcessing}
+          className="flex-1"
+          data-testid="button-submit-payment"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Complete Payment"
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+export default function Premium() {
+  const { user, refetchUser } = useAuth();
+  const { toast } = useToast();
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
 
   const features = [
     {
@@ -73,10 +160,85 @@ export default function Premium() {
     },
   ];
 
-  const handlePurchase = (featureId: string) => {
+  const handlePurchase = async (featureId: string) => {
     setSelectedFeature(featureId);
-    purchaseMutation.mutate(featureId);
+    setIsCreatingPayment(true);
+
+    try {
+      const response = await fetch("/api/premium/purchase", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ featureId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create payment");
+      }
+
+      const data = await response.json();
+      setClientSecret(data.clientSecret);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setSelectedFeature(null);
+    } finally {
+      setIsCreatingPayment(false);
+    }
   };
+
+  const handlePaymentSuccess = async () => {
+    setClientSecret(null);
+    setSelectedFeature(null);
+    await refetchUser();
+    queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+  };
+
+  const handleCancelPayment = () => {
+    setClientSecret(null);
+    setSelectedFeature(null);
+  };
+
+  // If payment is in progress, show the payment form
+  if (clientSecret && selectedFeature) {
+    const feature = features.find(f => f.id === selectedFeature);
+    if (!feature) return null;
+
+    return (
+      <div className="min-h-screen pb-24">
+        <div className="px-6 py-8 max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <feature.icon className="h-6 w-6 text-primary" />
+                <div>
+                  <CardTitle>Complete Purchase</CardTitle>
+                  <CardDescription>
+                    {feature.title} - ${feature.price}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Elements stripe={stripePromise} options={{ clientSecret }}>
+                <PremiumPaymentForm 
+                  clientSecret={clientSecret}
+                  featureName={feature.title}
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={handleCancelPayment}
+                />
+              </Elements>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-24">
@@ -176,15 +338,15 @@ export default function Premium() {
                     className="w-full"
                     disabled={
                       hasFeature ||
-                      (purchaseMutation.isPending && selectedFeature === feature.id)
+                      (isCreatingPayment && selectedFeature === feature.id)
                     }
                     onClick={() => handlePurchase(feature.id)}
                     data-testid={`button-purchase-${feature.id}`}
                   >
                     {hasFeature
                       ? "Already Purchased"
-                      : purchaseMutation.isPending && selectedFeature === feature.id
-                      ? "Processing..."
+                      : isCreatingPayment && selectedFeature === feature.id
+                      ? "Preparing Payment..."
                       : `Purchase for $${feature.price}`}
                   </Button>
                 </CardContent>

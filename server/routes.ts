@@ -881,6 +881,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe payment intent for premium features - Reference: blueprint:javascript_stripe
+  app.post("/api/premium/purchase", isAuthenticated, async (req: any, res) => {
+    try {
+      const { featureId } = req.body;
+      
+      if (!featureId) {
+        return res.status(400).json({ message: "Feature ID is required" });
+      }
+
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Define premium features and pricing
+      const features: Record<string, { price: number; name: string; column: 'premiumNoWatermark' | 'premiumNoAds' }> = {
+        remove_watermark: { price: 5, name: "Remove Watermark", column: 'premiumNoWatermark' },
+        remove_ads: { price: 10, name: "Ad-Free Music", column: 'premiumNoAds' },
+      };
+
+      const feature = features[featureId];
+      if (!feature) {
+        return res.status(400).json({ message: "Invalid feature ID" });
+      }
+
+      // Check if user already has this feature
+      if (user[feature.column] === 1) {
+        return res.status(400).json({ message: "You already have this feature" });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(feature.price * 100), // Convert to cents
+        currency: "usd",
+        payment_method_types: ['card'],
+        metadata: {
+          userId: req.session.userId,
+          featureId: featureId,
+          featureName: feature.name,
+        },
+      });
+      
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        amount: feature.price
+      });
+    } catch (error: any) {
+      console.error("Error creating premium payment intent:", error);
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Activate premium feature after successful payment
+  app.post("/api/premium/activate", isAuthenticated, async (req: any, res) => {
+    try {
+      const { paymentIntentId } = req.body;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: "Payment intent ID is required" });
+      }
+
+      const userId = req.session.userId;
+
+      // Retrieve and verify the payment intent
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({ message: "Payment not completed" });
+      }
+
+      if (paymentIntent.metadata.userId !== userId) {
+        return res.status(403).json({ message: "Payment belongs to different user" });
+      }
+
+      const featureId = paymentIntent.metadata.featureId;
+      const features: Record<string, { column: 'premiumNoWatermark' | 'premiumNoAds' }> = {
+        remove_watermark: { column: 'premiumNoWatermark' },
+        remove_ads: { column: 'premiumNoAds' },
+      };
+
+      const feature = features[featureId];
+      if (!feature) {
+        return res.status(400).json({ message: "Invalid feature ID" });
+      }
+
+      // Activate the premium feature
+      const updatedUser = await storage.updateUser(userId, {
+        [feature.column]: 1,
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { passwordHash: _, ...safeUser } = updatedUser;
+      res.json(safeUser);
+    } catch (error: any) {
+      console.error("Error activating premium feature:", error);
+      res.status(500).json({ message: "Error activating feature: " + error.message });
+    }
+  });
+
   // Admin user management endpoints
   app.get("/api/admin/users", isAuthenticated, async (req: any, res) => {
     try {
