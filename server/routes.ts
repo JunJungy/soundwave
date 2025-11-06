@@ -7,7 +7,7 @@ import { setupSession, isAuthenticated, checkIpBan, checkUserBan, getClientIp } 
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import Stripe from "stripe";
-import { sendBanNotification } from "./discord-bot";
+import { sendBanNotification, sendModerationWarning } from "./discord-bot";
 import { WatermarkService } from "./watermark";
 import { moderateImage, moderateUsername } from "./moderation";
 
@@ -18,6 +18,88 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-10-29.clover",
 });
+
+// Helper function to handle moderation violations
+async function handleModerationViolation(params: {
+  userId: string;
+  username: string;
+  violationType: string;
+  violationContent?: string;
+  reason?: string;
+  category?: string;
+}): Promise<{ shouldBlock: boolean; warningCount: number }> {
+  const { userId, username, violationType, violationContent, reason, category } = params;
+
+  // Get user to check if they're the owner
+  const user = await storage.getUser(userId);
+  if (!user) {
+    return { shouldBlock: true, warningCount: 0 };
+  }
+
+  // Owner (Jinsoo) is exempt from bans - only log the warning
+  const isOwner = user.username === "Jinsoo";
+  if (isOwner) {
+    console.log(`[Moderation] Owner account ${username} flagged but exempt from ban:`, reason);
+    return { shouldBlock: false, warningCount: 0 };
+  }
+
+  // Increment user warnings
+  const updatedUser = await storage.incrementUserWarnings(userId);
+  if (!updatedUser) {
+    return { shouldBlock: true, warningCount: 0 };
+  }
+
+  const warningCount = updatedUser.moderationWarnings;
+
+  // Create warning record
+  await storage.createModerationWarning({
+    userId,
+    username,
+    violationType,
+    violationContent,
+    reason,
+    category,
+    discordNotified: 0,
+  });
+
+  // Send Discord DM warning
+  const notificationSent = await sendModerationWarning({
+    userId,
+    discordId: user.discordId || undefined,
+    username,
+    violationType,
+    violationContent,
+    reason,
+    category,
+    warningCount,
+  });
+
+  // Update warning record with notification status
+  if (notificationSent) {
+    console.log(`[Moderation] Discord warning sent to ${username} (${warningCount}/3)`);
+  }
+
+  // Auto-ban at 3 warnings
+  if (warningCount >= 3) {
+    await storage.banUser(userId, userId, `Automatic ban: 3 moderation warnings (${violationType})`);
+    console.log(`[Moderation] User ${username} auto-banned after 3 warnings`);
+    
+    // Send ban notification to Discord channel
+    await sendBanNotification({
+      type: 'user_ban',
+      username,
+      userId,
+      reason: `Automatic ban: 3 moderation warnings (last: ${violationType})`,
+      adminUsername: 'Soundwave Moderation System',
+    });
+    
+    return { shouldBlock: true, warningCount };
+  }
+
+  // For warnings 1-2, allow the action but log it
+  console.log(`[Moderation] Warning ${warningCount}/3 issued to ${username} for ${violationType}`);
+  return { shouldBlock: false, warningCount };
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
@@ -72,17 +154,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const objectStorageService = new ObjectStorageService();
       
+      // Get user for moderation checks
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
       // Moderate images before setting ACL (check if it's an image file from URL)
       const isImage = req.body.objectURL.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i);
       if (isImage) {
         const moderationResult = await moderateImage(req.body.objectURL);
         
         if (!moderationResult.isSafe) {
-          return res.status(400).json({ 
-            error: "Image contains inappropriate content", 
+          // Issue warning instead of blocking (unless extreme)
+          const isExtreme = moderationResult.category?.toLowerCase().includes('extreme') || 
+                           moderationResult.category?.toLowerCase().includes('illegal');
+          
+          if (isExtreme) {
+            // Block extreme content immediately and issue warning
+            await handleModerationViolation({
+              userId,
+              username: user.username,
+              violationType: 'album_artwork_extreme',
+              violationContent: req.body.objectURL,
+              reason: moderationResult.reason,
+              category: moderationResult.category,
+            });
+            
+            return res.status(400).json({ 
+              error: "Image contains inappropriate content and has been blocked", 
+              reason: moderationResult.reason,
+              category: moderationResult.category 
+            });
+          }
+          
+          // For non-extreme violations, issue warning but allow upload
+          const { shouldBlock, warningCount } = await handleModerationViolation({
+            userId,
+            username: user.username,
+            violationType: 'album_artwork',
+            violationContent: req.body.objectURL,
             reason: moderationResult.reason,
-            category: moderationResult.category 
+            category: moderationResult.category,
           });
+          
+          if (shouldBlock) {
+            // User has been banned (3 warnings)
+            return res.status(403).json({ 
+              error: "Your account has been banned due to repeated content policy violations",
+              warningCount 
+            });
+          }
+          
+          // Warning issued but allow upload to continue
+          console.log(`[Moderation] Warning issued to ${user.username} for album artwork, but upload allowed`);
         }
       }
       
