@@ -54,3 +54,12 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Form Validation**: React Hook Form, Zod
 - **Spotify API**: `@spotify/web-api-ts-sdk` (helper module)
 - **SMTP**: For email notifications (requires configuration)
+
+## Deployment Instructions
+**IMPORTANT**: Before publishing, run the deployment preparation script to ensure game files are included:
+
+```bash
+./prepare-deploy.sh
+```
+
+This copies game HTML files from `client/public/` to `dist/public/` so they're available in the published version. See `DEPLOYMENT.md` for full details.
