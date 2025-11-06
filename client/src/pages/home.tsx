@@ -262,7 +262,7 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">Welcome to Soundwave!</DialogTitle>
             <DialogDescription className="text-base">
-              Powered by VOID Main
+              Powered by VOID AI
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
