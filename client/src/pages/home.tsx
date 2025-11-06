@@ -2,12 +2,30 @@ import { useQuery } from "@tanstack/react-query";
 import { AlbumCard } from "@/components/album-card";
 import { useLocation } from "wouter";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
-import { Star } from "lucide-react";
+import { Star, ExternalLink } from "lucide-react";
 import type { Album, Playlist, Song } from "@shared/schema";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { playQueue } = useMusicPlayer();
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
+
+  useEffect(() => {
+    const hasSeenAnnouncement = localStorage.getItem("voidmain-announcement-seen");
+    if (!hasSeenAnnouncement) {
+      setTimeout(() => setShowAnnouncement(true), 1000);
+    }
+  }, []);
+
+  const handleDismiss = (permanent: boolean) => {
+    setShowAnnouncement(false);
+    if (permanent) {
+      localStorage.setItem("voidmain-announcement-seen", "true");
+    }
+  };
 
   const { data: albums = [], isLoading: albumsLoading } = useQuery<Album[]>({
     queryKey: ["/api/albums"],
@@ -237,6 +255,58 @@ export default function Home() {
           })}
         </div>
       </section>
+
+      {/* VOID Main Announcement */}
+      <Dialog open={showAnnouncement} onOpenChange={() => handleDismiss(false)}>
+        <DialogContent className="max-w-md" data-testid="dialog-voidmain-announcement">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Welcome to Soundwave!</DialogTitle>
+            <DialogDescription className="text-base">
+              Powered by VOID Main
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-muted-foreground">
+              Soundwave is part of the VOID Main ecosystem - your hub for innovative digital experiences, 
+              tools, and creative platforms.
+            </p>
+            <div className="rounded-lg border bg-muted/50 p-4">
+              <p className="text-sm font-medium mb-2">Explore VOID Main</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Discover more amazing projects, tools, and platforms at our main website.
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  window.open("https://voidmain.xyz", "_blank");
+                  handleDismiss(true);
+                }}
+                data-testid="button-visit-voidmain"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Visit voidmain.xyz
+              </Button>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleDismiss(false)}
+              className="flex-1"
+              data-testid="button-remind-later"
+            >
+              Remind Me Later
+            </Button>
+            <Button
+              onClick={() => handleDismiss(true)}
+              className="flex-1"
+              data-testid="button-dont-show-again"
+            >
+              Don't Show Again
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
