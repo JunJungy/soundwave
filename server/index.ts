@@ -4,39 +4,6 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { startDiscordBot } from "./discord-bot";
-import { copyFileSync, existsSync, mkdirSync } from "fs";
-
-// Copy game files to dist/public in production if they don't exist
-const ensureGameFilesInProduction = () => {
-  if (process.env.NODE_ENV === 'production') {
-    const sourceDir = path.resolve(import.meta.dirname, '..', 'client', 'public');
-    const destDir = path.resolve(import.meta.dirname, 'public');
-    const gameFiles = ['flight-simulator.html', 'zelda-rpg.html', 'demo-game.html'];
-
-    // Ensure destination directory exists
-    if (!existsSync(destDir)) {
-      mkdirSync(destDir, { recursive: true });
-    }
-
-    // Copy each game file if it doesn't exist
-    gameFiles.forEach(file => {
-      const source = path.resolve(sourceDir, file);
-      const dest = path.resolve(destDir, file);
-      
-      if (existsSync(source) && !existsSync(dest)) {
-        try {
-          copyFileSync(source, dest);
-          console.log(`✓ Copied ${file} to production directory`);
-        } catch (error) {
-          console.error(`Failed to copy ${file}:`, error);
-        }
-      }
-    });
-  }
-};
-
-// Ensure game files are available in production
-ensureGameFilesInProduction();
 
 const app = express();
 
@@ -57,12 +24,6 @@ app.use(express.urlencoded({ extended: false }));
 
 // Serve attached_assets folder for album covers and audio files
 app.use('/attached_assets', express.static(path.resolve(import.meta.dirname, '..', 'attached_assets')));
-
-// Serve game HTML files - different paths for dev vs production
-const gameFilesPath = app.get('env') === 'development'
-  ? path.resolve(import.meta.dirname, '..', 'client', 'public')
-  : path.resolve(import.meta.dirname, 'public');
-app.use(express.static(gameFilesPath));
 
 app.use((req, res, next) => {
   const start = Date.now();

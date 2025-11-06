@@ -31,7 +31,6 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Follow Artists**: Users can follow/unfollow artists and view follower counts.
 - **Personal Playlists**: Users can create, manage, and edit private playlists.
 - **Discord Integration**: Users can create accounts via Discord, link existing accounts, and manage Discord binding via a settings page. A ban appeals system is integrated, allowing users to submit appeals which are reviewed in the admin panel with email notifications.
-- **Games Platform**: Comprehensive gaming system allowing admins to upload and manage games (iframe-embedded or external links). Users can play games directly on the platform and compete on global leaderboards. Features include game CRUD operations, automatic score tracking, real-time leaderboards with top 10 scores, and user-specific score history.
 
 ### Feature Specifications
 - **User Management**: Secure registration, login, session management, and admin-level user/ban control.
@@ -41,7 +40,6 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **User Premium Features**: Account-level upgrades accessible from sidebar Premium link. Two tiers: Remove Watermark ($5) removes Soundwave logo from uploaded album artwork, Ad-Free Music ($10) removes advertisements between songs. Uses Stripe payment intents with instant activation.
 - **Monetization Features**: Payment-gated song promotion with visual indicators (Featured badge for global promotion, Multi-Platform badge for distribution). Premium user badges display active features.
 - **Expandable Music Player**: Spotify-style mini and full-screen player views.
-- **Games Platform**: Browse and play games with leaderboard tracking. Admins can manage games through the admin panel with full CRUD capabilities.
 
 ## External Dependencies
 - **Database**: PostgreSQL
@@ -61,4 +59,4 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Payment Processing**: Stripe for premium feature purchases
 
 ## Deployment Instructions
-Simply click the **Publish** button in Replit! The server automatically copies game files from `client/public/` to `dist/public/` on production startup, ensuring games are always available in the published version. See `DEPLOYMENT.md` for details.
+Simply click the **Publish** button in Replit! See `DEPLOYMENT.md` for details.
