@@ -136,6 +136,111 @@
         #game-over button:hover {
             background: #ff4444;
         }
+        
+        /* Mobile Controls */
+        #mobile-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 250px;
+            display: none;
+            z-index: 50;
+        }
+        #joystick-area {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 150px;
+            height: 150px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #0ff;
+            border-radius: 50%;
+            touch-action: none;
+        }
+        #joystick {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 255, 0.5);
+            border: 2px solid #0ff;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .mobile-button {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: rgba(0, 255, 0, 0.3);
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            color: #0f0;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            user-select: none;
+        }
+        .mobile-button:active {
+            background: rgba(0, 255, 0, 0.6);
+        }
+        #throttle-up {
+            bottom: 140px;
+            right: 20px;
+        }
+        #throttle-down {
+            bottom: 60px;
+            right: 20px;
+        }
+        #camera-btn {
+            bottom: 20px;
+            right: 100px;
+            background: rgba(255, 255, 0, 0.3);
+            border-color: #ff0;
+            color: #ff0;
+            width: 60px;
+            height: 60px;
+            font-size: 12px;
+        }
+        #camera-btn:active {
+            background: rgba(255, 255, 0, 0.6);
+        }
+        
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: block;
+            }
+            #controls {
+                display: none;
+            }
+            #hud {
+                font-size: 11px;
+                padding: 8px;
+                top: 10px;
+                left: 10px;
+                min-width: 180px;
+            }
+            #camera-info {
+                top: 10px;
+                right: 10px;
+                font-size: 11px;
+                padding: 6px;
+            }
+            #aircraft-selector {
+                top: 70px;
+                right: 10px;
+                padding: 6px;
+            }
+            #aircraft-selector button {
+                padding: 6px;
+                font-size: 11px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -180,6 +285,15 @@
         <div id="final-stats"></div>
         <button onclick="restart()">RESTART</button>
         <button onclick="submitScore()">SUBMIT SCORE</button>
+    </div>
+
+    <div id="mobile-controls">
+        <div id="joystick-area">
+            <div id="joystick"></div>
+        </div>
+        <div id="throttle-up" class="mobile-button">▲</div>
+        <div id="throttle-down" class="mobile-button">▼</div>
+        <div id="camera-btn" class="mobile-button">CAM</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -271,7 +385,99 @@
             window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
             window.addEventListener('keydown', handleKeyPress);
 
+            // Mobile touch controls
+            setupMobileControls();
+
             animate();
+        }
+
+        // Mobile controls setup
+        function setupMobileControls() {
+            const joystickArea = document.getElementById('joystick-area');
+            const joystick = document.getElementById('joystick');
+            const throttleUp = document.getElementById('throttle-up');
+            const throttleDown = document.getElementById('throttle-down');
+            const cameraBtn = document.getElementById('camera-btn');
+
+            let joystickActive = false;
+            let joystickCenter = { x: 0, y: 0 };
+
+            // Joystick for pitch and roll
+            joystickArea.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                joystickActive = true;
+                const rect = joystickArea.getBoundingClientRect();
+                joystickCenter = {
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2
+                };
+            });
+
+            joystickArea.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!joystickActive) return;
+
+                const touch = e.touches[0];
+                const dx = touch.clientX - joystickCenter.x;
+                const dy = touch.clientY - joystickCenter.y;
+
+                // Limit joystick movement to circle
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const maxDistance = 45;
+                const limitedDistance = Math.min(distance, maxDistance);
+                const angle = Math.atan2(dy, dx);
+
+                const joyX = Math.cos(angle) * limitedDistance;
+                const joyY = Math.sin(angle) * limitedDistance;
+
+                joystick.style.transform = `translate(calc(-50% + ${joyX}px), calc(-50% + ${joyY}px))`;
+
+                // Map joystick to controls
+                const config = aircraftTypes[currentAircraft];
+                angularVelocity.z = -(joyX / maxDistance) * config.rollSpeed * 2;
+                angularVelocity.x = (joyY / maxDistance) * config.pitchSpeed * 2;
+            });
+
+            joystickArea.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                joystickActive = false;
+                joystick.style.transform = 'translate(-50%, -50%)';
+            });
+
+            // Throttle up button
+            let throttleUpInterval;
+            throttleUp.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                throttleUpInterval = setInterval(() => {
+                    if (fuel > 0) {
+                        throttle = Math.min(100, throttle + 2);
+                    }
+                }, 50);
+            });
+            throttleUp.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                clearInterval(throttleUpInterval);
+            });
+
+            // Throttle down button
+            let throttleDownInterval;
+            throttleDown.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                throttleDownInterval = setInterval(() => {
+                    throttle = Math.max(0, throttle - 2);
+                }, 50);
+            });
+            throttleDown.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                clearInterval(throttleDownInterval);
+            });
+
+            // Camera button
+            cameraBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                cameraMode = (cameraMode + 1) % 3;
+                document.getElementById('camera-mode').textContent = cameraModes[cameraMode];
+            });
         }
 
         function createAircraft() {
