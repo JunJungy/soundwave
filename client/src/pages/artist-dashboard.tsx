@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Music, Disc, ArrowLeft, Upload, BadgeCheck, Settings, Trash2, Star, Globe } from "lucide-react";
+import { Music, Disc, ArrowLeft, Upload, BadgeCheck, Settings, Trash2, Star, Globe, Sparkles } from "lucide-react";
 import { UploadSongDialog } from "@/components/upload-song-dialog";
 
 export default function ArtistDashboard() {
@@ -194,6 +194,14 @@ export default function ArtistDashboard() {
           </div>
         </div>
         <div className="flex gap-3">
+          <Button 
+            onClick={() => navigate("/premium")} 
+            variant="default"
+            data-testid="button-premium"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Promote Songs
+          </Button>
           <Button 
             onClick={() => navigate("/edit-artist-profile")} 
             variant="outline"

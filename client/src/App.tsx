@@ -28,6 +28,7 @@ import PlaylistPage from "@/pages/playlist";
 import AdminPanel from "@/pages/admin-panel";
 import ArtistDashboard from "@/pages/artist-dashboard";
 import EditArtistProfile from "@/pages/edit-artist-profile";
+import Premium from "@/pages/premium";
 import FollowingPage from "@/pages/following";
 import Settings from "@/pages/settings";
 import Games from "@/pages/games";
@@ -72,6 +73,7 @@ function Router() {
       <Route path="/admin-panel" component={AdminPanel} />
       <Route path="/artist-dashboard" component={ArtistDashboard} />
       <Route path="/edit-artist-profile" component={EditArtistProfile} />
+      <Route path="/premium" component={Premium} />
       <Route path="/banned" component={Banned} />
       <Route component={NotFound} />
     </Switch>
