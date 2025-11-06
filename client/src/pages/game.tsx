@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
+import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +20,7 @@ export default function GamePage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const gameId = params?.id;
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const { data: game, isLoading: gameLoading } = useQuery<Game>({
     queryKey: ["/api/games", gameId],
@@ -35,6 +37,61 @@ export default function GamePage() {
     queryKey: ["/api/games", gameId, "user-best"],
     enabled: !!gameId,
   });
+
+  const submitScoreMutation = useMutation({
+    mutationFn: async ({ score, metadata }: { score: number; metadata?: any }) => {
+      return await apiRequest(`/api/games/${gameId}/score`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ score, metadata }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/games", gameId, "leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/games", gameId, "user-best"] });
+      toast({
+        title: "Score Submitted!",
+        description: "Your score has been added to the leaderboard.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Submit Score",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Listen for score submissions from iframe games
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // SECURITY: Only accept messages from same origin
+      const allowedOrigin = window.location.origin;
+      
+      if (event.origin !== allowedOrigin) {
+        console.warn('Rejected score submission from untrusted origin:', event.origin);
+        return;
+      }
+
+      // SECURITY: Verify message source is from the iframe (not arbitrary scripts)
+      if (iframeRef.current && event.source !== iframeRef.current.contentWindow) {
+        console.warn('Rejected score submission from non-iframe source');
+        return;
+      }
+
+      // Verify message is for score submission
+      if (event.data?.type === "SUBMIT_SCORE" && event.data?.gameId === gameId) {
+        const { score, metadata } = event.data;
+        if (typeof score === 'number' && score >= 0) {
+          submitScoreMutation.mutate({ score, metadata });
+        }
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [gameId, submitScoreMutation]);
 
   if (!gameId) {
     return (
@@ -119,6 +176,7 @@ export default function GamePage() {
               <div className="aspect-video w-full">
                 {game.gameType === 'iframe' ? (
                   <iframe
+                    ref={iframeRef}
                     src={game.gameUrl}
                     className="w-full h-full border-0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

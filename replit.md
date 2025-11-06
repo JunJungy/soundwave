@@ -31,12 +31,14 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Follow Artists**: Users can follow/unfollow artists and view follower counts.
 - **Personal Playlists**: Users can create, manage, and edit private playlists.
 - **Discord Integration**: Users can create accounts via Discord, link existing accounts, and manage Discord binding via a settings page. A ban appeals system is integrated, allowing users to submit appeals which are reviewed in the admin panel with email notifications.
+- **Games Platform**: Comprehensive gaming system allowing admins to upload and manage games (iframe-embedded or external links). Users can play games directly on the platform and compete on global leaderboards. Features include game CRUD operations, automatic score tracking, real-time leaderboards with top 10 scores, and user-specific score history.
 
 ### Feature Specifications
 - **User Management**: Secure registration, login, session management, and admin-level user/ban control.
 - **Music Browsing & Search**: Explore content and search across songs, artists, albums, and playlists.
 - **Artist Dashboard**: Interface for artists to manage music, profiles, and uploads with scheduled releases.
 - **Expandable Music Player**: Spotify-style mini and full-screen player views.
+- **Games Platform**: Browse and play games with leaderboard tracking. Admins can manage games through the admin panel with full CRUD capabilities.
 
 ## External Dependencies
 - **Database**: PostgreSQL

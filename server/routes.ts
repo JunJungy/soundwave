@@ -1419,18 +1419,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple in-memory rate limiting for score submissions
+  const scoreSubmissionTracker = new Map<string, number[]>();
+  const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+  const MAX_SUBMISSIONS_PER_MINUTE = 10;
+
   // Submit score for a game (requires authentication)
   app.post("/api/games/:id/score", isAuthenticated, async (req: any, res) => {
     try {
       const { score, metadata } = req.body;
       const userId = req.session.userId;
+      const gameId = req.params.id;
 
-      if (typeof score !== 'number') {
-        return res.status(400).json({ error: "Score must be a number" });
+      // Rate limiting: prevent spam submissions
+      const userGameKey = `${userId}:${gameId}`;
+      const now = Date.now();
+      const submissions = scoreSubmissionTracker.get(userGameKey) || [];
+      
+      // Clean old submissions outside the window
+      const recentSubmissions = submissions.filter(timestamp => now - timestamp < RATE_LIMIT_WINDOW);
+      
+      if (recentSubmissions.length >= MAX_SUBMISSIONS_PER_MINUTE) {
+        return res.status(429).json({ 
+          error: "Too many score submissions. Please wait before submitting again." 
+        });
+      }
+      
+      // Track this submission
+      recentSubmissions.push(now);
+      scoreSubmissionTracker.set(userGameKey, recentSubmissions);
+
+      // Validation: score must be a positive number
+      if (typeof score !== 'number' || score < 0) {
+        return res.status(400).json({ error: "Score must be a positive number" });
+      }
+
+      // Validation: score must be finite (not Infinity or NaN)
+      if (!Number.isFinite(score)) {
+        return res.status(400).json({ error: "Score must be a valid finite number" });
+      }
+
+      // Verify game exists and is active
+      const game = await storage.getGame(gameId);
+      if (!game) {
+        return res.status(404).json({ error: "Game not found" });
+      }
+
+      if (game.isActive !== 1) {
+        return res.status(403).json({ error: "Game is not active" });
       }
 
       const gameScore = await storage.submitScore({
-        gameId: req.params.id,
+        gameId,
         userId,
         score,
         metadata: metadata || null,

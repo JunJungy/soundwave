@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click Counter Demo Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+        }
+        .game-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .score-display {
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 2rem 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .click-button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 1.5rem 3rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .click-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .click-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        .submit-button {
+            margin-top: 2rem;
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .submit-button:hover {
+            opacity: 0.9;
+        }
+        .submit-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .timer {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+        .instructions {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        .status {
+            margin-top: 1rem;
+            font-size: 1rem;
+            min-height: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎮 Click Challenge</h1>
+        <div class="timer" id="timer">Time: 30s</div>
+        <div class="score-display" id="score">0</div>
+        <button class="click-button" id="clickBtn" onclick="incrementScore()">
+            CLICK ME!
+        </button>
+        <button class="submit-button" id="submitBtn" onclick="submitScore()" disabled>
+            Submit Score
+        </button>
+        <div class="status" id="status"></div>
+        <div class="instructions">
+            Click as many times as you can in 30 seconds!<br>
+            Your score will be submitted to the leaderboard.
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        let timeLeft = 30;
+        let gameActive = true;
+        let gameId = null;
+
+        // Extract gameId from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        gameId = urlParams.get('gameId');
+
+        // If no gameId in URL, try to get it from parent window
+        if (!gameId && window.parent !== window) {
+            // Request gameId from parent
+            window.parent.postMessage({ type: 'REQUEST_GAME_ID' }, '*');
+            
+            // Listen for response
+            window.addEventListener('message', (event) => {
+                if (event.data?.type === 'GAME_ID_RESPONSE') {
+                    gameId = event.data.gameId;
+                }
+            });
+        }
+
+        // Timer countdown
+        const timerInterval = setInterval(() => {
+            if (timeLeft > 0 && gameActive) {
+                timeLeft--;
+                document.getElementById('timer').textContent = `Time: ${timeLeft}s`;
+                
+                if (timeLeft === 0) {
+                    endGame();
+                }
+            }
+        }, 1000);
+
+        function incrementScore() {
+            if (gameActive) {
+                score++;
+                document.getElementById('score').textContent = score;
+                
+                // Add click animation
+                const btn = document.getElementById('clickBtn');
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    btn.style.transform = 'scale(1)';
+                }, 100);
+            }
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            document.getElementById('clickBtn').disabled = true;
+            document.getElementById('clickBtn').style.opacity = '0.5';
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('status').textContent = '⏰ Time\'s up! Submit your score!';
+        }
+
+        function submitScore() {
+            if (!gameId) {
+                // Try to extract from current URL path
+                const pathParts = window.location.pathname.split('/');
+                const gameIndex = pathParts.indexOf('game');
+                if (gameIndex !== -1 && pathParts[gameIndex + 1]) {
+                    gameId = pathParts[gameIndex + 1];
+                }
+            }
+
+            const scoreData = {
+                type: 'SUBMIT_SCORE',
+                gameId: gameId,
+                score: score,
+                metadata: {
+                    timeCompleted: 30 - timeLeft,
+                    clicksPerSecond: (score / 30).toFixed(2)
+                }
+            };
+
+            // Send score to parent window (Soundwave platform)
+            if (window.parent !== window) {
+                window.parent.postMessage(scoreData, '*');
+                document.getElementById('status').textContent = '✅ Score submitted!';
+                document.getElementById('submitBtn').disabled = true;
+            } else {
+                // If not in iframe, show score
+                document.getElementById('status').textContent = `Score: ${score} (Not in iframe - can't submit)`;
+            }
+        }
+
+        // Allow Enter key to click
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && gameActive) {
+                incrementScore();
+            }
+        });
+    </script>
+</body>
+</html>
