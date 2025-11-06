@@ -9,6 +9,7 @@ import { ObjectPermission } from "./objectAcl";
 import Stripe from "stripe";
 import { sendBanNotification } from "./discord-bot";
 import { WatermarkService } from "./watermark";
+import { moderateImage, moderateUsername } from "./moderation";
 
 // Initialize Stripe - Reference: blueprint:javascript_stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -70,6 +71,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const objectStorageService = new ObjectStorageService();
+      
+      // Moderate images before setting ACL (check if it's an image file from URL)
+      const isImage = req.body.objectURL.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i);
+      if (isImage) {
+        const moderationResult = await moderateImage(req.body.objectURL);
+        
+        if (!moderationResult.isSafe) {
+          return res.status(400).json({ 
+            error: "Image contains inappropriate content", 
+            reason: moderationResult.reason,
+            category: moderationResult.category 
+          });
+        }
+      }
+      
       const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
         req.body.objectURL,
         {
@@ -122,6 +138,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Email is required for website registrations
       if (!validatedData.email) {
         return res.status(400).json({ error: "Email is required for registration" });
+      }
+      
+      // Moderate username for inappropriate content
+      const moderationResult = await moderateUsername(validatedData.username);
+      if (!moderationResult.isSafe) {
+        return res.status(400).json({ 
+          error: "Username contains inappropriate content", 
+          reason: moderationResult.reason,
+          category: moderationResult.category 
+        });
       }
       
       // Normalize email to lowercase
