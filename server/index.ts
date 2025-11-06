@@ -25,6 +25,9 @@ app.use(express.urlencoded({ extended: false }));
 // Serve attached_assets folder for album covers and audio files
 app.use('/attached_assets', express.static(path.resolve(import.meta.dirname, '..', 'attached_assets')));
 
+// Serve game HTML files from client/public for both dev and production
+app.use(express.static(path.resolve(import.meta.dirname, '..', 'client', 'public')));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
