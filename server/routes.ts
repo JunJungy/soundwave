@@ -161,9 +161,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
+      // Owner (Jinsoo) is completely exempt from moderation
+      const isOwner = user.username === "Jinsoo";
+      
       // Moderate images before setting ACL (check if it's an image file from URL)
       const isImage = req.body.objectURL.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i);
-      if (isImage) {
+      if (isImage && !isOwner) {
         const moderationResult = await moderateImage(req.body.objectURL);
         
         if (!moderationResult.isSafe) {
@@ -249,30 +252,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email is required for registration" });
       }
       
-      // Moderate username for inappropriate content
-      const moderationResult = await moderateUsername(validatedData.username);
-      if (!moderationResult.isSafe) {
-        // Check if user already exists (for Discord warning)
-        const tempUser = await storage.getUserByEmail(validatedData.email?.trim().toLowerCase() || '');
-        
-        if (tempUser) {
-          // User exists (maybe re-registering), issue warning
-          await handleModerationViolation({
-            userId: tempUser.id,
-            username: validatedData.username,
-            violationType: 'inappropriate_username',
-            violationContent: validatedData.username,
+      // Owner (Jinsoo) is completely exempt from moderation
+      const isOwnerUsername = validatedData.username === "Jinsoo";
+      
+      // Moderate username for inappropriate content (skip for owner)
+      if (!isOwnerUsername) {
+        const moderationResult = await moderateUsername(validatedData.username);
+        if (!moderationResult.isSafe) {
+          // Check if user already exists (for Discord warning)
+          const tempUser = await storage.getUserByEmail(validatedData.email?.trim().toLowerCase() || '');
+          
+          if (tempUser) {
+            // User exists (maybe re-registering), issue warning
+            await handleModerationViolation({
+              userId: tempUser.id,
+              username: validatedData.username,
+              violationType: 'inappropriate_username',
+              violationContent: validatedData.username,
+              reason: moderationResult.reason,
+              category: moderationResult.category,
+            });
+          }
+          
+          // Block registration
+          return res.status(400).json({ 
+            error: "Username contains inappropriate content and has been blocked", 
             reason: moderationResult.reason,
-            category: moderationResult.category,
+            category: moderationResult.category 
           });
         }
-        
-        // Block registration
-        return res.status(400).json({ 
-          error: "Username contains inappropriate content and has been blocked", 
-          reason: moderationResult.reason,
-          category: moderationResult.category 
-        });
       }
       
       // Normalize email to lowercase
