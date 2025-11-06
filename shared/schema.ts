@@ -37,6 +37,7 @@ export const users = pgTable("users", {
   discordLinkCode: varchar("discord_link_code"), // One-time code for linking Discord
   discordLinkCodeExpiry: timestamp("discord_link_code_expiry"), // Code expiration timestamp
   lastIpAddress: varchar("last_ip_address"), // Track user's last login IP
+  moderationWarnings: integer("moderation_warnings").default(0).notNull(), // Count of moderation warnings
   isBanned: integer("is_banned").default(0).notNull(), // 1 = banned, 0 = active
   bannedAt: timestamp("banned_at"), // When user was banned
   bannedBy: varchar("banned_by"), // Admin user ID who banned them
@@ -158,6 +159,18 @@ export const banAppeals = pgTable("ban_appeals", {
   adminResponse: text("admin_response"), // Admin's response message
 });
 
+export const moderationWarnings = pgTable("moderation_warnings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(), // User who received the warning
+  username: varchar("username").notNull(), // Username at time of warning
+  violationType: text("violation_type").notNull(), // "inappropriate_username", "inappropriate_image", etc.
+  violationContent: text("violation_content"), // What they tried to use
+  reason: text("reason"), // AI moderation reason
+  category: text("category"), // AI moderation category
+  discordNotified: integer("discord_notified").default(0).notNull(), // 1 if Discord notification sent
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
 export const updateArtistProfileSchema = z.object({
   imageUrl: z.string().optional().or(z.literal("")),
@@ -190,6 +203,10 @@ export const insertBanAppealSchema = createInsertSchema(banAppeals).omit({
   reviewedBy: true,
   adminResponse: true
 });
+export const insertModerationWarningSchema = createInsertSchema(moderationWarnings).omit({ 
+  id: true, 
+  createdAt: true 
+});
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type UpdateArtistProfile = z.infer<typeof updateArtistProfileSchema>;
@@ -209,3 +226,5 @@ export type ArtistApplication = typeof artistApplications.$inferSelect;
 export type Follow = typeof follows.$inferSelect;
 export type IpBan = typeof ipBans.$inferSelect;
 export type BanAppeal = typeof banAppeals.$inferSelect;
+export type ModerationWarning = typeof moderationWarnings.$inferSelect;
+export type InsertModerationWarning = z.infer<typeof insertModerationWarningSchema>;
