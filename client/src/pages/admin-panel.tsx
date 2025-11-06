@@ -493,19 +493,23 @@ export default function AdminPanel() {
       <Tabs defaultValue="applications" className="space-y-6">
         <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto sm:grid sm:grid-cols-3 lg:grid-cols-5">
           <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap flex-shrink-0">
-            Artist Applications
+            <span className="sm:hidden">Applications</span>
+            <span className="hidden sm:inline">Artist Applications</span>
           </TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap flex-shrink-0">
-            User Management
+            <span className="sm:hidden">Users</span>
+            <span className="hidden sm:inline">User Management</span>
           </TabsTrigger>
           <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap flex-shrink-0">
-            Ban Appeals
+            <span className="sm:hidden">Appeals</span>
+            <span className="hidden sm:inline">Ban Appeals</span>
           </TabsTrigger>
           <TabsTrigger value="games" data-testid="tab-games" className="whitespace-nowrap flex-shrink-0">
             Games
           </TabsTrigger>
           <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap flex-shrink-0">
-            System Tools
+            <span className="sm:hidden">System</span>
+            <span className="hidden sm:inline">System Tools</span>
           </TabsTrigger>
         </TabsList>
 
