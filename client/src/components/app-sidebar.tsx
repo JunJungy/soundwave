@@ -1,4 +1,4 @@
-import { Home, Search, Library, Plus, Shield, Music, Users, Settings, Gamepad2, Sparkles } from "lucide-react";
+import { Home, Search, Library, Plus, Shield, Music, Users, Settings, Sparkles } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -22,7 +22,6 @@ const navigationItems = [
   { title: "Search", url: "/search", icon: Search, testId: "link-search" },
   { title: "Your Library", url: "/library", icon: Library, testId: "link-library" },
   { title: "Following", url: "/following", icon: Users, testId: "link-following" },
-  { title: "Games", url: "/games", icon: Gamepad2, testId: "link-games" },
   { title: "Settings", url: "/settings", icon: Settings, testId: "link-settings" },
 ];
 
