@@ -639,8 +639,13 @@ export function UploadSongDialog({ open, onOpenChange, artistId }: UploadSongDia
                               const uploadURL = result.successful[0].uploadURL;
                               const aclRes = await apiRequest("PUT", "/api/objects/acl", { objectURL: uploadURL });
                               const { objectPath } = await aclRes.json();
-                              field.onChange(objectPath);
-                              setArtworkUrl(objectPath);
+                              
+                              // Apply watermark (server checks premium status)
+                              const watermarkRes = await apiRequest("POST", "/api/objects/watermark", { objectPath });
+                              const { watermarkedPath } = await watermarkRes.json();
+                              
+                              field.onChange(watermarkedPath);
+                              setArtworkUrl(watermarkedPath);
                             }
                           }}
                           buttonVariant="outline"

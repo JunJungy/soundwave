@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Track {
   id: string;
@@ -22,6 +23,7 @@ interface Track {
 interface MusicPlayerContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
+  isPlayingAd: boolean;
   queue: Track[];
   shuffle: boolean;
   repeat: boolean;
@@ -45,8 +47,10 @@ interface MusicPlayerContextType {
 const MusicPlayerContext = createContext<MusicPlayerContextType | undefined>(undefined);
 
 export function MusicPlayerProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlayingAd, setIsPlayingAd] = useState(false);
   const [queue, setQueue] = useState<Track[]>([]);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
@@ -56,6 +60,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const trackedSongRef = useRef<string | null>(null);
+  const nextTrackPendingRef = useRef<Track | null>(null);
 
   useEffect(() => {
     if (!audioRef.current) {
@@ -98,7 +103,8 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (currentTrack?.id && currentTrack.id !== trackedSongRef.current && isPlaying) {
+    // Skip tracking for ad "songs"
+    if (currentTrack?.id && currentTrack.id !== trackedSongRef.current && isPlaying && currentTrack.id !== "ad") {
       trackedSongRef.current = currentTrack.id;
       apiRequest("POST", `/api/songs/${currentTrack.id}/play`).catch((error) => {
         console.error("Failed to track stream:", error);
@@ -146,23 +152,68 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [volume]);
 
+  const playAd = (nextTrack: Track) => {
+    setIsPlayingAd(true);
+    nextTrackPendingRef.current = nextTrack;
+    
+    // Create a simple ad "track" (15 seconds of audio ad)
+    const adTrack: Track = {
+      id: "ad",
+      title: "Advertisement",
+      artist: "Soundwave",
+      duration: 15,
+      audioUrl: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=", // Silent WAV
+    };
+    
+    setCurrentTrack(adTrack);
+    setCurrentTime(0);
+    setIsPlaying(true);
+  };
+
   const handleNextTrack = () => {
     if (queue.length === 0) return;
+    
+    // If we just finished an ad, play the pending track
+    if (isPlayingAd && nextTrackPendingRef.current) {
+      setIsPlayingAd(false);
+      setCurrentTrack(nextTrackPendingRef.current);
+      nextTrackPendingRef.current = null;
+      setCurrentTime(0);
+      setIsPlaying(true);
+      return;
+    }
+    
     const currentIndex = queue.findIndex((t) => t.id === currentTrack?.id);
+    let nextTrack: Track | null = null;
 
     if (currentIndex === -1 || currentIndex === queue.length - 1) {
       if (repeat) {
-        setCurrentTrack(queue[0]);
-        setCurrentTime(0);
-        setIsPlaying(true);
+        nextTrack = queue[0];
       } else {
         setIsPlaying(false);
+        return;
       }
     } else {
-      setCurrentTrack(queue[currentIndex + 1]);
-      setCurrentTime(0);
-      setIsPlaying(true);
+      nextTrack = queue[currentIndex + 1];
     }
+
+    // Check if user has ad-free premium
+    const hasAdFree = user?.premiumNoAds === 1;
+    
+    // Play ad for non-premium users (every 3 songs)
+    if (!hasAdFree && !isPlayingAd && currentTrack?.id !== "ad") {
+      // Simple logic: play ad occasionally
+      const shouldPlayAd = Math.random() < 0.33; // 33% chance
+      if (shouldPlayAd) {
+        playAd(nextTrack);
+        return;
+      }
+    }
+
+    // Play the next track normally
+    setCurrentTrack(nextTrack);
+    setCurrentTime(0);
+    setIsPlaying(true);
   };
 
   const playTrack = (track: Track) => {
@@ -243,6 +294,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
       value={{
         currentTrack,
         isPlaying,
+        isPlayingAd,
         queue,
         shuffle,
         repeat,

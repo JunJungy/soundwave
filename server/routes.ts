@@ -8,6 +8,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import Stripe from "stripe";
 import { sendBanNotification } from "./discord-bot";
+import { WatermarkService } from "./watermark";
 
 // Initialize Stripe - Reference: blueprint:javascript_stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -81,6 +82,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting ACL:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Apply watermark to artwork (for non-premium users)
+  app.post("/api/objects/watermark", isAuthenticated, async (req: any, res) => {
+    try {
+      const { objectPath } = req.body;
+      
+      if (!objectPath) {
+        return res.status(400).json({ error: "objectPath is required" });
+      }
+
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user has premium watermark removal
+      const hasPremium = user.premiumNoWatermark === 1;
+      
+      const watermarkService = new WatermarkService();
+      const watermarkedPath = await watermarkService.applyWatermark(objectPath, hasPremium);
+      
+      res.json({ watermarkedPath });
+    } catch (error) {
+      console.error("Error applying watermark:", error);
+      res.status(500).json({ error: "Failed to apply watermark" });
     }
   });
 
