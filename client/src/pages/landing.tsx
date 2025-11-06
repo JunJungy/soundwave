@@ -53,16 +53,22 @@ export default function Landing() {
       // Navigate to home after successful registration
       navigate("/");
     } catch (error: any) {
+      console.error("Registration error:", error);
+      
       // Parse the error response to extract the actual error message
       let errorMessage = "Please try again.";
       let errorTitle = "Registration failed";
       
       if (error.message) {
+        console.log("Error message:", error.message);
+        
         // Extract JSON from error message (format: "400: {...}")
         const jsonMatch = error.message.match(/\{.*\}/);
         if (jsonMatch) {
           try {
             const errorData = JSON.parse(jsonMatch[0]);
+            console.log("Parsed error data:", errorData);
+            
             if (errorData.error) {
               errorMessage = errorData.error;
               if (errorData.reason) {
@@ -76,12 +82,15 @@ export default function Landing() {
               }
             }
           } catch (e) {
+            console.error("Failed to parse error JSON:", e);
             errorMessage = error.message;
           }
         } else {
           errorMessage = error.message;
         }
       }
+      
+      console.log("Showing toast:", { errorTitle, errorMessage });
       
       toast({
         variant: "destructive",
