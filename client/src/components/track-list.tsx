@@ -1,5 +1,6 @@
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Star, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export interface Track {
   id: string;
@@ -9,6 +10,8 @@ export interface Track {
   duration: number;
   albumId?: string;
   artistId?: string;
+  globalPromotion?: number;
+  otherPlatforms?: number;
   lyrics?: {
     lines: Array<{
       startTime: number;
@@ -102,8 +105,22 @@ export function TrackList({
               </div>
               
               <div className="flex flex-col justify-center min-w-0">
-                <div className={`font-medium truncate ${isCurrentTrack ? 'text-primary' : ''}`} data-testid={`text-track-title-${track.id}`}>
-                  {track.title}
+                <div className="flex items-center gap-2">
+                  <div className={`font-medium truncate ${isCurrentTrack ? 'text-primary' : ''}`} data-testid={`text-track-title-${track.id}`}>
+                    {track.title}
+                  </div>
+                  {track.globalPromotion === 1 && (
+                    <Badge variant="default" className="flex items-center gap-1 text-xs" data-testid={`badge-featured-${track.id}`}>
+                      <Star className="h-3 w-3" />
+                      Featured
+                    </Badge>
+                  )}
+                  {track.otherPlatforms === 1 && (
+                    <Badge variant="outline" className="flex items-center gap-1 text-xs" data-testid={`badge-platforms-${track.id}`}>
+                      <Globe className="h-3 w-3" />
+                      Multi-Platform
+                    </Badge>
+                  )}
                 </div>
               </div>
               

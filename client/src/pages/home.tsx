@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlbumCard } from "@/components/album-card";
 import { useLocation } from "wouter";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
+import { Star } from "lucide-react";
 import type { Album, Playlist, Song } from "@shared/schema";
 
 export default function Home() {
@@ -69,9 +70,39 @@ export default function Home() {
 
   // Filter standalone songs (songs without albums)
   const standaloneSongs = songs.filter((song) => !song.albumId);
+  
+  // Filter featured songs (globally promoted)
+  const featuredSongs = songs.filter((song) => song.globalPromotion === 1);
 
   return (
     <div className="pb-24">
+      {/* Featured Songs (Globally Promoted) */}
+      {featuredSongs.length > 0 && (
+        <section className="px-6 py-8 bg-gradient-to-b from-primary/10 to-transparent">
+          <h2 className="font-display text-3xl font-bold mb-6 flex items-center gap-2" data-testid="heading-featured-songs">
+            <Star className="h-8 w-8 text-primary" />
+            Featured Songs
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {featuredSongs.slice(0, 10).map((song) => (
+              <AlbumCard
+                key={song.id}
+                id={song.id}
+                title={song.title}
+                subtitle={artistMap[song.artistId] || "Unknown Artist"}
+                coverUrl={song.artworkUrl || "/placeholder-album.png"}
+                onClick={() => handlePlaySong(song)}
+                onPlay={() => handlePlaySong(song)}
+                testId={`card-featured-song-${song.id}`}
+                globalPromotion={song.globalPromotion}
+                otherPlatforms={song.otherPlatforms}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+      
       {/* Featured Playlists */}
       <section className="px-6 py-8">
         <h2 className="font-display text-3xl font-bold mb-6" data-testid="heading-featured-playlists">
@@ -127,6 +158,8 @@ export default function Home() {
                 onClick={() => handlePlaySong(song)}
                 onPlay={() => handlePlaySong(song)}
                 testId={`card-song-${song.id}`}
+                globalPromotion={song.globalPromotion}
+                otherPlatforms={song.otherPlatforms}
               />
             ))}
           </div>

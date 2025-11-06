@@ -1,6 +1,7 @@
-import { Play } from "lucide-react";
+import { Play, Star, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 
 interface AlbumCardProps {
@@ -11,9 +12,11 @@ interface AlbumCardProps {
   onClick?: () => void;
   onPlay?: () => void;
   testId?: string;
+  globalPromotion?: number;
+  otherPlatforms?: number;
 }
 
-export function AlbumCard({ id, title, subtitle, coverUrl, onClick, onPlay, testId }: AlbumCardProps) {
+export function AlbumCard({ id, title, subtitle, coverUrl, onClick, onPlay, testId, globalPromotion, otherPlatforms }: AlbumCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -56,6 +59,20 @@ export function AlbumCard({ id, title, subtitle, coverUrl, onClick, onPlay, test
         <p className="text-sm text-muted-foreground truncate" data-testid={`text-album-artist-${id}`}>
           {subtitle}
         </p>
+        <div className="flex gap-1 flex-wrap mt-2">
+          {globalPromotion === 1 && (
+            <Badge variant="default" className="flex items-center gap-1 text-xs" data-testid={`badge-featured-${id}`}>
+              <Star className="h-3 w-3" />
+              Featured
+            </Badge>
+          )}
+          {otherPlatforms === 1 && (
+            <Badge variant="outline" className="flex items-center gap-1 text-xs" data-testid={`badge-platforms-${id}`}>
+              <Globe className="h-3 w-3" />
+              Multi-Platform
+            </Badge>
+          )}
+        </div>
       </div>
     </Card>
   );

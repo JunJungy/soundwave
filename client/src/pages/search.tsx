@@ -57,7 +57,15 @@ export default function Search() {
       duration: song.duration,
       albumId: song.albumId || undefined,
       artistId: song.artistId,
-    }));
+      globalPromotion: song.globalPromotion,
+      otherPlatforms: song.otherPlatforms,
+    }))
+    .sort((a, b) => {
+      // Prioritize promoted songs in search results
+      if (a.globalPromotion === 1 && b.globalPromotion !== 1) return -1;
+      if (a.globalPromotion !== 1 && b.globalPromotion === 1) return 1;
+      return 0;
+    });
 
   const filteredAlbums = albums.filter(
     (album) =>

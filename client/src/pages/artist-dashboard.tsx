@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Music, Disc, ArrowLeft, Upload, BadgeCheck, Settings, Trash2 } from "lucide-react";
+import { Music, Disc, ArrowLeft, Upload, BadgeCheck, Settings, Trash2, Star, Globe } from "lucide-react";
 import { UploadSongDialog } from "@/components/upload-song-dialog";
 
 export default function ArtistDashboard() {
@@ -305,9 +305,25 @@ export default function ArtistDashboard() {
                   <CardHeader className="p-4">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex-1">
-                        <CardTitle className="text-base" data-testid="text-song-title">{song.title}</CardTitle>
+                        <CardTitle className="text-base flex items-center gap-2" data-testid="text-song-title">
+                          {song.title}
+                          {song.globalPromotion === 1 && (
+                            <Badge variant="default" className="flex items-center gap-1 text-xs">
+                              <Star className="h-3 w-3" />
+                              Featured
+                            </Badge>
+                          )}
+                          {song.otherPlatforms === 1 && (
+                            <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                              <Globe className="h-3 w-3" />
+                              Multi-Platform
+                            </Badge>
+                          )}
+                        </CardTitle>
                         <CardDescription data-testid="text-song-duration">
                           {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, "0")}
+                          {song.globalPromotion === 1 && " • Promoted globally"}
+                          {song.otherPlatforms === 1 && " • Distributed to Spotify, Apple Music, etc."}
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
