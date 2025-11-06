@@ -167,29 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const moderationResult = await moderateImage(req.body.objectURL);
         
         if (!moderationResult.isSafe) {
-          // Issue warning instead of blocking (unless extreme)
-          const isExtreme = moderationResult.category?.toLowerCase().includes('extreme') || 
-                           moderationResult.category?.toLowerCase().includes('illegal');
-          
-          if (isExtreme) {
-            // Block extreme content immediately and issue warning
-            await handleModerationViolation({
-              userId,
-              username: user.username,
-              violationType: 'album_artwork_extreme',
-              violationContent: req.body.objectURL,
-              reason: moderationResult.reason,
-              category: moderationResult.category,
-            });
-            
-            return res.status(400).json({ 
-              error: "Image contains inappropriate content and has been blocked", 
-              reason: moderationResult.reason,
-              category: moderationResult.category 
-            });
-          }
-          
-          // For non-extreme violations, issue warning but allow upload
+          // Block ALL inappropriate images and issue warning
           const { shouldBlock, warningCount } = await handleModerationViolation({
             userId,
             username: user.username,
@@ -207,8 +185,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           
-          // Warning issued but allow upload to continue
-          console.log(`[Moderation] Warning issued to ${user.username} for album artwork, but upload allowed`);
+          // Block the image upload and return error
+          return res.status(400).json({ 
+            error: "Image contains inappropriate content and has been blocked", 
+            reason: moderationResult.reason,
+            category: moderationResult.category,
+            warningCount
+          });
         }
       }
       
@@ -269,8 +252,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Moderate username for inappropriate content
       const moderationResult = await moderateUsername(validatedData.username);
       if (!moderationResult.isSafe) {
+        // Check if user already exists (for Discord warning)
+        const tempUser = await storage.getUserByEmail(validatedData.email?.trim().toLowerCase() || '');
+        
+        if (tempUser) {
+          // User exists (maybe re-registering), issue warning
+          await handleModerationViolation({
+            userId: tempUser.id,
+            username: validatedData.username,
+            violationType: 'inappropriate_username',
+            violationContent: validatedData.username,
+            reason: moderationResult.reason,
+            category: moderationResult.category,
+          });
+        }
+        
+        // Block registration
         return res.status(400).json({ 
-          error: "Username contains inappropriate content", 
+          error: "Username contains inappropriate content and has been blocked", 
           reason: moderationResult.reason,
           category: moderationResult.category 
         });
