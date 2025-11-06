@@ -24,10 +24,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw, Ban, Unlock, Network, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
-import type { ArtistApplication, User, BanAppeal } from "@shared/schema";
+import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw, Ban, Unlock, Network, MessageSquare, ThumbsUp, ThumbsDown, Gamepad2, Plus, Edit, Trash } from "lucide-react";
+import type { ArtistApplication, User, BanAppeal, Game } from "@shared/schema";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -45,6 +48,18 @@ export default function AdminPanel() {
   const [appealToReview, setAppealToReview] = useState<BanAppeal | null>(null);
   const [appealAction, setAppealAction] = useState<'approve' | 'deny'>('approve');
   const [appealResponse, setAppealResponse] = useState("");
+  const [gameDialogOpen, setGameDialogOpen] = useState(false);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [gameFormData, setGameFormData] = useState({
+    name: "",
+    description: "",
+    thumbnailUrl: "",
+    gameUrl: "",
+    gameType: "iframe" as "iframe" | "external",
+    category: "",
+  });
+  const [deleteGameDialogOpen, setDeleteGameDialogOpen] = useState(false);
+  const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
 
   const { data: applications = [], isLoading } = useQuery<ArtistApplication[]>({
     queryKey: ["/api/artist-applications/pending"],
@@ -58,6 +73,11 @@ export default function AdminPanel() {
 
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+    enabled: user?.isAdmin === 1,
+  });
+
+  const { data: allGames = [], isLoading: isLoadingGames } = useQuery<Game[]>({
+    queryKey: ["/api/games"],
     enabled: user?.isAdmin === 1,
   });
 
@@ -311,6 +331,76 @@ export default function AdminPanel() {
     },
   });
 
+  const createGameMutation = useMutation({
+    mutationFn: async (data: typeof gameFormData) => {
+      const res = await apiRequest("POST", "/api/admin/games", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
+      toast({
+        title: "Game created",
+        description: "The game has been added successfully.",
+      });
+      setGameDialogOpen(false);
+      setGameFormData({ name: "", description: "", thumbnailUrl: "", gameUrl: "", gameType: "iframe", category: "" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create game",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateGameMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Game> }) => {
+      const res = await apiRequest("PUT", `/api/admin/games/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
+      toast({
+        title: "Game updated",
+        description: "The game has been updated successfully.",
+      });
+      setGameDialogOpen(false);
+      setEditingGame(null);
+      setGameFormData({ name: "", description: "", thumbnailUrl: "", gameUrl: "", gameType: "iframe", category: "" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update game",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteGameMutation = useMutation({
+    mutationFn: async (gameId: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/games/${gameId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/games"] });
+      toast({
+        title: "Game deleted",
+        description: "The game has been removed.",
+      });
+      setDeleteGameDialogOpen(false);
+      setGameToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete game",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteClick = (targetUser: User) => {
     setUserToDelete(targetUser);
     setDeleteDialogOpen(true);
@@ -401,7 +491,7 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="inline-flex h-auto w-full sm:grid sm:grid-cols-4 flex-nowrap overflow-x-auto">
+        <TabsList className="inline-flex h-auto w-full sm:grid sm:grid-cols-5 flex-nowrap overflow-x-auto">
           <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap">
             Artist Applications
           </TabsTrigger>
@@ -410,6 +500,9 @@ export default function AdminPanel() {
           </TabsTrigger>
           <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap">
             Ban Appeals
+          </TabsTrigger>
+          <TabsTrigger value="games" data-testid="tab-games" className="whitespace-nowrap">
+            Games
           </TabsTrigger>
           <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap">
             System Tools
@@ -747,6 +840,125 @@ export default function AdminPanel() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="games" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Gamepad2 className="h-5 w-5 text-primary" />
+                  <CardTitle>Manage Games</CardTitle>
+                </div>
+                <Button
+                  onClick={() => {
+                    setEditingGame(null);
+                    setGameFormData({ name: "", description: "", thumbnailUrl: "", gameUrl: "", gameType: "iframe", category: "" });
+                    setGameDialogOpen(true);
+                  }}
+                  data-testid="button-create-game"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Game
+                </Button>
+              </div>
+              <CardDescription>
+                Add and manage games for users to play
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingGames ? (
+                <div className="text-center py-8 text-muted-foreground">Loading games...</div>
+              ) : allGames.length === 0 ? (
+                <div className="text-center py-12" data-testid="empty-games-admin">
+                  <Gamepad2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">No Games Yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add your first game to get started
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {allGames.map((game) => (
+                    <div
+                      key={game.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover-elevate"
+                      data-testid={`admin-game-${game.id}`}
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        {game.thumbnailUrl ? (
+                          <img
+                            src={game.thumbnailUrl}
+                            alt={game.name}
+                            className="w-16 h-16 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
+                            <Gamepad2 className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-semibold" data-testid={`text-game-name-${game.id}`}>
+                            {game.name}
+                          </h4>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {game.description || "No description"}
+                          </p>
+                          <div className="flex gap-2 mt-1">
+                            {game.category && (
+                              <Badge variant="secondary" className="text-xs">
+                                {game.category}
+                              </Badge>
+                            )}
+                            <Badge variant="secondary" className="text-xs">
+                              {game.gameType}
+                            </Badge>
+                            {game.isActive === 1 ? (
+                              <Badge variant="default" className="text-xs">Active</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">Inactive</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingGame(game);
+                            setGameFormData({
+                              name: game.name,
+                              description: game.description || "",
+                              thumbnailUrl: game.thumbnailUrl || "",
+                              gameUrl: game.gameUrl,
+                              gameType: (game.gameType as "iframe" | "external"),
+                              category: game.category || "",
+                            });
+                            setGameDialogOpen(true);
+                          }}
+                          data-testid={`button-edit-game-${game.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setGameToDelete(game);
+                            setDeleteGameDialogOpen(true);
+                          }}
+                          data-testid={`button-delete-game-${game.id}`}
+                        >
+                          <Trash className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="system" className="space-y-4">
           <Card>
             <CardHeader>
@@ -911,6 +1123,132 @@ export default function AdminPanel() {
               data-testid="button-confirm-appeal-review"
             >
               {appealAction === 'approve' ? 'Approve Appeal' : 'Deny Appeal'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={gameDialogOpen} onOpenChange={setGameDialogOpen}>
+        <DialogContent data-testid="dialog-game-form">
+          <DialogHeader>
+            <DialogTitle>{editingGame ? "Edit Game" : "Add New Game"}</DialogTitle>
+            <DialogDescription>
+              {editingGame ? "Update the game details" : "Add a new game for users to play"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="game-name">Game Name *</Label>
+              <Input
+                id="game-name"
+                value={gameFormData.name}
+                onChange={(e) => setGameFormData({ ...gameFormData, name: e.target.value })}
+                placeholder="Enter game name"
+                data-testid="input-game-name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="game-description">Description</Label>
+              <Textarea
+                id="game-description"
+                value={gameFormData.description}
+                onChange={(e) => setGameFormData({ ...gameFormData, description: e.target.value })}
+                placeholder="Enter game description"
+                data-testid="input-game-description"
+              />
+            </div>
+            <div>
+              <Label htmlFor="game-url">Game URL *</Label>
+              <Input
+                id="game-url"
+                value={gameFormData.gameUrl}
+                onChange={(e) => setGameFormData({ ...gameFormData, gameUrl: e.target.value })}
+                placeholder="https://example.com/game"
+                data-testid="input-game-url"
+              />
+            </div>
+            <div>
+              <Label htmlFor="game-type">Game Type</Label>
+              <Select
+                value={gameFormData.gameType}
+                onValueChange={(value: "iframe" | "external") => setGameFormData({ ...gameFormData, gameType: value })}
+              >
+                <SelectTrigger id="game-type" data-testid="select-game-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="iframe">Iframe (Embedded)</SelectItem>
+                  <SelectItem value="external">External Link</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="game-thumbnail">Thumbnail URL</Label>
+              <Input
+                id="game-thumbnail"
+                value={gameFormData.thumbnailUrl}
+                onChange={(e) => setGameFormData({ ...gameFormData, thumbnailUrl: e.target.value })}
+                placeholder="https://example.com/thumbnail.jpg"
+                data-testid="input-game-thumbnail"
+              />
+            </div>
+            <div>
+              <Label htmlFor="game-category">Category</Label>
+              <Input
+                id="game-category"
+                value={gameFormData.category}
+                onChange={(e) => setGameFormData({ ...gameFormData, category: e.target.value })}
+                placeholder="e.g., Puzzle, Action, Strategy"
+                data-testid="input-game-category"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setGameDialogOpen(false)}
+              data-testid="button-cancel-game"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingGame) {
+                  updateGameMutation.mutate({ id: editingGame.id, data: gameFormData });
+                } else {
+                  createGameMutation.mutate(gameFormData);
+                }
+              }}
+              disabled={!gameFormData.name || !gameFormData.gameUrl || createGameMutation.isPending || updateGameMutation.isPending}
+              data-testid="button-save-game"
+            >
+              {createGameMutation.isPending || updateGameMutation.isPending ? "Saving..." : editingGame ? "Update Game" : "Create Game"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteGameDialogOpen} onOpenChange={setDeleteGameDialogOpen}>
+        <AlertDialogContent data-testid="dialog-delete-game">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Game</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <span className="font-semibold">{gameToDelete?.name}</span>?
+              This action cannot be undone and will permanently remove the game and all associated scores.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-game">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (gameToDelete) {
+                  deleteGameMutation.mutate(gameToDelete.id);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-game"
+            >
+              Delete Game
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
