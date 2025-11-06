@@ -195,14 +195,6 @@ export default function ArtistDashboard() {
         </div>
         <div className="flex gap-3">
           <Button 
-            onClick={() => navigate("/premium")} 
-            variant="default"
-            data-testid="button-premium"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Promote Songs
-          </Button>
-          <Button 
             onClick={() => navigate("/edit-artist-profile")} 
             variant="outline"
             data-testid="button-edit-profile"

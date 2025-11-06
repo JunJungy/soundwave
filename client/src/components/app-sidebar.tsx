@@ -1,4 +1,4 @@
-import { Home, Search, Library, Plus, Shield, Music, Users, Settings, Gamepad2 } from "lucide-react";
+import { Home, Search, Library, Plus, Shield, Music, Users, Settings, Gamepad2, Sparkles } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -80,14 +80,24 @@ export function AppSidebar({ playlists = [], onCreatePlaylist }: AppSidebarProps
                     </SidebarMenuItem>
                   )}
                   {user?.isArtist === 1 && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={location === "/artist-dashboard"} data-testid="link-artist-dashboard">
-                        <Link href="/artist-dashboard">
-                          <Music className="h-5 w-5" />
-                          <span className="font-medium">Artist Dashboard</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={location === "/artist-dashboard"} data-testid="link-artist-dashboard">
+                          <Link href="/artist-dashboard">
+                            <Music className="h-5 w-5" />
+                            <span className="font-medium">Artist Dashboard</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={location === "/premium"} data-testid="link-premium">
+                          <Link href="/premium">
+                            <Sparkles className="h-5 w-5" />
+                            <span className="font-medium">Premium</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </>
                   )}
                 </SidebarMenu>
               </SidebarGroupContent>
