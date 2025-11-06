@@ -31,6 +31,7 @@ import EditArtistProfile from "@/pages/edit-artist-profile";
 import FollowingPage from "@/pages/following";
 import Settings from "@/pages/settings";
 import Games from "@/pages/games";
+import GamePage from "@/pages/game";
 import Landing from "@/pages/landing";
 import Banned from "@/pages/banned";
 import NotFound from "@/pages/not-found";
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/library" component={Library} />
       <Route path="/following" component={FollowingPage} />
       <Route path="/games" component={Games} />
+      <Route path="/game/:id" component={GamePage} />
       <Route path="/settings" component={Settings} />
       <Route path="/album/:id" component={AlbumPage} />
       <Route path="/artist/:id" component={ArtistPage} />
