@@ -52,7 +52,7 @@ async function handleModerationViolation(params: {
   const warningCount = updatedUser.moderationWarnings;
 
   // Create warning record
-  await storage.createModerationWarning({
+  const warningRecord = await storage.createModerationWarning({
     userId,
     username,
     violationType,
@@ -76,6 +76,7 @@ async function handleModerationViolation(params: {
 
   // Update warning record with notification status
   if (notificationSent) {
+    await storage.markWarningNotified(warningRecord.id);
     console.log(`[Moderation] Discord warning sent to ${username} (${warningCount}/3)`);
   }
 

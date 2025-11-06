@@ -117,6 +117,7 @@ export interface IStorage {
   createModerationWarning(data: InsertModerationWarning): Promise<ModerationWarning>;
   getModerationWarningsByUser(userId: string): Promise<ModerationWarning[]>;
   incrementUserWarnings(userId: string): Promise<User | undefined>;
+  markWarningNotified(warningId: string): Promise<ModerationWarning | undefined>;
 
   // Seeding
   seedDatabase(): Promise<void>;
@@ -689,6 +690,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  async markWarningNotified(warningId: string): Promise<ModerationWarning | undefined> {
+    const [warning] = await db
+      .update(moderationWarnings)
+      .set({
+        discordNotified: 1,
+      })
+      .where(eq(moderationWarnings.id, warningId))
+      .returning();
+    return warning;
   }
 
   // Seed database with initial data (now empty - artists must upload their own songs)
