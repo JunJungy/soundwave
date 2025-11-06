@@ -491,20 +491,20 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="inline-flex h-auto w-full sm:grid sm:grid-cols-5 flex-nowrap overflow-x-auto">
-          <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap">
+        <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto sm:grid sm:grid-cols-3 lg:grid-cols-5">
+          <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap flex-shrink-0">
             Artist Applications
           </TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap">
+          <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap flex-shrink-0">
             User Management
           </TabsTrigger>
-          <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap">
+          <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap flex-shrink-0">
             Ban Appeals
           </TabsTrigger>
-          <TabsTrigger value="games" data-testid="tab-games" className="whitespace-nowrap">
+          <TabsTrigger value="games" data-testid="tab-games" className="whitespace-nowrap flex-shrink-0">
             Games
           </TabsTrigger>
-          <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap">
+          <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap flex-shrink-0">
             System Tools
           </TabsTrigger>
         </TabsList>
