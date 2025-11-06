@@ -53,10 +53,40 @@ export default function Landing() {
       // Navigate to home after successful registration
       navigate("/");
     } catch (error: any) {
+      // Parse the error response to extract the actual error message
+      let errorMessage = "Please try again.";
+      let errorTitle = "Registration failed";
+      
+      if (error.message) {
+        // Extract JSON from error message (format: "400: {...}")
+        const jsonMatch = error.message.match(/\{.*\}/);
+        if (jsonMatch) {
+          try {
+            const errorData = JSON.parse(jsonMatch[0]);
+            if (errorData.error) {
+              errorMessage = errorData.error;
+              if (errorData.reason) {
+                errorMessage += `\n\nReason: ${errorData.reason}`;
+              }
+              if (errorData.category) {
+                errorMessage += `\nCategory: ${errorData.category}`;
+              }
+              if (errorData.warningCount !== undefined) {
+                errorTitle = `⚠️ Warning ${errorData.warningCount}/3`;
+              }
+            }
+          } catch (e) {
+            errorMessage = error.message;
+          }
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         variant: "destructive",
-        title: "Registration failed",
-        description: error.message || "Please try again.",
+        title: errorTitle,
+        description: errorMessage,
       });
     }
   };
