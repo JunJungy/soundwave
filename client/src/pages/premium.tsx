@@ -2,12 +2,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EyeOff, Check, Volume2, Sparkles, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
@@ -43,7 +44,7 @@ function PremiumPaymentForm({
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: window.location.origin,
+        return_url: `${window.location.origin}/premium`,
       },
       redirect: "if_required",
     });
@@ -127,9 +128,85 @@ function PremiumPaymentForm({
 export default function Premium() {
   const { user, refetchUser } = useAuth();
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(false);
+
+  // Handle Stripe redirect after 3D Secure or other payment authentication
+  useEffect(() => {
+    const handlePaymentRedirect = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentIntentClientSecret = urlParams.get('payment_intent_client_secret');
+      const redirectStatus = urlParams.get('redirect_status');
+
+      if (paymentIntentClientSecret && redirectStatus) {
+        setIsProcessingRedirect(true);
+
+        try {
+          const stripe = await stripePromise;
+          if (!stripe) {
+            throw new Error("Stripe failed to load");
+          }
+
+          // Retrieve the payment intent to check status
+          const { paymentIntent } = await stripe.retrievePaymentIntent(paymentIntentClientSecret);
+
+          if (paymentIntent && paymentIntent.status === 'succeeded') {
+            // Activate the premium feature
+            const response = await fetch("/api/premium/activate", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
+            });
+
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.message || "Failed to activate feature");
+            }
+
+            toast({
+              title: "Payment Successful!",
+              description: "Your premium feature has been activated.",
+            });
+
+            await refetchUser();
+            queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+            
+            // Clean up URL
+            setLocation('/premium');
+          } else if (paymentIntent && paymentIntent.status === 'processing') {
+            toast({
+              title: "Payment Processing",
+              description: "Your payment is being processed. Please check back shortly.",
+            });
+            setLocation('/premium');
+          } else {
+            toast({
+              title: "Payment Failed",
+              description: "Your payment was not successful. Please try again.",
+              variant: "destructive",
+            });
+            setLocation('/premium');
+          }
+        } catch (error: any) {
+          toast({
+            title: "Activation Error",
+            description: error.message,
+            variant: "destructive",
+          });
+          setLocation('/premium');
+        } finally {
+          setIsProcessingRedirect(false);
+        }
+      }
+    };
+
+    handlePaymentRedirect();
+  }, [toast, refetchUser, setLocation]);
 
   const features = [
     {
@@ -203,6 +280,19 @@ export default function Premium() {
     setClientSecret(null);
     setSelectedFeature(null);
   };
+
+  // Show loading state when processing redirect
+  if (isProcessingRedirect) {
+    return (
+      <div className="min-h-screen pb-24 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+          <h2 className="text-xl font-semibold mb-2">Processing Payment...</h2>
+          <p className="text-muted-foreground">Please wait while we activate your premium feature.</p>
+        </div>
+      </div>
+    );
+  }
 
   // If payment is in progress, show the payment form
   if (clientSecret && selectedFeature) {
