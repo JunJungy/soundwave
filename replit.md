@@ -35,8 +35,10 @@ I prefer that the agent focuses on iterative development, delivering functional,
 
 ### Feature Specifications
 - **User Management**: Secure registration, login, session management, and admin-level user/ban control.
-- **Music Browsing & Search**: Explore content and search across songs, artists, albums, and playlists.
-- **Artist Dashboard**: Interface for artists to manage music, profiles, and uploads with scheduled releases.
+- **Music Browsing & Search**: Explore content and search across songs, artists, albums, and playlists. Search results prioritize promoted songs.
+- **Artist Dashboard**: Interface for artists to manage music, profiles, and uploads with scheduled releases. Shows monetization status with visual badges.
+- **Premium/Billing Page**: Dedicated page where artists can purchase promotion features for their songs via Stripe. Offers Global Promotion ($4) and Multi-Platform Distribution ($5) with clear pricing and benefits. Includes comprehensive error handling and loading states.
+- **Monetization Features**: Payment-gated song promotion with visual indicators (Featured badge for global promotion, Multi-Platform badge for distribution). Promoted songs appear in dedicated homepage section and rank higher in search results.
 - **Expandable Music Player**: Spotify-style mini and full-screen player views.
 - **Games Platform**: Browse and play games with leaderboard tracking. Admins can manage games through the admin panel with full CRUD capabilities.
 
