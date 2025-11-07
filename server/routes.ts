@@ -352,6 +352,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
+      // Check if user is banned
+      if (user.isBanned === 1) {
+        return res.status(403).json({ 
+          error: "Your account has been banned",
+          isBanned: true,
+          banReason: user.banReason 
+        });
+      }
+
       // Capture and store user's IP address
       const clientIp = getClientIp(req);
       await storage.updateUser(user.id, { lastIpAddress: clientIp });

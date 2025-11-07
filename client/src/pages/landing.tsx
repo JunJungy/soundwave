@@ -116,6 +116,24 @@ export default function Landing() {
       navigate("/");
     } catch (error: any) {
       console.error("Login error:", error);
+      
+      // Check if user is banned
+      if (error.message && error.message.includes("403")) {
+        const jsonMatch = error.message.match(/\{.*\}/);
+        if (jsonMatch) {
+          try {
+            const errorData = JSON.parse(jsonMatch[0]);
+            if (errorData.isBanned) {
+              // Redirect to banned page
+              navigate("/banned");
+              return;
+            }
+          } catch (e) {
+            // Continue to show normal error
+          }
+        }
+      }
+      
       toast({
         variant: "destructive",
         title: "Login failed",
