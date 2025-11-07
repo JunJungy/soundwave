@@ -1,6 +1,7 @@
 import { Play, Pause, Star, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ShareButton } from "@/components/share-button";
 
 export interface Track {
   id: string;
@@ -48,13 +49,14 @@ export function TrackList({
 }: TrackListProps) {
   return (
     <div className="w-full">
-      <div className="grid grid-cols-[auto_2fr_1fr_1fr_auto] gap-4 px-4 py-2 text-sm text-muted-foreground border-b">
+      <div className="grid grid-cols-[auto_2fr_1fr_1fr_auto_auto] gap-4 px-4 py-2 text-sm text-muted-foreground border-b">
         <div className="w-8">#</div>
         <div>Title</div>
         <div>Artist</div>
         {showAlbum && <div>Album</div>}
         {!showAlbum && <div></div>}
         <div className="text-right">Duration</div>
+        <div className="w-10"></div>
       </div>
       
       <div className="divide-y divide-border">
@@ -65,7 +67,7 @@ export function TrackList({
           return (
             <div
               key={track.id}
-              className="grid grid-cols-[auto_2fr_1fr_1fr_auto] gap-4 px-4 py-3 hover-elevate transition-all duration-150 cursor-pointer group"
+              className="grid grid-cols-[auto_2fr_1fr_1fr_auto_auto] gap-4 px-4 py-3 hover-elevate transition-all duration-150 cursor-pointer group"
               onClick={() => onTrackClick?.(track)}
               data-testid={`${testIdPrefix}-${track.id}`}
             >
@@ -142,6 +144,16 @@ export function TrackList({
                 <span className="text-sm text-muted-foreground" data-testid={`text-track-duration-${track.id}`}>
                   {formatDuration(track.duration)}
                 </span>
+              </div>
+              
+              <div className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <ShareButton
+                  url={track.artistId ? `/artist/${track.artistId}` : `/`}
+                  title={`${track.title} by ${track.artist}`}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                />
               </div>
             </div>
           );
