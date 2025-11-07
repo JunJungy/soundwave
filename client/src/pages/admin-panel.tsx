@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw, Ban, Unlock, Network, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
-import type { ArtistApplication, User, BanAppeal } from "@shared/schema";
+import type { ArtistApplication, User, BanAppeal, IpBan } from "@shared/schema";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -61,6 +61,11 @@ export default function AdminPanel() {
 
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+    enabled: user?.isAdmin === 1,
+  });
+
+  const { data: ipBans = [], isLoading: isLoadingIpBans } = useQuery<IpBan[]>({
+    queryKey: ["/api/admin/ip-bans"],
     enabled: user?.isAdmin === 1,
   });
 
@@ -228,6 +233,7 @@ export default function AdminPanel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ip-bans"] });
       setIpBanDialogOpen(false);
       setUserToIpBan(null);
       setIpBanReason("");
@@ -239,6 +245,27 @@ export default function AdminPanel() {
     onError: (error: Error) => {
       toast({
         title: "Failed to ban IP",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeIpBanMutation = useMutation({
+    mutationFn: async (ipAddress: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/ip-bans/${encodeURIComponent(ipAddress)}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ip-bans"] });
+      toast({
+        title: "IP Ban removed",
+        description: "This IP address can now access the platform.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to remove IP ban",
         description: error.message,
         variant: "destructive",
       });
@@ -404,7 +431,7 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4">
+        <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-5">
           <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap flex-shrink-0">
             <span className="sm:hidden">Applications</span>
             <span className="hidden sm:inline">Artist Applications</span>
@@ -412,6 +439,10 @@ export default function AdminPanel() {
           <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap flex-shrink-0">
             <span className="sm:hidden">Users</span>
             <span className="hidden sm:inline">User Management</span>
+          </TabsTrigger>
+          <TabsTrigger value="ipbans" data-testid="tab-ipbans" className="whitespace-nowrap flex-shrink-0">
+            <span className="sm:hidden">IP Bans</span>
+            <span className="hidden sm:inline">IP Bans</span>
           </TabsTrigger>
           <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap flex-shrink-0">
             <span className="sm:hidden">Appeals</span>
@@ -745,6 +776,64 @@ export default function AdminPanel() {
                             </Button>
                           </div>
                         )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ipbans" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Network className="h-5 w-5" />
+                IP Bans
+              </CardTitle>
+              <CardDescription>
+                View and manage banned IP addresses
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingIpBans ? (
+                <div className="text-center py-8 text-muted-foreground">Loading IP bans...</div>
+              ) : ipBans.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No IP bans yet</div>
+              ) : (
+                <div className="space-y-4">
+                  {ipBans.map((ban) => (
+                    <Card key={ban.id} data-testid={`card-ipban-${ban.id}`}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="space-y-1 flex-1">
+                            <CardTitle className="text-base font-mono" data-testid={`text-ip-${ban.id}`}>
+                              {ban.ipAddress}
+                            </CardTitle>
+                            <CardDescription className="text-sm">
+                              Banned on {new Date(ban.bannedAt).toLocaleDateString()} at {new Date(ban.bannedAt).toLocaleTimeString()}
+                            </CardDescription>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeIpBanMutation.mutate(ban.ipAddress)}
+                            disabled={removeIpBanMutation.isPending}
+                            data-testid={`button-remove-ipban-${ban.id}`}
+                          >
+                            <Unlock className="w-4 h-4 mr-2" />
+                            {removeIpBanMutation.isPending ? "Removing..." : "Remove Ban"}
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div>
+                          <p className="text-sm font-medium mb-1">Reason:</p>
+                          <p className="text-sm text-muted-foreground" data-testid={`text-reason-${ban.id}`}>
+                            {ban.banReason || "No reason provided"}
+                          </p>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
