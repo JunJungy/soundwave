@@ -59,5 +59,8 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Payment Processing**: Stripe for premium feature purchases
 - **Content Moderation**: OpenAI AI Integrations (via Replit AI) for detecting inappropriate images and usernames
 
+## Version Control
+- **GitHub Integration**: Project is connected to GitHub for version control. All code changes (frontend, backend, database schema, components, etc.) are tracked and can be pushed to the remote repository using Git commands or the Replit Git pane.
+
 ## Deployment Instructions
 Simply click the **Publish** button in Replit! See `DEPLOYMENT.md` for details.
