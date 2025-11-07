@@ -13,7 +13,10 @@ interface ShareButtonProps {
 export function ShareButton({ url, title, variant = "ghost", size = "icon", className }: ShareButtonProps) {
   const { toast } = useToast();
 
-  const handleShare = async () => {
+  const handleShare = async (e: React.MouseEvent) => {
+    // Stop event propagation to prevent triggering parent onClick handlers
+    e.stopPropagation();
+    
     const fullUrl = `${window.location.origin}${url}`;
     
     try {
