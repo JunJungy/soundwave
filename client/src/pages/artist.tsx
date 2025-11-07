@@ -4,6 +4,7 @@ import { Play, ArrowLeft, BadgeCheck, UserPlus, UserMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlbumCard } from "@/components/album-card";
 import { TrackList, type Track } from "@/components/track-list";
+import { ShareButton } from "@/components/share-button";
 import { useMusicPlayer } from "@/contexts/MusicPlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -303,6 +304,13 @@ export default function ArtistPage() {
               )}
             </Button>
           )}
+          <ShareButton 
+            url={`/artist/${artistId}`}
+            title={artist.name}
+            variant="outline"
+            size="lg"
+            className="h-14 w-14 rounded-full"
+          />
         </div>
       </div>
 
