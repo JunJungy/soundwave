@@ -46,9 +46,9 @@ import { loadStripe } from "@stripe/stripe-js";
 
 // Initialize Stripe - Reference: blueprint:javascript_stripe
 // Use testing key as fallback for development
-const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.TESTING_VITE_STRIPE_PUBLIC_KEY;
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.TESTING_VITE_STRIPE_PUBLIC_KEY || import.meta.env.TESTING_STRIPE_PUBLISHED_KEY;
 if (!stripePublicKey) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY or TESTING_VITE_STRIPE_PUBLIC_KEY');
+  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY, TESTING_VITE_STRIPE_PUBLIC_KEY, or TESTING_STRIPE_PUBLISHED_KEY');
 }
 const stripePromise = loadStripe(stripePublicKey);
 
