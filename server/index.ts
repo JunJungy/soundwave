@@ -10,6 +10,46 @@ const app = express();
 // Trust proxy - required for secure cookies to work behind Replit's proxy
 app.set('trust proxy', 1);
 
+// Content Security Policy middleware for Stripe Elements
+// In development, use permissive CSP to allow Vite HMR and React
+// In production, use strict CSP
+app.use((_req, res, next) => {
+  const isDevelopment = app.get("env") === "development";
+  
+  if (isDevelopment) {
+    // Permissive CSP for development (Vite needs inline scripts)
+    res.setHeader(
+      'Content-Security-Policy',
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+        "connect-src 'self' ws: wss: https://api.stripe.com",
+        "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+        "img-src 'self' https://*.stripe.com data: blob:",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "worker-src 'self' blob:",
+      ].join('; ')
+    );
+  } else {
+    // Strict CSP for production
+    res.setHeader(
+      'Content-Security-Policy',
+      [
+        "default-src 'self'",
+        "script-src 'self' https://js.stripe.com",
+        "connect-src 'self' https://api.stripe.com",
+        "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+        "img-src 'self' https://*.stripe.com data: blob:",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "worker-src 'self' blob:",
+      ].join('; ')
+    );
+  }
+  next();
+});
+
 declare module 'http' {
   interface IncomingMessage {
     rawBody: unknown
