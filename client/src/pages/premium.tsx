@@ -33,69 +33,112 @@ function PremiumPaymentForm({
   const elements = useElements();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isElementReady, setIsElementReady] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      toast({
+        title: "Payment Error",
+        description: "Payment system is still loading. Please wait a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Double-check that the payment element is mounted
+    if (!isElementReady) {
+      toast({
+        title: "Please Wait",
+        description: "Payment form is still loading. Please try again in a moment.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsProcessing(true);
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/premium`,
-      },
-      redirect: "if_required",
-    });
-
-    if (error) {
-      setIsProcessing(false);
-      toast({
-        title: "Payment Failed",
-        description: error.message,
-        variant: "destructive",
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/premium`,
+        },
+        redirect: "if_required",
       });
-    } else if (paymentIntent && paymentIntent.status === "succeeded") {
-      // Call activation endpoint to verify and activate the feature
-      try {
-        const response = await fetch("/api/premium/activate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
-        });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || "Failed to activate feature");
-        }
-
+      if (error) {
+        setIsProcessing(false);
         toast({
-          title: "Payment Successful!",
-          description: `${featureName} has been activated on your account.`,
-        });
-        onSuccess();
-      } catch (error: any) {
-        toast({
-          title: "Activation Error",
+          title: "Payment Failed",
           description: error.message,
           variant: "destructive",
         });
-      } finally {
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+        // Call activation endpoint to verify and activate the feature
+        try {
+          const response = await fetch("/api/premium/activate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to activate feature");
+          }
+
+          toast({
+            title: "Payment Successful!",
+            description: `${featureName} has been activated on your account.`,
+          });
+          onSuccess();
+        } catch (error: any) {
+          toast({
+            title: "Activation Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        } finally {
+          setIsProcessing(false);
+        }
+      } else {
         setIsProcessing(false);
       }
-    } else {
+    } catch (error: any) {
       setIsProcessing(false);
+      toast({
+        title: "Payment Error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
+      <div className="min-h-[200px]">
+        <PaymentElement 
+          onReady={() => setIsElementReady(true)}
+          onLoadError={(error) => {
+            console.error('PaymentElement load error:', error);
+            toast({
+              title: "Payment Form Error",
+              description: "Failed to load payment form. Please refresh and try again.",
+              variant: "destructive",
+            });
+          }}
+        />
+        {!isElementReady && (
+          <div className="flex items-center justify-center py-8" data-testid="payment-loading">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-sm text-muted-foreground">Loading payment form...</span>
+          </div>
+        )}
+      </div>
       <div className="flex gap-2">
         <Button 
           type="button" 
@@ -109,7 +152,7 @@ function PremiumPaymentForm({
         </Button>
         <Button 
           type="submit" 
-          disabled={!stripe || isProcessing}
+          disabled={!stripe || !isElementReady || isProcessing}
           className="flex-1"
           data-testid="button-submit-payment"
         >
@@ -117,6 +160,11 @@ function PremiumPaymentForm({
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Processing...
+            </>
+          ) : !isElementReady ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Loading...
             </>
           ) : (
             "Complete Payment"
