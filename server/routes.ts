@@ -1736,6 +1736,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.session.userId;
       const bots = await storage.getUserDiscordBots(userId);
+      console.log("=== USER BOTS DEBUG ===");
+      console.log(JSON.stringify(bots, null, 2));
+      console.log("=== END DEBUG ===");
       res.json(bots);
     } catch (error) {
       console.error("Error fetching user bots:", error);
