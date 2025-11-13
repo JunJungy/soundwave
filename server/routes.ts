@@ -1851,22 +1851,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Automatically sync bot profile from Discord
       try {
-        const response = await fetch(`https://discord.com/api/v10/applications/${bot.applicationId}/rpc`, {
+        const userResponse = await fetch(`https://discord.com/api/v10/users/${bot.applicationId}`, {
           headers: {
             'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`
           }
         });
 
-        if (response.ok) {
-          const discordData = await response.json();
-          const avatarUrl = discordData.icon 
-            ? `https://cdn.discordapp.com/app-icons/${bot.applicationId}/${discordData.icon}.png`
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          const avatarUrl = userData.avatar 
+            ? `https://cdn.discordapp.com/avatars/${bot.applicationId}/${userData.avatar}.png`
             : null;
+          
+          const username = userData.discriminator !== "0" 
+            ? `${userData.username}#${userData.discriminator}`
+            : userData.username;
 
           await storage.updateDiscordBot(bot.id, {
-            botName: discordData.name || bot.botName,
-            botAvatar: avatarUrl,
-            description: discordData.description || bot.description
+            botName: userData.username || bot.botName,
+            botUsername: username,
+            botAvatar: avatarUrl
           });
         }
       } catch (syncError) {
