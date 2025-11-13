@@ -481,22 +481,22 @@ export default function AdminPanel() {
       <Tabs defaultValue="applications" className="space-y-6" key="admin-tabs-v2">
         <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap flex-shrink-0">
-            Artist Applications
+            Artist
           </TabsTrigger>
           <TabsTrigger value="bots" data-testid="tab-bots" className="whitespace-nowrap flex-shrink-0">
-            Bot Applications
+            Bots
           </TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap flex-shrink-0">
-            User Management
+            Users
           </TabsTrigger>
           <TabsTrigger value="ipbans" data-testid="tab-ipbans" className="whitespace-nowrap flex-shrink-0">
             IP Bans
           </TabsTrigger>
           <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap flex-shrink-0">
-            Ban Appeals
+            Appeals
           </TabsTrigger>
           <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap flex-shrink-0">
-            System Tools
+            System
           </TabsTrigger>
         </TabsList>
 
