@@ -479,30 +479,24 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-6">
+        <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap flex-shrink-0">
-            <span className="sm:hidden">Applications</span>
-            <span className="hidden sm:inline">Artist Applications</span>
+            Artist Applications
           </TabsTrigger>
           <TabsTrigger value="bots" data-testid="tab-bots" className="whitespace-nowrap flex-shrink-0">
-            <span className="sm:hidden">Bots</span>
-            <span className="hidden sm:inline">Bot Applications</span>
+            Bot Applications
           </TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap flex-shrink-0">
-            <span className="sm:hidden">Users</span>
-            <span className="hidden sm:inline">User Management</span>
+            User Management
           </TabsTrigger>
           <TabsTrigger value="ipbans" data-testid="tab-ipbans" className="whitespace-nowrap flex-shrink-0">
-            <span className="sm:hidden">IP Bans</span>
-            <span className="hidden sm:inline">IP Bans</span>
+            IP Bans
           </TabsTrigger>
           <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap flex-shrink-0">
-            <span className="sm:hidden">Appeals</span>
-            <span className="hidden sm:inline">Ban Appeals</span>
+            Ban Appeals
           </TabsTrigger>
           <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap flex-shrink-0">
-            <span className="sm:hidden">System</span>
-            <span className="hidden sm:inline">System Tools</span>
+            System Tools
           </TabsTrigger>
         </TabsList>
 
