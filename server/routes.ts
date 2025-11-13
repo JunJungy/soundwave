@@ -1931,14 +1931,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to check if user has bot reviewer role in Discord
+  async function hasBotReviewerRole(discordId: string): Promise<boolean> {
+    if (!discordId) return false;
+    
+    const guildId = process.env.DISCORD_GUILD_ID;
+    const reviewerRoleId = process.env.DISCORD_BOT_REVIEWER_ROLE_ID;
+    
+    if (!guildId || !reviewerRoleId) {
+      console.log('[Discord] Missing DISCORD_GUILD_ID or DISCORD_BOT_REVIEWER_ROLE_ID');
+      return false;
+    }
+
+    try {
+      const response = await fetch(
+        `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`,
+        {
+          headers: {
+            'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        console.log(`[Discord] Failed to fetch member: ${response.status}`);
+        return false;
+      }
+
+      const member = await response.json();
+      return member.roles && member.roles.includes(reviewerRoleId);
+    } catch (error) {
+      console.error('[Discord] Error checking bot reviewer role:', error);
+      return false;
+    }
+  }
+
   // Admin: Approve bot
   app.post("/api/admin/bots/:id/approve", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.session.userId;
       const user = await storage.getUser(userId);
       
-      if (!user || user.isAdmin !== 1) {
-        return res.status(403).json({ error: "Admin access required" });
+      if (!user) {
+        return res.status(403).json({ error: "Authentication required" });
+      }
+
+      // Check if user is owner (Jinsoo) or has bot reviewer role
+      const isOwner = user.username === 'Jinsoo';
+      const hasReviewerRole = user.discordId ? await hasBotReviewerRole(user.discordId) : false;
+      
+      if (!isOwner && !hasReviewerRole) {
+        return res.status(403).json({ error: "Bot reviewer role required" });
       }
 
       const bot = await storage.approveDiscordBot(req.params.id, userId);
@@ -1948,8 +1991,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Automatically sync bot profile from Discord
       let updatedBotName = bot.botName;
-      let updatedBotUsername = bot.botUsername;
-      let updatedBotAvatar = bot.botAvatar;
+      let updatedBotUsername: string | undefined = bot.botUsername ?? undefined;
+      let updatedBotAvatar: string | undefined = bot.botAvatar ?? undefined;
 
       try {
         const userResponse = await fetch(`https://discord.com/api/v10/users/${bot.applicationId}`, {
@@ -1976,8 +2019,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Update for notification
           updatedBotName = userData.username || bot.botName;
-          updatedBotUsername = username;
-          updatedBotAvatar = avatarUrl || undefined;
+          updatedBotUsername = username || undefined;
+          updatedBotAvatar = avatarUrl ?? undefined;
         }
       } catch (syncError) {
         console.error("Error syncing bot profile from Discord:", syncError);
@@ -1990,12 +2033,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sendBotApplicationNotification({
             type: 'approved',
             botName: updatedBotName,
-            botUsername: updatedBotUsername,
-            botAvatar: updatedBotAvatar,
+            botUsername: updatedBotUsername ?? undefined,
+            botAvatar: updatedBotAvatar ?? undefined,
             applicationId: bot.applicationId,
             submitterUsername: submitter.username,
             submitterDiscordId: submitter.discordId || undefined,
-            adminUsername: user.username,
+            reviewerUsername: user.username,
+            reviewerDiscordId: user.discordId || undefined,
           }).catch(err => {
             console.error('[Discord] Failed to send bot approval notification:', err);
           });
@@ -2018,8 +2062,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session.userId;
       const user = await storage.getUser(userId);
       
-      if (!user || user.isAdmin !== 1) {
-        return res.status(403).json({ error: "Admin access required" });
+      if (!user) {
+        return res.status(403).json({ error: "Authentication required" });
+      }
+
+      // Check if user is owner (Jinsoo) or has bot reviewer role
+      const isOwner = user.username === 'Jinsoo';
+      const hasReviewerRole = user.discordId ? await hasBotReviewerRole(user.discordId) : false;
+      
+      if (!isOwner && !hasReviewerRole) {
+        return res.status(403).json({ error: "Bot reviewer role required" });
       }
 
       const { reason } = req.body;
@@ -2038,12 +2090,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sendBotApplicationNotification({
             type: 'rejected',
             botName: bot.botName,
-            botUsername: bot.botUsername || undefined,
-            botAvatar: bot.botAvatar || undefined,
+            botUsername: bot.botUsername ?? undefined,
+            botAvatar: bot.botAvatar ?? undefined,
             applicationId: bot.applicationId,
             submitterUsername: submitter.username,
             submitterDiscordId: submitter.discordId || undefined,
-            adminUsername: user.username,
+            reviewerUsername: user.username,
+            reviewerDiscordId: user.discordId || undefined,
             rejectedReason: reason.substring(0, 1024), // Limit to Discord field max
           }).catch(err => {
             console.error('[Discord] Failed to send bot rejection notification:', err);

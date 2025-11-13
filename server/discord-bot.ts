@@ -641,7 +641,8 @@ export async function sendBotApplicationNotification(data: {
   inviteUrl?: string;
   submitterUsername: string;
   submitterDiscordId?: string;
-  adminUsername?: string;
+  reviewerUsername?: string;
+  reviewerDiscordId?: string;
   rejectedReason?: string;
 }) {
   if (!discordClient) {
@@ -697,6 +698,8 @@ export async function sendBotApplicationNotification(data: {
       });
 
     } else if (data.type === 'approved') {
+      const reviewerMention = data.reviewerDiscordId ? `<@${data.reviewerDiscordId}>` : data.reviewerUsername || 'Admin';
+      
       embed = new EmbedBuilder()
         .setColor(0x10B981) // Green for approved
         .setTitle('Bot Application Approved')
@@ -706,7 +709,7 @@ export async function sendBotApplicationNotification(data: {
           { name: 'Bot Username', value: data.botUsername || 'N/A', inline: true },
           { name: 'Application ID', value: `\`${data.applicationId}\``, inline: true },
           { name: 'Submitted By', value: `${userMention} (${data.submitterUsername})`, inline: false },
-          { name: 'Approved By', value: data.adminUsername || 'Admin', inline: false },
+          { name: 'Reviewed By', value: `${reviewerMention} (${data.reviewerUsername || 'Unknown'})`, inline: false },
           { name: 'Status', value: 'Now publicly visible in the bot directory!', inline: false }
         )
         .setTimestamp();
@@ -721,6 +724,8 @@ export async function sendBotApplicationNotification(data: {
       });
 
     } else if (data.type === 'rejected') {
+      const reviewerMention = data.reviewerDiscordId ? `<@${data.reviewerDiscordId}>` : data.reviewerUsername || 'Admin';
+      
       embed = new EmbedBuilder()
         .setColor(0xEF4444) // Red for rejected
         .setTitle('Bot Application Rejected')
@@ -730,7 +735,7 @@ export async function sendBotApplicationNotification(data: {
           { name: 'Bot Username', value: data.botUsername || 'N/A', inline: true },
           { name: 'Application ID', value: `\`${data.applicationId}\``, inline: true },
           { name: 'Submitted By', value: `${userMention} (${data.submitterUsername})`, inline: false },
-          { name: 'Rejected By', value: data.adminUsername || 'Admin', inline: false },
+          { name: 'Reviewed By', value: `${reviewerMention} (${data.reviewerUsername || 'Unknown'})`, inline: false },
           { name: 'Rejection Reason', value: data.rejectedReason || 'No reason provided', inline: false }
         )
         .setTimestamp();
