@@ -233,7 +233,7 @@ export default function BotDashboard() {
           <h2 className="text-2xl font-bold mb-6" data-testid="heading-my-bots">My Bots</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {myBots.map((bot) => (
-                <Card key={bot.id} className="hover-elevate" data-testid={`card-my-bot-${bot.id}`}>
+                <Card key={bot.id} className="hover-elevate h-full flex flex-col" data-testid={`card-my-bot-${bot.id}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -258,18 +258,20 @@ export default function BotDashboard() {
                     {getStatusBadge(bot.status)}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  {bot.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                      {bot.description}
-                    </p>
-                  )}
-                  {bot.status === "rejected" && bot.rejectedReason && (
-                    <div className="mt-3 p-3 bg-destructive/10 rounded-md">
-                      <p className="text-sm font-medium text-destructive">Rejection Reason:</p>
-                      <p className="text-sm text-muted-foreground mt-1">{bot.rejectedReason}</p>
-                    </div>
-                  )}
+                <CardContent className="flex-1 flex flex-col">
+                  <div className="flex-1">
+                    {bot.description && (
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                        {bot.description}
+                      </p>
+                    )}
+                    {bot.status === "rejected" && bot.rejectedReason && (
+                      <div className="mt-3 p-3 bg-destructive/10 rounded-md">
+                        <p className="text-sm font-medium text-destructive">Rejection Reason:</p>
+                        <p className="text-sm text-muted-foreground mt-1">{bot.rejectedReason}</p>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center justify-between gap-2 mt-4">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <ThumbsUp className="w-4 h-4" />
@@ -320,7 +322,7 @@ export default function BotDashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {globalBots.map((bot) => (
-              <Card key={bot.id} className="hover-elevate h-full" data-testid={`card-bot-${bot.id}`}>
+              <Card key={bot.id} className="hover-elevate h-full flex flex-col" data-testid={`card-bot-${bot.id}`}>
                 <CardHeader>
                   <div className="flex items-start gap-3">
                     {bot.botAvatar ? (
@@ -342,39 +344,43 @@ export default function BotDashboard() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  {bot.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                      {bot.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                    <ThumbsUp className="w-4 h-4" />
-                    <span>{bot.votes} votes</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link href={`/bots/${bot.id}`} className="flex-1">
-                      <Button 
-                        size="sm" 
-                        variant="default" 
-                        className="w-full"
-                        data-testid={`button-vote-${bot.id}`}
-                      >
-                        <ThumbsUp className="w-4 h-4 mr-2" />
-                        Vote
-                      </Button>
-                    </Link>
-                    {bot.inviteUrl && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.open(bot.inviteUrl!, "_blank")}
-                        data-testid={`button-add-${bot.id}`}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Add Bot
-                      </Button>
+                <CardContent className="flex-1 flex flex-col">
+                  <div className="flex-1">
+                    {bot.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                        {bot.description}
+                      </p>
                     )}
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <ThumbsUp className="w-4 h-4" />
+                      <span>{bot.votes} votes</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/bots/${bot.id}`} className="flex-1">
+                        <Button 
+                          size="sm" 
+                          variant="default" 
+                          className="w-full"
+                          data-testid={`button-vote-${bot.id}`}
+                        >
+                          <ThumbsUp className="w-4 h-4 mr-2" />
+                          Vote
+                        </Button>
+                      </Link>
+                      {bot.inviteUrl && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(bot.inviteUrl!, "_blank")}
+                          data-testid={`button-add-${bot.id}`}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Add Bot
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
