@@ -325,9 +325,16 @@ export default function BotDashboard() {
                       <p className="text-sm text-muted-foreground mt-1">{bot.rejectedReason}</p>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-                    <ThumbsUp className="w-4 h-4" />
-                    <span>{bot.votes} votes</span>
+                  <div className="flex items-center justify-between gap-2 mt-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <ThumbsUp className="w-4 h-4" />
+                      <span>{bot.votes} votes</span>
+                    </div>
+                    <Link href={`/bots/${bot.id}`}>
+                      <Button size="sm" variant="outline" data-testid={`button-view-${bot.id}`}>
+                        View Details
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
@@ -368,53 +375,59 @@ export default function BotDashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {globalBots.map((bot) => (
-              <Link key={bot.id} href={`/bots/${bot.id}`}>
-                <Card className="hover-elevate cursor-pointer h-full" data-testid={`card-bot-${bot.id}`}>
-                  <CardHeader>
-                    <div className="flex items-start gap-3">
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={bot.botAvatar || undefined} />
-                        <AvatarFallback>
-                          <Bot className="w-6 h-6" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg truncate">{bot.botName}</CardTitle>
-                        {bot.botUsername && (
-                          <p className="text-sm text-muted-foreground truncate">{bot.botUsername}</p>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {bot.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                        {bot.description}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <ThumbsUp className="w-4 h-4" />
-                        <span>{bot.votes} votes</span>
-                      </div>
-                      {bot.inviteUrl && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.open(bot.inviteUrl!, "_blank");
-                          }}
-                          data-testid={`button-invite-${bot.id}`}
-                        >
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          Invite
-                        </Button>
+              <Card key={bot.id} className="hover-elevate h-full" data-testid={`card-bot-${bot.id}`}>
+                <CardHeader>
+                  <div className="flex items-start gap-3">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={bot.botAvatar || undefined} />
+                      <AvatarFallback>
+                        <Bot className="w-6 h-6" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg truncate">{bot.botName}</CardTitle>
+                      {bot.botUsername && (
+                        <p className="text-sm text-muted-foreground truncate">{bot.botUsername}</p>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {bot.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                      {bot.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                    <ThumbsUp className="w-4 h-4" />
+                    <span>{bot.votes} votes</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/bots/${bot.id}`} className="flex-1">
+                      <Button 
+                        size="sm" 
+                        variant="default" 
+                        className="w-full"
+                        data-testid={`button-vote-${bot.id}`}
+                      >
+                        <ThumbsUp className="w-4 h-4 mr-2" />
+                        Vote
+                      </Button>
+                    </Link>
+                    {bot.inviteUrl && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(bot.inviteUrl!, "_blank")}
+                        data-testid={`button-add-${bot.id}`}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Add Bot
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
