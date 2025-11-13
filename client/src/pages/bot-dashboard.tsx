@@ -297,12 +297,17 @@ export default function BotDashboard() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={bot.botAvatar || undefined} />
-                        <AvatarFallback>
+                      {bot.botAvatar ? (
+                        <img 
+                          src={bot.botAvatar} 
+                          alt={bot.botName}
+                          className="w-10 h-10 rounded-full object-cover border border-border"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center border border-border">
                           <Bot className="w-5 h-5" />
-                        </AvatarFallback>
-                      </Avatar>
+                        </div>
+                      )}
                       <div>
                         <CardTitle className="text-lg">{bot.botName}</CardTitle>
                         {bot.botUsername && (
@@ -378,12 +383,17 @@ export default function BotDashboard() {
               <Card key={bot.id} className="hover-elevate h-full" data-testid={`card-bot-${bot.id}`}>
                 <CardHeader>
                   <div className="flex items-start gap-3">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={bot.botAvatar || undefined} />
-                      <AvatarFallback>
+                    {bot.botAvatar ? (
+                      <img 
+                        src={bot.botAvatar} 
+                        alt={bot.botName}
+                        className="w-12 h-12 rounded-full object-cover border border-border shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center border border-border shrink-0">
                         <Bot className="w-6 h-6" />
-                      </AvatarFallback>
-                    </Avatar>
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-lg truncate">{bot.botName}</CardTitle>
                       {bot.botUsername && (

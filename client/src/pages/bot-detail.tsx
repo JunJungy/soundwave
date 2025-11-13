@@ -131,12 +131,17 @@ export default function BotDetail() {
       <Card>
         <CardHeader>
           <div className="flex items-start gap-6">
-            <Avatar className="w-24 h-24">
-              <AvatarImage src={bot.botAvatar || undefined} />
-              <AvatarFallback>
+            {bot.botAvatar ? (
+              <img 
+                src={bot.botAvatar} 
+                alt={bot.botName}
+                className="w-24 h-24 rounded-full object-cover border border-border shrink-0"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center border border-border shrink-0">
                 <Bot className="w-12 h-12" />
-              </AvatarFallback>
-            </Avatar>
+              </div>
+            )}
             <div className="flex-1">
               <div className="flex items-start justify-between mb-2">
                 <div>
