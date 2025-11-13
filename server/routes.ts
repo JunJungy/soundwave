@@ -2123,12 +2123,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Authentication required" });
       }
 
-      // Check if user is owner (Jinsoo) or has bot reviewer role
+      // Check if user is owner (Jinsoo) or admin - bot reviewers cannot delete
       const isOwner = user.username === 'Jinsoo';
-      const hasReviewerRole = user.discordId ? await hasBotReviewerRole(user.discordId) : false;
+      const isAdmin = user.isAdmin === 1;
       
-      if (!isOwner && !hasReviewerRole) {
-        return res.status(403).json({ error: "Bot reviewer role required" });
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
       }
 
       const success = await storage.deleteDiscordBot(req.params.id);
