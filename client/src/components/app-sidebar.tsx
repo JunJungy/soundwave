@@ -1,4 +1,4 @@
-import { Home, Search, Library, Plus, Shield, Music, Users, Settings, Sparkles, ExternalLink } from "lucide-react";
+import { Home, Search, Library, Plus, Shield, Music, Users, Settings, Sparkles, ExternalLink, Bot } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -22,6 +22,7 @@ const navigationItems = [
   { title: "Search", url: "/search", icon: Search, testId: "link-search" },
   { title: "Your Library", url: "/library", icon: Library, testId: "link-library" },
   { title: "Following", url: "/following", icon: Users, testId: "link-following" },
+  { title: "Bot Dashboard", url: "/bots", icon: Bot, testId: "link-bots" },
   { title: "Settings", url: "/settings", icon: Settings, testId: "link-settings" },
 ];
 

@@ -24,8 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw, Ban, Unlock, Network, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
-import type { ArtistApplication, User, BanAppeal, IpBan } from "@shared/schema";
+import { Shield, CheckCircle, XCircle, Clock, ArrowLeft, Users, UserPlus, UserMinus, Trash2, Crown, RefreshCw, Ban, Unlock, Network, MessageSquare, ThumbsUp, ThumbsDown, Bot } from "lucide-react";
+import type { ArtistApplication, User, BanAppeal, IpBan, DiscordBot } from "@shared/schema";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -69,6 +69,11 @@ export default function AdminPanel() {
     enabled: user?.isAdmin === 1,
   });
 
+  const { data: pendingBots = [], isLoading: isLoadingBots } = useQuery<DiscordBot[]>({
+    queryKey: ["/api/admin/bots/pending"],
+    enabled: user?.isAdmin === 1,
+  });
+
   // Debug: Log user data to check lastIpAddress
   console.log("All users data:", allUsers);
 
@@ -105,6 +110,49 @@ export default function AdminPanel() {
       toast({
         title: "Application rejected",
         description: "The applicant has been notified.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to reject",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const approveBotMutation = useMutation({
+    mutationFn: async (botId: string) => {
+      const res = await apiRequest("POST", `/api/admin/bots/${botId}/approve`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bots/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+      toast({
+        title: "Bot approved",
+        description: "The bot is now visible to all users.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to approve",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectBotMutation = useMutation({
+    mutationFn: async ({ botId, reason }: { botId: string; reason: string }) => {
+      const res = await apiRequest("POST", `/api/admin/bots/${botId}/reject`, { reason });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bots/pending"] });
+      toast({
+        title: "Bot rejected",
+        description: "The bot owner has been notified.",
       });
     },
     onError: (error: Error) => {
@@ -431,10 +479,14 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-5">
+        <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-6">
           <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap flex-shrink-0">
             <span className="sm:hidden">Applications</span>
             <span className="hidden sm:inline">Artist Applications</span>
+          </TabsTrigger>
+          <TabsTrigger value="bots" data-testid="tab-bots" className="whitespace-nowrap flex-shrink-0">
+            <span className="sm:hidden">Bots</span>
+            <span className="hidden sm:inline">Bot Applications</span>
           </TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap flex-shrink-0">
             <span className="sm:hidden">Users</span>
@@ -521,6 +573,120 @@ export default function AdminPanel() {
                       >
                         <XCircle className="w-4 h-4 mr-2" />
                         {rejectMutation.isPending ? "Rejecting..." : "Reject"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="bots" className="space-y-4">
+          {pendingBots.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+                <Bot className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No Pending Bot Applications</h3>
+                <p className="text-sm text-muted-foreground">
+                  There are no bot applications waiting for review.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {pendingBots.map((bot) => (
+                <Card key={bot.id} data-testid={`card-bot-${bot.id}`}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        {bot.botAvatar ? (
+                          <img
+                            src={bot.botAvatar}
+                            alt={bot.botName}
+                            className="w-12 h-12 rounded-full"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                            <Bot className="w-6 h-6" />
+                          </div>
+                        )}
+                        <div>
+                          <CardTitle className="text-xl" data-testid="text-bot-name">
+                            {bot.botName}
+                          </CardTitle>
+                          {bot.botUsername && (
+                            <CardDescription data-testid="text-bot-username">
+                              {bot.botUsername}
+                            </CardDescription>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className="bg-yellow-500 text-white" data-testid="badge-status">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Pending
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium mb-1">Application ID</p>
+                      <code className="text-sm text-muted-foreground px-2 py-1 bg-muted rounded" data-testid="text-application-id">
+                        {bot.applicationId}
+                      </code>
+                    </div>
+                    {bot.description && (
+                      <div>
+                        <p className="text-sm font-medium mb-1">Description</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-description">
+                          {bot.description}
+                        </p>
+                      </div>
+                    )}
+                    {bot.inviteUrl && (
+                      <div>
+                        <p className="text-sm font-medium mb-1">Invite URL</p>
+                        <a
+                          href={bot.inviteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline"
+                          data-testid="link-invite-url"
+                        >
+                          {bot.inviteUrl}
+                        </a>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium mb-1">Submitted</p>
+                      <p className="text-sm text-muted-foreground" data-testid="text-created-at">
+                        {new Date(bot.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        onClick={() => approveBotMutation.mutate(bot.id)}
+                        disabled={approveBotMutation.isPending || rejectBotMutation.isPending}
+                        className="flex-1"
+                        data-testid={`button-approve-${bot.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        {approveBotMutation.isPending ? "Approving..." : "Approve"}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          const reason = window.prompt("Enter rejection reason:");
+                          if (reason) {
+                            rejectBotMutation.mutate({ botId: bot.id, reason });
+                          }
+                        }}
+                        disabled={approveBotMutation.isPending || rejectBotMutation.isPending}
+                        className="flex-1"
+                        data-testid={`button-reject-${bot.id}`}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        {rejectBotMutation.isPending ? "Rejecting..." : "Reject"}
                       </Button>
                     </div>
                   </CardContent>

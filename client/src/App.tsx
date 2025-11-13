@@ -31,6 +31,8 @@ import EditArtistProfile from "@/pages/edit-artist-profile";
 import Premium from "@/pages/premium";
 import FollowingPage from "@/pages/following";
 import Settings from "@/pages/settings";
+import BotDashboard from "@/pages/bot-dashboard";
+import BotDetail from "@/pages/bot-detail";
 import Landing from "@/pages/landing";
 import Banned from "@/pages/banned";
 import NotFound from "@/pages/not-found";
@@ -70,6 +72,8 @@ function Router() {
       <Route path="/artist-dashboard" component={ArtistDashboard} />
       <Route path="/edit-artist-profile" component={EditArtistProfile} />
       <Route path="/premium" component={Premium} />
+      <Route path="/bots" component={BotDashboard} />
+      <Route path="/bots/:id" component={BotDetail} />
       <Route path="/banned" component={Banned} />
       <Route component={NotFound} />
     </Switch>
