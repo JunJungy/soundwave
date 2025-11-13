@@ -36,9 +36,6 @@ import type { DiscordBot } from "@shared/schema";
 
 const botSubmissionSchema = z.object({
   applicationId: z.string().min(1, "Application ID is required"),
-  botName: z.string().min(1, "Bot name is required"),
-  botUsername: z.string().optional(),
-  botAvatar: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   description: z.string().max(500, "Description must be 500 characters or less").optional().or(z.literal("")),
   inviteUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
@@ -63,9 +60,6 @@ export default function BotDashboard() {
     resolver: zodResolver(botSubmissionSchema),
     defaultValues: {
       applicationId: "",
-      botName: "",
-      botUsername: "",
-      botAvatar: "",
       description: "",
       inviteUrl: "",
     },
@@ -155,7 +149,7 @@ export default function BotDashboard() {
                   name="applicationId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Application ID *</FormLabel>
+                      <FormLabel>Bot Application ID *</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="123456789012345678" 
@@ -164,61 +158,7 @@ export default function BotDashboard() {
                         />
                       </FormControl>
                       <FormDescription>
-                        Find this in your Discord Developer Portal under "Application ID"
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="botName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bot Name *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="My Awesome Bot" 
-                          {...field}
-                          data-testid="input-bot-name"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="botUsername"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bot Username</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="MyBot#1234" 
-                          {...field}
-                          data-testid="input-bot-username"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="botAvatar"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bot Avatar URL</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="https://cdn.discordapp.com/avatars/..." 
-                          {...field}
-                          data-testid="input-bot-avatar"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Direct URL to your bot's avatar image
+                        Find this in your Discord Developer Portal under "Application ID". We'll automatically fetch your bot's name and avatar from Discord.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -229,17 +169,17 @@ export default function BotDashboard() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Bot Description (optional)</FormLabel>
                       <FormControl>
                         <Textarea 
-                          placeholder="Describe what your bot does..."
+                          placeholder="Tell us about your bot and what it does..."
                           className="resize-none min-h-[100px]"
                           {...field}
                           data-testid="textarea-description"
                         />
                       </FormControl>
                       <FormDescription>
-                        Max 500 characters
+                        Maximum 500 characters
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -250,16 +190,16 @@ export default function BotDashboard() {
                   name="inviteUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Invite URL</FormLabel>
+                      <FormLabel>Bot Invite Link (optional)</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="https://discord.com/api/oauth2/authorize?..." 
+                          placeholder="https://discord.com/oauth2/authorize?client_id=..." 
                           {...field}
                           data-testid="input-invite-url"
                         />
                       </FormControl>
                       <FormDescription>
-                        Your bot's invite link
+                        The OAuth2 URL users will use to add your bot to their server
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

@@ -1691,16 +1691,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bots", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.session.userId;
-      const { applicationId, botName, botUsername, botAvatar, description, inviteUrl } = req.body;
+      const { applicationId, description, inviteUrl } = req.body;
 
-      if (!applicationId || !botName) {
-        return res.status(400).json({ error: "Application ID and bot name are required" });
+      if (!applicationId) {
+        return res.status(400).json({ error: "Application ID is required" });
       }
 
       // Check if bot already exists
       const existingBot = await storage.getDiscordBotByApplicationId(applicationId);
       if (existingBot) {
         return res.status(400).json({ error: "Bot with this Application ID already exists" });
+      }
+
+      // Fetch bot profile from Discord
+      let botName = "Unknown Bot";
+      let botUsername: string | undefined = undefined;
+      let botAvatar: string | undefined = undefined;
+
+      try {
+        const userResponse = await fetch(`https://discord.com/api/v10/users/${applicationId}`, {
+          headers: {
+            'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`
+          }
+        });
+
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          botName = userData.username || "Unknown Bot";
+          botUsername = userData.discriminator !== "0" 
+            ? `${userData.username}#${userData.discriminator}`
+            : userData.username;
+          botAvatar = userData.avatar 
+            ? `https://cdn.discordapp.com/avatars/${applicationId}/${userData.avatar}.png`
+            : undefined;
+        } else {
+          console.error("Failed to fetch bot profile from Discord:", userResponse.status);
+        }
+      } catch (fetchError) {
+        console.error("Error fetching bot profile from Discord:", fetchError);
+        // Continue with default values
       }
 
       const bot = await storage.createDiscordBot({
