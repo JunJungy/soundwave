@@ -478,27 +478,29 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      <Tabs defaultValue="applications" className="space-y-6" key="admin-tabs-v2">
-        <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto">
-          <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap flex-shrink-0">
-            Artist
-          </TabsTrigger>
-          <TabsTrigger value="bots" data-testid="tab-bots" className="whitespace-nowrap flex-shrink-0">
-            Bots
-          </TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap flex-shrink-0">
-            Users
-          </TabsTrigger>
-          <TabsTrigger value="ipbans" data-testid="tab-ipbans" className="whitespace-nowrap flex-shrink-0">
-            IP Bans
-          </TabsTrigger>
-          <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap flex-shrink-0">
-            Appeals
-          </TabsTrigger>
-          <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap flex-shrink-0">
-            System
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="applications" className="space-y-6" key={`admin-tabs-${Date.now()}`}>
+        <div className="overflow-x-auto -mx-4 px-4">
+          <TabsList className="inline-flex h-auto min-w-max">
+            <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap px-4">
+              Artist
+            </TabsTrigger>
+            <TabsTrigger value="bots" data-testid="tab-bots" className="whitespace-nowrap px-4">
+              Bots
+            </TabsTrigger>
+            <TabsTrigger value="users" data-testid="tab-users" className="whitespace-nowrap px-4">
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="ipbans" data-testid="tab-ipbans" className="whitespace-nowrap px-4">
+              IP Bans
+            </TabsTrigger>
+            <TabsTrigger value="appeals" data-testid="tab-appeals" className="whitespace-nowrap px-4">
+              Appeals
+            </TabsTrigger>
+            <TabsTrigger value="system" data-testid="tab-system" className="whitespace-nowrap px-4">
+              System
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="applications" className="space-y-4">
           {applications.length === 0 ? (
