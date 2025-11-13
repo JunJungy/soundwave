@@ -59,6 +59,14 @@ export default function BotDashboard() {
     enabled: !!user,
   });
 
+  // Debug: Log bot data
+  if (myBots.length > 0) {
+    console.log("My Bots Data:", myBots);
+    myBots.forEach(bot => {
+      console.log(`Bot ${bot.botName} avatar:`, bot.botAvatar);
+    });
+  }
+
   const form = useForm<BotSubmission>({
     resolver: zodResolver(botSubmissionSchema),
     defaultValues: {
@@ -297,12 +305,20 @@ export default function BotDashboard() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={bot.botAvatar || undefined} />
-                        <AvatarFallback>
+                      {bot.botAvatar ? (
+                        <img 
+                          src={bot.botAvatar} 
+                          alt={bot.botName}
+                          className="w-10 h-10 rounded-full object-cover"
+                          crossOrigin="anonymous"
+                          onError={(e) => console.error("Image load error:", bot.botName, e)}
+                          onLoad={() => console.log("Image loaded successfully:", bot.botName)}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                           <Bot className="w-5 h-5" />
-                        </AvatarFallback>
-                      </Avatar>
+                        </div>
+                      )}
                       <div>
                         <CardTitle className="text-lg">{bot.botName}</CardTitle>
                         {bot.botUsername && (
@@ -379,7 +395,12 @@ export default function BotDashboard() {
                 <CardHeader>
                   <div className="flex items-start gap-3">
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={bot.botAvatar || undefined} />
+                      <AvatarImage 
+                        src={bot.botAvatar || undefined}
+                        crossOrigin="anonymous"
+                        onError={(e) => console.error("Avatar load error:", bot.botName, e)}
+                        onLoad={() => console.log("Avatar loaded:", bot.botName)}
+                      />
                       <AvatarFallback>
                         <Bot className="w-6 h-6" />
                       </AvatarFallback>
