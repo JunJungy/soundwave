@@ -232,8 +232,10 @@ export default function BotDashboard() {
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-6" data-testid="heading-my-bots">My Bots</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {myBots.map((bot) => (
-              <Card key={bot.id} className="hover-elevate" data-testid={`card-my-bot-${bot.id}`}>
+            {myBots.map((bot) => {
+              console.log("Rendering My Bot:", bot.botName, "Avatar URL:", bot.botAvatar);
+              return (
+                <Card key={bot.id} className="hover-elevate" data-testid={`card-my-bot-${bot.id}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -242,6 +244,8 @@ export default function BotDashboard() {
                           src={bot.botAvatar} 
                           alt={bot.botName}
                           className="w-10 h-10 rounded-full object-cover border border-border"
+                          onLoad={() => console.log("✓ Avatar loaded:", bot.botName)}
+                          onError={(e) => console.error("✗ Avatar failed to load:", bot.botName, bot.botAvatar, e)}
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center border border-border">
@@ -283,7 +287,8 @@ export default function BotDashboard() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
