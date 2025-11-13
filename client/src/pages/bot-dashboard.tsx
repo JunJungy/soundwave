@@ -231,7 +231,7 @@ export default function BotDashboard() {
       {myBots.length > 0 && (
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-6" data-testid="heading-my-bots">My Bots</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {myBots.map((bot) => (
                 <Card key={bot.id} className="hover-elevate" data-testid={`card-my-bot-${bot.id}`}>
                 <CardHeader>
@@ -291,7 +291,7 @@ export default function BotDashboard() {
       <div>
         <h2 className="text-2xl font-bold mb-6" data-testid="heading-global-bots">Discover Bots</h2>
         {botsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[1, 2, 3].map((i) => (
               <Card key={i}>
                 <CardHeader>
@@ -318,7 +318,7 @@ export default function BotDashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {globalBots.map((bot) => (
               <Card key={bot.id} className="hover-elevate h-full" data-testid={`card-bot-${bot.id}`}>
                 <CardHeader>
