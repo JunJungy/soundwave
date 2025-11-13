@@ -1686,6 +1686,203 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Discord Bot Routes
+  // Submit a bot application
+  app.post("/api/bots", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const { applicationId, botName, botUsername, botAvatar, description, inviteUrl } = req.body;
+
+      if (!applicationId || !botName) {
+        return res.status(400).json({ error: "Application ID and bot name are required" });
+      }
+
+      // Check if bot already exists
+      const existingBot = await storage.getDiscordBotByApplicationId(applicationId);
+      if (existingBot) {
+        return res.status(400).json({ error: "Bot with this Application ID already exists" });
+      }
+
+      const bot = await storage.createDiscordBot({
+        userId,
+        applicationId,
+        botName,
+        botUsername,
+        botAvatar,
+        description,
+        inviteUrl,
+      });
+
+      res.json(bot);
+    } catch (error: any) {
+      console.error("Error creating bot:", error);
+      res.status(500).json({ error: error.message || "Failed to create bot" });
+    }
+  });
+
+  // Get all global (approved) bots
+  app.get("/api/bots", async (_req, res) => {
+    try {
+      const bots = await storage.getGlobalDiscordBots();
+      res.json(bots);
+    } catch (error) {
+      console.error("Error fetching bots:", error);
+      res.status(500).json({ error: "Failed to fetch bots" });
+    }
+  });
+
+  // Get user's bots
+  app.get("/api/bots/me", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const bots = await storage.getUserDiscordBots(userId);
+      res.json(bots);
+    } catch (error) {
+      console.error("Error fetching user bots:", error);
+      res.status(500).json({ error: "Failed to fetch user bots" });
+    }
+  });
+
+  // Get single bot by ID
+  app.get("/api/bots/:id", async (req, res) => {
+    try {
+      const bot = await storage.getDiscordBot(req.params.id);
+      if (!bot) {
+        return res.status(404).json({ error: "Bot not found" });
+      }
+      res.json(bot);
+    } catch (error) {
+      console.error("Error fetching bot:", error);
+      res.status(500).json({ error: "Failed to fetch bot" });
+    }
+  });
+
+  // Vote for a bot
+  app.post("/api/bots/:id/vote", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const botId = req.params.id;
+
+      // Check if bot exists
+      const bot = await storage.getDiscordBot(botId);
+      if (!bot) {
+        return res.status(404).json({ error: "Bot not found" });
+      }
+
+      // Check if already voted
+      const hasVoted = await storage.hasUserVoted(userId, botId);
+      if (hasVoted) {
+        return res.status(400).json({ error: "You have already voted for this bot" });
+      }
+
+      await storage.voteBotFor(userId, botId);
+      const updatedBot = await storage.getDiscordBot(botId);
+      res.json(updatedBot);
+    } catch (error: any) {
+      console.error("Error voting for bot:", error);
+      res.status(500).json({ error: error.message || "Failed to vote for bot" });
+    }
+  });
+
+  // Unvote a bot
+  app.delete("/api/bots/:id/vote", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const botId = req.params.id;
+
+      const success = await storage.unvoteBot(userId, botId);
+      if (!success) {
+        return res.status(400).json({ error: "You haven't voted for this bot" });
+      }
+
+      const updatedBot = await storage.getDiscordBot(botId);
+      res.json(updatedBot);
+    } catch (error) {
+      console.error("Error unvoting bot:", error);
+      res.status(500).json({ error: "Failed to unvote bot" });
+    }
+  });
+
+  // Check if user has voted for a bot
+  app.get("/api/bots/:id/has-voted", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const botId = req.params.id;
+      const hasVoted = await storage.hasUserVoted(userId, botId);
+      res.json({ hasVoted });
+    } catch (error) {
+      console.error("Error checking vote status:", error);
+      res.status(500).json({ error: "Failed to check vote status" });
+    }
+  });
+
+  // Admin: Get pending bot applications
+  app.get("/api/admin/bots/pending", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const bots = await storage.getPendingDiscordBots();
+      res.json(bots);
+    } catch (error) {
+      console.error("Error fetching pending bots:", error);
+      res.status(500).json({ error: "Failed to fetch pending bots" });
+    }
+  });
+
+  // Admin: Approve bot
+  app.post("/api/admin/bots/:id/approve", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const bot = await storage.approveDiscordBot(req.params.id, userId);
+      if (!bot) {
+        return res.status(404).json({ error: "Bot not found" });
+      }
+
+      res.json(bot);
+    } catch (error) {
+      console.error("Error approving bot:", error);
+      res.status(500).json({ error: "Failed to approve bot" });
+    }
+  });
+
+  // Admin: Reject bot
+  app.post("/api/admin/bots/:id/reject", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { reason } = req.body;
+      if (!reason) {
+        return res.status(400).json({ error: "Rejection reason is required" });
+      }
+
+      const bot = await storage.rejectDiscordBot(req.params.id, userId, reason);
+      if (!bot) {
+        return res.status(404).json({ error: "Bot not found" });
+      }
+
+      res.json(bot);
+    } catch (error) {
+      console.error("Error rejecting bot:", error);
+      res.status(500).json({ error: "Failed to reject bot" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
