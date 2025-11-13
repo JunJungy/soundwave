@@ -135,6 +135,8 @@ export interface IStorage {
   updateDiscordBot(id: string, updates: Partial<DiscordBot>): Promise<DiscordBot | undefined>;
   approveDiscordBot(id: string, adminId: string): Promise<DiscordBot | undefined>;
   rejectDiscordBot(id: string, adminId: string, reason: string): Promise<DiscordBot | undefined>;
+  deleteDiscordBot(id: string): Promise<boolean>;
+  deleteUserDiscordBots(userId: string): Promise<boolean>;
 
   // Bot Votes
   voteBotFor(userId: string, botId: string): Promise<BotVote>;
@@ -247,6 +249,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(userId: string): Promise<boolean> {
+    // Delete all Discord bots submitted by this user
+    await this.deleteUserDiscordBots(userId);
+    
+    // Delete the user
     const result = await db.delete(users).where(eq(users.id, userId));
     return true;
   }
@@ -811,6 +817,37 @@ export class DatabaseStorage implements IStorage {
       .where(eq(discordBots.id, id))
       .returning();
     return bot;
+  }
+
+  async deleteDiscordBot(id: string): Promise<boolean> {
+    // First check if the bot exists
+    const bot = await this.getDiscordBot(id);
+    if (!bot) {
+      return false;
+    }
+    
+    // Delete all votes for this bot first
+    await db.delete(botVotes).where(eq(botVotes.botId, id));
+    
+    // Delete the bot
+    const result = await db.delete(discordBots).where(eq(discordBots.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteUserDiscordBots(userId: string): Promise<boolean> {
+    // Get all bots for this user
+    const userBots = await this.getUserDiscordBots(userId);
+    
+    if (userBots.length === 0) {
+      return true; // No bots to delete, but not an error
+    }
+    
+    // Delete each bot (which also deletes their votes)
+    for (const bot of userBots) {
+      await this.deleteDiscordBot(bot.id);
+    }
+    
+    return true;
   }
 
   // Bot Votes Management

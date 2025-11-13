@@ -2113,6 +2113,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Delete bot
+  app.delete("/api/admin/bots/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(403).json({ error: "Authentication required" });
+      }
+
+      // Check if user is owner (Jinsoo) or has bot reviewer role
+      const isOwner = user.username === 'Jinsoo';
+      const hasReviewerRole = user.discordId ? await hasBotReviewerRole(user.discordId) : false;
+      
+      if (!isOwner && !hasReviewerRole) {
+        return res.status(403).json({ error: "Bot reviewer role required" });
+      }
+
+      const success = await storage.deleteDiscordBot(req.params.id);
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Bot not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting bot:", error);
+      res.status(500).json({ error: "Failed to delete bot" });
+    }
+  });
+
   // Fetch and update bot information from Discord
   app.post("/api/admin/bots/:id/sync-discord", isAuthenticated, async (req: any, res) => {
     try {
