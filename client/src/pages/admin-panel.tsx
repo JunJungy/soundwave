@@ -478,7 +478,7 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      <Tabs defaultValue="applications" className="space-y-6">
+      <Tabs defaultValue="applications" className="space-y-6" key="admin-tabs-v2">
         <TabsList className="inline-flex h-auto w-full flex-nowrap overflow-x-auto">
           <TabsTrigger value="applications" data-testid="tab-applications" className="whitespace-nowrap flex-shrink-0">
             Artist Applications
