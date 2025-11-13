@@ -133,7 +133,7 @@ export default function BotDetail() {
           <div className="flex items-start gap-6">
             {bot.botAvatar ? (
               <img 
-                src={bot.botAvatar} 
+                src={`/api/proxy/bot-avatar/${bot.id}`}
                 alt={bot.botName}
                 className="w-24 h-24 rounded-full object-cover border border-border shrink-0"
               />

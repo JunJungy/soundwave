@@ -1749,6 +1749,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy Discord bot avatars to bypass CORS
+  app.get("/api/proxy/bot-avatar/:botId", async (req, res) => {
+    try {
+      const botId = req.params.botId;
+      
+      // Fetch bot from database to get the avatar URL
+      const bot = await storage.getDiscordBot(botId);
+      if (!bot || !bot.botAvatar) {
+        return res.status(404).json({ error: "Bot avatar not found" });
+      }
+
+      // Validate that the URL is from Discord CDN only (security)
+      const avatarUrl = bot.botAvatar;
+      if (!avatarUrl.startsWith("https://cdn.discordapp.com/")) {
+        return res.status(400).json({ error: "Invalid avatar URL" });
+      }
+
+      // Fetch the image from Discord CDN
+      const response = await fetch(avatarUrl, {
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
+
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch avatar from Discord" });
+      }
+
+      // Get content type from Discord response
+      const contentType = response.headers.get("content-type") || "image/png";
+      
+      // Set appropriate headers
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
+      res.setHeader("Access-Control-Allow-Origin", "*");
+
+      // Stream the image to the client
+      const buffer = await response.arrayBuffer();
+      res.send(Buffer.from(buffer));
+    } catch (error: any) {
+      console.error("Error proxying bot avatar:", error);
+      res.status(500).json({ error: "Failed to proxy avatar" });
+    }
+  });
+
   // Get all global (approved) bots
   app.get("/api/bots", async (_req, res) => {
     try {
