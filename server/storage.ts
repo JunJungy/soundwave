@@ -9,6 +9,8 @@ import {
   ipBans,
   banAppeals,
   moderationWarnings,
+  discordBots,
+  botVotes,
   type Artist,
   type Album,
   type Song,
@@ -19,6 +21,8 @@ import {
   type IpBan,
   type BanAppeal,
   type ModerationWarning,
+  type DiscordBot,
+  type BotVote,
   type InsertArtist,
   type InsertAlbum,
   type InsertSong,
@@ -29,6 +33,8 @@ import {
   type InsertIpBan,
   type InsertBanAppeal,
   type InsertModerationWarning,
+  type InsertDiscordBot,
+  type InsertBotVote,
 } from "@shared/schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
@@ -118,6 +124,23 @@ export interface IStorage {
   getModerationWarningsByUser(userId: string): Promise<ModerationWarning[]>;
   incrementUserWarnings(userId: string): Promise<User | undefined>;
   markWarningNotified(warningId: string): Promise<ModerationWarning | undefined>;
+
+  // Discord Bots
+  createDiscordBot(bot: InsertDiscordBot): Promise<DiscordBot>;
+  getDiscordBot(id: string): Promise<DiscordBot | undefined>;
+  getDiscordBotByApplicationId(applicationId: string): Promise<DiscordBot | undefined>;
+  getUserDiscordBots(userId: string): Promise<DiscordBot[]>;
+  getGlobalDiscordBots(): Promise<DiscordBot[]>;
+  getPendingDiscordBots(): Promise<DiscordBot[]>;
+  updateDiscordBot(id: string, updates: Partial<DiscordBot>): Promise<DiscordBot | undefined>;
+  approveDiscordBot(id: string, adminId: string): Promise<DiscordBot | undefined>;
+  rejectDiscordBot(id: string, adminId: string, reason: string): Promise<DiscordBot | undefined>;
+
+  // Bot Votes
+  voteBotFor(userId: string, botId: string): Promise<BotVote>;
+  unvoteBot(userId: string, botId: string): Promise<boolean>;
+  hasUserVoted(userId: string, botId: string): Promise<boolean>;
+  getBotVoteCount(botId: string): Promise<number>;
 
   // Seeding
   seedDatabase(): Promise<void>;
@@ -701,6 +724,142 @@ export class DatabaseStorage implements IStorage {
       .where(eq(moderationWarnings.id, warningId))
       .returning();
     return warning;
+  }
+
+  // Discord Bot Management
+  async createDiscordBot(bot: InsertDiscordBot): Promise<DiscordBot> {
+    const [newBot] = await db
+      .insert(discordBots)
+      .values(bot)
+      .returning();
+    return newBot;
+  }
+
+  async getDiscordBot(id: string): Promise<DiscordBot | undefined> {
+    const [bot] = await db
+      .select()
+      .from(discordBots)
+      .where(eq(discordBots.id, id));
+    return bot;
+  }
+
+  async getDiscordBotByApplicationId(applicationId: string): Promise<DiscordBot | undefined> {
+    const [bot] = await db
+      .select()
+      .from(discordBots)
+      .where(eq(discordBots.applicationId, applicationId));
+    return bot;
+  }
+
+  async getUserDiscordBots(userId: string): Promise<DiscordBot[]> {
+    return await db
+      .select()
+      .from(discordBots)
+      .where(eq(discordBots.userId, userId))
+      .orderBy(sql`${discordBots.createdAt} DESC`);
+  }
+
+  async getGlobalDiscordBots(): Promise<DiscordBot[]> {
+    return await db
+      .select()
+      .from(discordBots)
+      .where(eq(discordBots.isGlobal, 1))
+      .orderBy(sql`${discordBots.votes} DESC`);
+  }
+
+  async getPendingDiscordBots(): Promise<DiscordBot[]> {
+    return await db
+      .select()
+      .from(discordBots)
+      .where(eq(discordBots.status, 'pending'))
+      .orderBy(sql`${discordBots.createdAt} ASC`);
+  }
+
+  async updateDiscordBot(id: string, updates: Partial<DiscordBot>): Promise<DiscordBot | undefined> {
+    const [bot] = await db
+      .update(discordBots)
+      .set(updates)
+      .where(eq(discordBots.id, id))
+      .returning();
+    return bot;
+  }
+
+  async approveDiscordBot(id: string, adminId: string): Promise<DiscordBot | undefined> {
+    const [bot] = await db
+      .update(discordBots)
+      .set({
+        status: 'approved',
+        isGlobal: 1,
+        verifiedAt: sql`NOW()`,
+        verifiedBy: adminId,
+      })
+      .where(eq(discordBots.id, id))
+      .returning();
+    return bot;
+  }
+
+  async rejectDiscordBot(id: string, adminId: string, reason: string): Promise<DiscordBot | undefined> {
+    const [bot] = await db
+      .update(discordBots)
+      .set({
+        status: 'rejected',
+        rejectedReason: reason,
+        verifiedAt: sql`NOW()`,
+        verifiedBy: adminId,
+      })
+      .where(eq(discordBots.id, id))
+      .returning();
+    return bot;
+  }
+
+  // Bot Votes Management
+  async voteBotFor(userId: string, botId: string): Promise<BotVote> {
+    const [vote] = await db
+      .insert(botVotes)
+      .values({ userId, botId })
+      .returning();
+    
+    await db
+      .update(discordBots)
+      .set({
+        votes: sql`${discordBots.votes} + 1`,
+      })
+      .where(eq(discordBots.id, botId));
+    
+    return vote;
+  }
+
+  async unvoteBot(userId: string, botId: string): Promise<boolean> {
+    const result = await db
+      .delete(botVotes)
+      .where(and(eq(botVotes.userId, userId), eq(botVotes.botId, botId)));
+    
+    if (result.rowCount && result.rowCount > 0) {
+      await db
+        .update(discordBots)
+        .set({
+          votes: sql`${discordBots.votes} - 1`,
+        })
+        .where(eq(discordBots.id, botId));
+      return true;
+    }
+    return false;
+  }
+
+  async hasUserVoted(userId: string, botId: string): Promise<boolean> {
+    const [vote] = await db
+      .select()
+      .from(botVotes)
+      .where(and(eq(botVotes.userId, userId), eq(botVotes.botId, botId)));
+    return !!vote;
+  }
+
+  async getBotVoteCount(botId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(botVotes)
+      .where(eq(botVotes.botId, botId));
+    return result?.count || 0;
   }
 
   // Seed database with initial data (now empty - artists must upload their own songs)
