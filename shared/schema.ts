@@ -171,6 +171,31 @@ export const moderationWarnings = pgTable("moderation_warnings", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const discordBots = pgTable("discord_bots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(), // Owner of the bot
+  applicationId: varchar("application_id").notNull().unique(), // Discord Application ID
+  botName: text("bot_name").notNull(), // Bot's name from Discord
+  botUsername: varchar("bot_username"), // Bot's username (e.g., BotName#1234)
+  botAvatar: text("bot_avatar"), // Bot's avatar URL
+  description: text("description"), // Bot description submitted by user
+  inviteUrl: text("invite_url"), // Bot invite link
+  status: text("status").default("pending").notNull(), // pending/approved/rejected
+  isGlobal: integer("is_global").default(0).notNull(), // 1 = visible to all users, 0 = only owner
+  votes: integer("votes").default(0).notNull(), // Total vote count
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  verifiedAt: timestamp("verified_at"), // When bot was verified
+  verifiedBy: varchar("verified_by"), // Admin user ID who verified
+  rejectedReason: text("rejected_reason"), // Reason for rejection if rejected
+});
+
+export const botVotes = pgTable("bot_votes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  botId: varchar("bot_id").notNull(), // Which bot was voted for
+  userId: varchar("user_id").notNull(), // Who voted
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertArtistSchema = createInsertSchema(artists).omit({ id: true, verified: true, streams: true, verificationStatus: true, approvedAt: true });
 export const updateArtistProfileSchema = z.object({
   imageUrl: z.string().optional().or(z.literal("")),
@@ -207,6 +232,20 @@ export const insertModerationWarningSchema = createInsertSchema(moderationWarnin
   id: true, 
   createdAt: true 
 });
+export const insertDiscordBotSchema = createInsertSchema(discordBots).omit({ 
+  id: true, 
+  createdAt: true, 
+  status: true, 
+  isGlobal: true,
+  votes: true,
+  verifiedAt: true, 
+  verifiedBy: true,
+  rejectedReason: true
+});
+export const insertBotVoteSchema = createInsertSchema(botVotes).omit({ 
+  id: true, 
+  createdAt: true 
+});
 
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
 export type UpdateArtistProfile = z.infer<typeof updateArtistProfileSchema>;
@@ -228,3 +267,7 @@ export type IpBan = typeof ipBans.$inferSelect;
 export type BanAppeal = typeof banAppeals.$inferSelect;
 export type ModerationWarning = typeof moderationWarnings.$inferSelect;
 export type InsertModerationWarning = z.infer<typeof insertModerationWarningSchema>;
+export type DiscordBot = typeof discordBots.$inferSelect;
+export type InsertDiscordBot = z.infer<typeof insertDiscordBotSchema>;
+export type BotVote = typeof botVotes.$inferSelect;
+export type InsertBotVote = z.infer<typeof insertBotVoteSchema>;
