@@ -30,7 +30,7 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Stream Tracking**: Counts streams for songs and artists.
 - **Follow Artists**: Users can follow/unfollow artists and view follower counts.
 - **Personal Playlists**: Users can create, manage, and edit private playlists.
-- **Discord Integration**: Users can create accounts via Discord, link existing accounts, and manage Discord binding via a settings page. A ban appeals system is integrated, allowing users to submit appeals which are reviewed in the admin panel with email notifications. Discord bot dashboard allows users to submit bots for admin verification, and approved bots are displayed publicly with voting functionality.
+- **Discord Integration**: Users can create accounts via Discord, link existing accounts, and manage Discord binding via a settings page. A ban appeals system is integrated, allowing users to submit appeals which are reviewed in the admin panel with email notifications. Discord bot dashboard allows users to submit bots for admin verification, and approved bots are displayed publicly with a 24-hour voting cooldown system (users can vote once every 24 hours, each vote counts).
 
 ### Feature Specifications
 - **User Management**: Secure registration, login, session management, and admin-level user/ban control.

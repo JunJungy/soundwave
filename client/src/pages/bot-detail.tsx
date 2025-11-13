@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,35 +10,69 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Bot, ThumbsUp, ExternalLink, ArrowLeft, Calendar, User } from "lucide-react";
+import { Bot, ThumbsUp, ExternalLink, ArrowLeft, Calendar, User, Clock } from "lucide-react";
 import { Link } from "wouter";
 import type { DiscordBot } from "@shared/schema";
+
+function formatTimeRemaining(nextVoteAt: string): string {
+  const now = new Date().getTime();
+  const next = new Date(nextVoteAt).getTime();
+  const diff = next - now;
+  
+  if (diff <= 0) return "Now!";
+  
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
 
 export default function BotDetail() {
   const [, params] = useRoute("/bots/:id");
   const botId = params?.id;
   const { user } = useAuth();
   const { toast } = useToast();
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
 
   const { data: bot, isLoading: botLoading } = useQuery<DiscordBot>({
     queryKey: ["/api/bots", botId],
     enabled: !!botId,
   });
 
-  const { data: voteData } = useQuery<{ hasVoted: boolean }>({
-    queryKey: ["/api/bots", botId, "has-voted"],
+  const { data: voteData } = useQuery<{ hasVoted: boolean; canVote: boolean; nextVoteAt: string | null }>({
+    queryKey: ["/api/bots", botId, "vote-status"],
     enabled: !!botId && !!user,
+    refetchInterval: 10000, // Refetch every 10 seconds to update countdown
   });
+
+  // Update countdown timer
+  useEffect(() => {
+    if (!voteData?.nextVoteAt) {
+      setTimeRemaining(null);
+      return;
+    }
+
+    const updateTimer = () => {
+      setTimeRemaining(formatTimeRemaining(voteData.nextVoteAt!));
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [voteData?.nextVoteAt]);
 
   const voteMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/bots/${botId}/vote`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/bots", botId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/bots", botId, "has-voted"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots", botId, "vote-status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
       toast({
         title: "Voted!",
-        description: "Your vote has been counted.",
+        description: "Your vote has been counted. You can vote again in 24 hours.",
       });
     },
     onError: (error: any) => {
@@ -50,32 +84,8 @@ export default function BotDetail() {
     },
   });
 
-  const unvoteMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", `/api/bots/${botId}/vote`, {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bots", botId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/bots", botId, "has-voted"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
-      toast({
-        title: "Vote Removed",
-        description: "Your vote has been removed.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Unvote Failed",
-        description: error.message || "Failed to remove vote. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleVote = () => {
-    if (voteData?.hasVoted) {
-      unvoteMutation.mutate();
-    } else {
-      voteMutation.mutate();
-    }
+    voteMutation.mutate();
   };
 
   if (botLoading) {
@@ -154,16 +164,24 @@ export default function BotDetail() {
                     </p>
                   )}
                 </div>
-                <Button
-                  size="lg"
-                  onClick={handleVote}
-                  disabled={voteMutation.isPending || unvoteMutation.isPending || !user}
-                  variant={voteData?.hasVoted ? "default" : "outline"}
-                  data-testid="button-vote"
-                >
-                  <ThumbsUp className={`w-5 h-5 mr-2 ${voteData?.hasVoted ? "fill-current" : ""}`} />
-                  {voteData?.hasVoted ? "Voted" : "Vote"}
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    size="lg"
+                    onClick={handleVote}
+                    disabled={voteMutation.isPending || !user || !voteData?.canVote}
+                    variant={voteData?.hasVoted ? "default" : "outline"}
+                    data-testid="button-vote"
+                  >
+                    <ThumbsUp className={`w-5 h-5 mr-2 ${voteData?.hasVoted ? "fill-current" : ""}`} />
+                    {voteMutation.isPending ? "Voting..." : "Vote"}
+                  </Button>
+                  {timeRemaining && voteData?.hasVoted && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>Next vote in {timeRemaining}</span>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground mt-4">
                 <div className="flex items-center gap-2">

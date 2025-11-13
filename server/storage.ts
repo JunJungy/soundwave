@@ -138,7 +138,8 @@ export interface IStorage {
 
   // Bot Votes
   voteBotFor(userId: string, botId: string): Promise<BotVote>;
-  unvoteBot(userId: string, botId: string): Promise<boolean>;
+  getLastVoteForBot(userId: string, botId: string): Promise<BotVote | undefined>;
+  canUserVoteForBot(userId: string, botId: string): Promise<{ canVote: boolean; nextVoteAt?: Date }>;
   hasUserVoted(userId: string, botId: string): Promise<boolean>;
   getBotVoteCount(botId: string): Promise<number>;
 
@@ -829,21 +830,34 @@ export class DatabaseStorage implements IStorage {
     return vote;
   }
 
-  async unvoteBot(userId: string, botId: string): Promise<boolean> {
-    const result = await db
-      .delete(botVotes)
-      .where(and(eq(botVotes.userId, userId), eq(botVotes.botId, botId)));
+  async getLastVoteForBot(userId: string, botId: string): Promise<BotVote | undefined> {
+    const [vote] = await db
+      .select()
+      .from(botVotes)
+      .where(and(eq(botVotes.userId, userId), eq(botVotes.botId, botId)))
+      .orderBy(sql`${botVotes.createdAt} DESC`)
+      .limit(1);
+    return vote;
+  }
+
+  async canUserVoteForBot(userId: string, botId: string): Promise<{ canVote: boolean; nextVoteAt?: Date }> {
+    const lastVote = await this.getLastVoteForBot(userId, botId);
     
-    if (result.rowCount && result.rowCount > 0) {
-      await db
-        .update(discordBots)
-        .set({
-          votes: sql`${discordBots.votes} - 1`,
-        })
-        .where(eq(discordBots.id, botId));
-      return true;
+    if (!lastVote) {
+      return { canVote: true };
     }
-    return false;
+
+    const now = new Date();
+    const lastVoteTime = new Date(lastVote.createdAt);
+    const timeSinceLastVote = now.getTime() - lastVoteTime.getTime();
+    const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    if (timeSinceLastVote >= twentyFourHours) {
+      return { canVote: true };
+    }
+
+    const nextVoteAt = new Date(lastVoteTime.getTime() + twentyFourHours);
+    return { canVote: false, nextVoteAt };
   }
 
   async hasUserVoted(userId: string, botId: string): Promise<boolean> {

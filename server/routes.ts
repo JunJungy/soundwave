@@ -1829,7 +1829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vote for a bot
+  // Vote for a bot (with 24-hour cooldown)
   app.post("/api/bots/:id/vote", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.session.userId;
@@ -1841,10 +1841,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Bot not found" });
       }
 
-      // Check if already voted
-      const hasVoted = await storage.hasUserVoted(userId, botId);
-      if (hasVoted) {
-        return res.status(400).json({ error: "You have already voted for this bot" });
+      // Check if user can vote (24-hour cooldown)
+      const voteCheck = await storage.canUserVoteForBot(userId, botId);
+      if (!voteCheck.canVote) {
+        return res.status(400).json({ 
+          error: "You can vote again in 24 hours",
+          nextVoteAt: voteCheck.nextVoteAt 
+        });
       }
 
       await storage.voteBotFor(userId, botId);
@@ -1856,26 +1859,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Unvote a bot
-  app.delete("/api/bots/:id/vote", isAuthenticated, async (req: any, res) => {
+  // Get vote status for a bot (includes cooldown info)
+  app.get("/api/bots/:id/vote-status", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.session.userId;
       const botId = req.params.id;
 
-      const success = await storage.unvoteBot(userId, botId);
-      if (!success) {
-        return res.status(400).json({ error: "You haven't voted for this bot" });
-      }
-
-      const updatedBot = await storage.getDiscordBot(botId);
-      res.json(updatedBot);
+      const voteCheck = await storage.canUserVoteForBot(userId, botId);
+      const hasVoted = await storage.hasUserVoted(userId, botId);
+      
+      res.json({
+        hasVoted,
+        canVote: voteCheck.canVote,
+        nextVoteAt: voteCheck.nextVoteAt || null
+      });
     } catch (error) {
-      console.error("Error unvoting bot:", error);
-      res.status(500).json({ error: "Failed to unvote bot" });
+      console.error("Error checking vote status:", error);
+      res.status(500).json({ error: "Failed to check vote status" });
     }
   });
 
-  // Check if user has voted for a bot
+  // Check if user has voted for a bot (legacy endpoint)
   app.get("/api/bots/:id/has-voted", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.session.userId;
