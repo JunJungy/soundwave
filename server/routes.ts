@@ -1849,7 +1849,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Bot not found" });
       }
 
-      res.json(bot);
+      // Automatically sync bot profile from Discord
+      try {
+        const response = await fetch(`https://discord.com/api/v10/applications/${bot.applicationId}/rpc`, {
+          headers: {
+            'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`
+          }
+        });
+
+        if (response.ok) {
+          const discordData = await response.json();
+          const avatarUrl = discordData.icon 
+            ? `https://cdn.discordapp.com/app-icons/${bot.applicationId}/${discordData.icon}.png`
+            : null;
+
+          await storage.updateDiscordBot(bot.id, {
+            botName: discordData.name || bot.botName,
+            botAvatar: avatarUrl,
+            description: discordData.description || bot.description
+          });
+        }
+      } catch (syncError) {
+        console.error("Error syncing bot profile from Discord:", syncError);
+        // Continue even if sync fails
+      }
+
+      const updatedBot = await storage.getDiscordBot(bot.id);
+      res.json(updatedBot || bot);
     } catch (error) {
       console.error("Error approving bot:", error);
       res.status(500).json({ error: "Failed to approve bot" });
@@ -1880,6 +1906,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error rejecting bot:", error);
       res.status(500).json({ error: "Failed to reject bot" });
+    }
+  });
+
+  // Fetch and update bot information from Discord
+  app.post("/api/admin/bots/:id/sync-discord", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const bot = await storage.getDiscordBot(req.params.id);
+      if (!bot) {
+        return res.status(404).json({ error: "Bot not found" });
+      }
+
+      // Fetch bot information from Discord API
+      const response = await fetch(`https://discord.com/api/v10/applications/${bot.applicationId}/rpc`, {
+        headers: {
+          'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`
+        }
+      });
+
+      if (!response.ok) {
+        return res.status(400).json({ error: "Failed to fetch bot information from Discord" });
+      }
+
+      const discordData = await response.json();
+      
+      // Update bot with Discord information
+      const avatarUrl = discordData.icon 
+        ? `https://cdn.discordapp.com/app-icons/${bot.applicationId}/${discordData.icon}.png`
+        : null;
+
+      await storage.updateDiscordBot(bot.id, {
+        botName: discordData.name || bot.botName,
+        botAvatar: avatarUrl,
+        description: discordData.description || bot.description
+      });
+
+      const updatedBot = await storage.getDiscordBot(bot.id);
+      res.json(updatedBot);
+    } catch (error) {
+      console.error("Error syncing bot with Discord:", error);
+      res.status(500).json({ error: "Failed to sync bot information" });
     }
   });
 

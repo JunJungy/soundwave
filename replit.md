@@ -26,11 +26,11 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Music Player**: Global state via React Context, HTML5 audio, full controls, queue management, now playing display, and timestamped lyrics with multi-language support and real-time highlighting. Lyrics can be auto-timed or manually entered. Includes ad insertion system that plays 15-second placeholder ads between songs for non-premium users.
 - **File Storage**: Replit Object Storage with presigned URLs for secure uploads of audio files (MP3, WAV, OGG, M4A) and square album artwork, with custom ACL for protected access. Includes song deletion with full cleanup. Uses Sharp library to automatically watermark album artwork with Soundwave logo for non-premium users.
 - **Artist System**: Two-step verification (admin approval, then 1-hour automatic verification), upload blocking, dedicated dashboard for profile editing and song uploads. Songs can have scheduled release dates and optional payment-gated promotion.
-- **Admin Panel**: Manages artist applications, user roles, user accounts, ban appeals, and IP/user bans.
+- **Admin Panel**: Manages artist applications, Discord bot applications, user roles, user accounts, ban appeals, and IP/user bans. Includes bot approval workflow with Discord API integration to fetch bot profiles.
 - **Stream Tracking**: Counts streams for songs and artists.
 - **Follow Artists**: Users can follow/unfollow artists and view follower counts.
 - **Personal Playlists**: Users can create, manage, and edit private playlists.
-- **Discord Integration**: Users can create accounts via Discord, link existing accounts, and manage Discord binding via a settings page. A ban appeals system is integrated, allowing users to submit appeals which are reviewed in the admin panel with email notifications.
+- **Discord Integration**: Users can create accounts via Discord, link existing accounts, and manage Discord binding via a settings page. A ban appeals system is integrated, allowing users to submit appeals which are reviewed in the admin panel with email notifications. Discord bot dashboard allows users to submit bots for admin verification, and approved bots are displayed publicly with voting functionality.
 
 ### Feature Specifications
 - **User Management**: Secure registration, login, session management, and admin-level user/ban control.
@@ -40,6 +40,7 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **User Premium Features**: Account-level upgrades accessible from sidebar Premium link. Two tiers: Remove Watermark ($5) removes Soundwave logo from uploaded album artwork, Ad-Free Music ($10) removes advertisements between songs. Uses Stripe payment intents with instant activation.
 - **Monetization Features**: Payment-gated song promotion with visual indicators (Featured badge for global promotion, Multi-Platform badge for distribution). Premium user badges display active features.
 - **Expandable Music Player**: Spotify-style mini and full-screen player views.
+- **Discord Bot Dashboard**: Public-facing bot directory where users can submit their Discord bots for review. Admins approve/reject submissions in the admin panel. Approved bots appear on `/bots` page with voting system. Owner's VOID bot is pre-approved and featured.
 
 ## External Dependencies
 - **Database**: PostgreSQL
