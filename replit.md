@@ -30,7 +30,7 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **Stream Tracking**: Counts streams for songs and artists.
 - **Follow Artists**: Users can follow/unfollow artists and view follower counts.
 - **Personal Playlists**: Users can create, manage, and edit private playlists.
-- **Discord Integration**: Users can create accounts via Discord, link existing accounts, and manage Discord binding via a settings page. A ban appeals system is integrated, allowing users to submit appeals which are reviewed in the admin panel with email notifications. Discord bot dashboard allows users to submit bots for admin verification, and approved bots are displayed publicly with a 24-hour voting cooldown system (users can vote once every 24 hours, each vote counts).
+- **Discord Integration**: Users can create accounts via Discord, link existing accounts, and manage Discord binding via a settings page. A ban appeals system is integrated, allowing users to submit appeals which are reviewed in the admin panel with email notifications. Discord bot dashboard allows users to submit bots for admin verification, and approved bots are displayed publicly with a 24-hour voting cooldown system (users can vote once every 24 hours, each vote counts). All bot application events (submission, approval, rejection) trigger Discord channel notifications with detailed information and user pings.
 
 ### Feature Specifications
 - **User Management**: Secure registration, login, session management, and admin-level user/ban control.
@@ -40,7 +40,7 @@ I prefer that the agent focuses on iterative development, delivering functional,
 - **User Premium Features**: Account-level upgrades accessible from sidebar Premium link. Two tiers: Remove Watermark ($5) removes Soundwave logo from uploaded album artwork, Ad-Free Music ($10) removes advertisements between songs. Uses Stripe payment intents with instant activation.
 - **Monetization Features**: Payment-gated song promotion with visual indicators (Featured badge for global promotion, Multi-Platform badge for distribution). Premium user badges display active features.
 - **Expandable Music Player**: Spotify-style mini and full-screen player views.
-- **Discord Bot Dashboard**: Public-facing bot directory where users can submit their Discord bots for review. Admins approve/reject submissions in the admin panel. Approved bots appear on `/bots` page with voting system. Owner's VOID bot is pre-approved and featured.
+- **Discord Bot Dashboard**: Public-facing bot directory where users can submit their Discord bots for review. Admins approve/reject submissions in the admin panel. Approved bots appear on `/bots` page with voting system. Owner's VOID bot is pre-approved and featured. All bot application events send rich Discord embeds to a dedicated channel (`DISCORD_BOT_APPS_CHANNEL_ID`) with bot details, submitter pings, and admin actions.
 
 ## External Dependencies
 - **Database**: PostgreSQL

@@ -630,6 +630,127 @@ export async function sendBanNotification(data: {
 }
 
 // Export function to send moderation warnings to users via DM
+// Bot application notification
+export async function sendBotApplicationNotification(data: {
+  type: 'submitted' | 'approved' | 'rejected';
+  botName: string;
+  botUsername?: string;
+  botAvatar?: string;
+  applicationId: string;
+  description?: string;
+  inviteUrl?: string;
+  submitterUsername: string;
+  submitterDiscordId?: string;
+  adminUsername?: string;
+  rejectedReason?: string;
+}) {
+  if (!discordClient) {
+    console.log('[Discord] Bot not initialized, skipping bot application notification');
+    return;
+  }
+
+  const channelId = process.env.DISCORD_BOT_APPS_CHANNEL_ID;
+  
+  if (!channelId) {
+    console.log('[Discord] DISCORD_BOT_APPS_CHANNEL_ID not set, skipping bot application notification');
+    return;
+  }
+
+  try {
+    const channel = await discordClient.channels.fetch(channelId);
+    
+    if (!channel || !channel.isTextBased()) {
+      console.error('[Discord] Invalid bot applications channel');
+      return;
+    }
+
+    if (!('send' in channel)) {
+      console.error('[Discord] Channel does not support sending messages');
+      return;
+    }
+
+    let embed: EmbedBuilder;
+    let userMention = data.submitterDiscordId ? `<@${data.submitterDiscordId}>` : data.submitterUsername;
+
+    if (data.type === 'submitted') {
+      embed = new EmbedBuilder()
+        .setColor(0xFBBF24) // Yellow for pending
+        .setTitle('New Bot Application')
+        .setDescription(`A new bot has been submitted for verification!`)
+        .addFields(
+          { name: 'Bot Name', value: data.botName, inline: true },
+          { name: 'Bot Username', value: data.botUsername || 'N/A', inline: true },
+          { name: 'Application ID', value: `\`${data.applicationId}\``, inline: true },
+          { name: 'Submitted By', value: `${userMention} (${data.submitterUsername})`, inline: false },
+          { name: 'Description', value: data.description || 'No description provided', inline: false },
+          { name: 'Invite URL', value: data.inviteUrl || 'Not provided', inline: false }
+        )
+        .setTimestamp();
+
+      if (data.botAvatar) {
+        embed.setThumbnail(data.botAvatar);
+      }
+
+      await channel.send({
+        content: `${userMention} submitted a new bot application! Awaiting admin verification.`,
+        embeds: [embed]
+      });
+
+    } else if (data.type === 'approved') {
+      embed = new EmbedBuilder()
+        .setColor(0x10B981) // Green for approved
+        .setTitle('Bot Application Approved')
+        .setDescription(`**${data.botName}** has been approved!`)
+        .addFields(
+          { name: 'Bot Name', value: data.botName, inline: true },
+          { name: 'Bot Username', value: data.botUsername || 'N/A', inline: true },
+          { name: 'Application ID', value: `\`${data.applicationId}\``, inline: true },
+          { name: 'Submitted By', value: `${userMention} (${data.submitterUsername})`, inline: false },
+          { name: 'Approved By', value: data.adminUsername || 'Admin', inline: false },
+          { name: 'Status', value: 'Now publicly visible in the bot directory!', inline: false }
+        )
+        .setTimestamp();
+
+      if (data.botAvatar) {
+        embed.setThumbnail(data.botAvatar);
+      }
+
+      await channel.send({
+        content: `${userMention} Your bot **${data.botName}** has been approved and is now live!`,
+        embeds: [embed]
+      });
+
+    } else if (data.type === 'rejected') {
+      embed = new EmbedBuilder()
+        .setColor(0xEF4444) // Red for rejected
+        .setTitle('Bot Application Rejected')
+        .setDescription(`**${data.botName}** has been rejected.`)
+        .addFields(
+          { name: 'Bot Name', value: data.botName, inline: true },
+          { name: 'Bot Username', value: data.botUsername || 'N/A', inline: true },
+          { name: 'Application ID', value: `\`${data.applicationId}\``, inline: true },
+          { name: 'Submitted By', value: `${userMention} (${data.submitterUsername})`, inline: false },
+          { name: 'Rejected By', value: data.adminUsername || 'Admin', inline: false },
+          { name: 'Rejection Reason', value: data.rejectedReason || 'No reason provided', inline: false }
+        )
+        .setTimestamp();
+
+      if (data.botAvatar) {
+        embed.setThumbnail(data.botAvatar);
+      }
+
+      await channel.send({
+        content: `${userMention} Your bot application for **${data.botName}** has been rejected.`,
+        embeds: [embed]
+      });
+    }
+
+    console.log(`[Discord] Bot application notification sent: ${data.type} for ${data.botName}`);
+  } catch (error) {
+    console.error('[Discord] Error sending bot application notification:', error);
+  }
+}
+
 export async function sendModerationWarning(data: {
   userId?: string;
   discordId?: string;

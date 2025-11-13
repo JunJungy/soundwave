@@ -7,7 +7,7 @@ import { setupSession, isAuthenticated, checkIpBan, checkUserBan, getClientIp } 
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import Stripe from "stripe";
-import { sendBanNotification, sendModerationWarning } from "./discord-bot";
+import { sendBanNotification, sendModerationWarning, sendBotApplicationNotification } from "./discord-bot";
 import { WatermarkService } from "./watermark";
 import { moderateImage, moderateUsername } from "./moderation";
 
@@ -1742,6 +1742,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         inviteUrl,
       });
 
+      // Send Discord notification (non-blocking)
+      storage.getUser(userId).then(submitter => {
+        if (submitter) {
+          sendBotApplicationNotification({
+            type: 'submitted',
+            botName,
+            botUsername,
+            botAvatar,
+            applicationId,
+            description: description ? description.substring(0, 1000) : undefined,
+            inviteUrl: inviteUrl ? inviteUrl.substring(0, 1024) : undefined,
+            submitterUsername: submitter.username,
+            submitterDiscordId: submitter.discordId || undefined,
+          }).catch(err => {
+            console.error('[Discord] Failed to send bot submission notification:', err);
+          });
+        }
+      }).catch(err => {
+        console.error('[Discord] Failed to fetch submitter for notification:', err);
+      });
+
       res.json(bot);
     } catch (error: any) {
       console.error("Error creating bot:", error);
@@ -1926,6 +1947,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Automatically sync bot profile from Discord
+      let updatedBotName = bot.botName;
+      let updatedBotUsername = bot.botUsername;
+      let updatedBotAvatar = bot.botAvatar;
+
       try {
         const userResponse = await fetch(`https://discord.com/api/v10/users/${bot.applicationId}`, {
           headers: {
@@ -1948,11 +1973,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             botUsername: username,
             botAvatar: avatarUrl
           });
+
+          // Update for notification
+          updatedBotName = userData.username || bot.botName;
+          updatedBotUsername = username;
+          updatedBotAvatar = avatarUrl || undefined;
         }
       } catch (syncError) {
         console.error("Error syncing bot profile from Discord:", syncError);
         // Continue even if sync fails
       }
+
+      // Send Discord notification (non-blocking)
+      storage.getUser(bot.userId).then(submitter => {
+        if (submitter) {
+          sendBotApplicationNotification({
+            type: 'approved',
+            botName: updatedBotName,
+            botUsername: updatedBotUsername,
+            botAvatar: updatedBotAvatar,
+            applicationId: bot.applicationId,
+            submitterUsername: submitter.username,
+            submitterDiscordId: submitter.discordId || undefined,
+            adminUsername: user.username,
+          }).catch(err => {
+            console.error('[Discord] Failed to send bot approval notification:', err);
+          });
+        }
+      }).catch(err => {
+        console.error('[Discord] Failed to fetch submitter for notification:', err);
+      });
 
       const updatedBot = await storage.getDiscordBot(bot.id);
       res.json(updatedBot || bot);
@@ -1981,6 +2031,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!bot) {
         return res.status(404).json({ error: "Bot not found" });
       }
+
+      // Send Discord notification (non-blocking)
+      storage.getUser(bot.userId).then(submitter => {
+        if (submitter) {
+          sendBotApplicationNotification({
+            type: 'rejected',
+            botName: bot.botName,
+            botUsername: bot.botUsername || undefined,
+            botAvatar: bot.botAvatar || undefined,
+            applicationId: bot.applicationId,
+            submitterUsername: submitter.username,
+            submitterDiscordId: submitter.discordId || undefined,
+            adminUsername: user.username,
+            rejectedReason: reason.substring(0, 1024), // Limit to Discord field max
+          }).catch(err => {
+            console.error('[Discord] Failed to send bot rejection notification:', err);
+          });
+        }
+      }).catch(err => {
+        console.error('[Discord] Failed to fetch submitter for notification:', err);
+      });
 
       res.json(bot);
     } catch (error) {
